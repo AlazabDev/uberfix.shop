@@ -5333,6 +5333,7 @@ export type Database = {
           specialization: string
           standard_rate: number | null
           status: string | null
+          technician_number: string | null
           technician_profile_id: string | null
           total_reviews: number | null
           updated_at: string | null
@@ -5375,6 +5376,7 @@ export type Database = {
           specialization: string
           standard_rate?: number | null
           status?: string | null
+          technician_number?: string | null
           technician_profile_id?: string | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -5417,6 +5419,7 @@ export type Database = {
           specialization?: string
           standard_rate?: number | null
           status?: string | null
+          technician_number?: string | null
           technician_profile_id?: string | null
           total_reviews?: number | null
           updated_at?: string | null
@@ -7439,7 +7442,6 @@ export type Database = {
           vendor_name: string
         }[]
       }
-      generate_invoice_number: { Args: never; Returns: string }
       get_appointment_contact_info: {
         Args: { appointment_id: string }
         Returns: {
