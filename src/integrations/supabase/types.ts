@@ -1769,6 +1769,7 @@ export type Database = {
           priority: string | null
           property_id: string | null
           rating: number | null
+          request_number: string | null
           service_type: string | null
           sla_accept_due: string | null
           sla_arrive_due: string | null
@@ -1814,6 +1815,7 @@ export type Database = {
           priority?: string | null
           property_id?: string | null
           rating?: number | null
+          request_number?: string | null
           service_type?: string | null
           sla_accept_due?: string | null
           sla_arrive_due?: string | null
@@ -1859,6 +1861,7 @@ export type Database = {
           priority?: string | null
           property_id?: string | null
           rating?: number | null
+          request_number?: string | null
           service_type?: string | null
           sla_accept_due?: string | null
           sla_arrive_due?: string | null

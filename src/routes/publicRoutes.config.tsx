@@ -45,6 +45,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const WhatsAppStatusPage = lazy(() => import("@/pages/messages/WhatsAppStatusPage"));
 const ServiceMap = lazy(() => import("@/pages/maintenance/ServiceMap"));
 const ChatPage = lazy(() => import("@/pages/messages/ChatPage"));
+const PublicMaintenanceForm = lazy(() => import("@/pages/whatsapp/WhatsAppMaintenanceFormPage"));
 
 // Technician pages
 const TechnicianRegistration = lazy(() => import("@/pages/technicians/TechnicianRegistration"));
@@ -97,6 +98,7 @@ export const publicRoutes = [
   { path: "/whatsapp-status", element: <WhatsAppStatusPage /> },
   { path: "/service-map", element: <ServiceMap /> },
   { path: "/chat", element: <ChatPage /> },
+  { path: "/maintenance-request", element: <PublicMaintenanceForm /> },
   { path: "/technicians/register", element: <TechnicianRegistration /> },
   { path: "/technicians/registration/wizard", element: <TechnicianRegistrationWizard /> },
   { path: "/technicians/registration/thank-you", element: <RegistrationThankYou /> },
