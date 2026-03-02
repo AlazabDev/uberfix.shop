@@ -3,39 +3,50 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { rateLimit } from '../_shared/rateLimiter.ts';
 
 /**
- * Public endpoint for submitting maintenance requests via QR code
+ * Public endpoint for submitting maintenance requests
+ * Supports two modes:
+ * 1. QR mode: requires property_id (from QR code scan)
+ * 2. Direct mode: general form submission without property_id
  * 
- * This is a PUBLIC endpoint with the following security measures:
- * 1. Rate limiting by IP (5 requests per minute)
- * 2. Input validation
- * 3. Required property_id from QR
- * 4. Logs all submissions for monitoring
- * 
- * Required fields:
- * - property_id: UUID (from QR code)
- * - service_type: string (plumbing, electrical, ac, etc.)
- * - images: string[] (optional, base64 encoded)
- * 
- * Optional fields:
- * - notes: string (max 500 chars)
- * - client_phone: string (for tracking)
+ * Security: Rate limiting, input validation, no auth required
  */
 
 interface RequestBody {
-  property_id: string;
-  service_type: string;
-  notes?: string;
+  // QR mode
+  property_id?: string;
+  // Direct mode fields
+  client_name?: string;
   client_phone?: string;
+  client_email?: string;
+  branch_name?: string;
+  // Common fields
+  service_type: string;
+  priority?: string;
+  description?: string;
+  notes?: string;
   images?: string[];
+  channel?: string;
 }
 
+const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
+  plumbing: { ar: 'سباكة', en: 'Plumbing' },
+  electrical: { ar: 'كهرباء', en: 'Electrical' },
+  ac: { ar: 'تكييف', en: 'AC' },
+  carpentry: { ar: 'نجارة', en: 'Carpentry' },
+  metalwork: { ar: 'حدادة', en: 'Metalwork' },
+  painting: { ar: 'دهانات', en: 'Painting' },
+  cleaning: { ar: 'تنظيف', en: 'Cleaning' },
+  other: { ar: 'أخرى', en: 'Other' },
+};
+
+const VALID_SERVICES = Object.keys(SERVICE_LABELS);
+const VALID_PRIORITIES = ['high', 'medium', 'low'];
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Only allow POST
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed' }),
@@ -44,258 +55,221 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Rate limiting by IP (5 requests per minute for public submission)
+    // Rate limiting
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
-                     req.headers.get('cf-connecting-ip') || 
-                     'unknown';
+                     req.headers.get('cf-connecting-ip') || 'unknown';
     
     const isAllowed = rateLimit(`submit_${clientIP}`, { windowMs: 60000, maxRequests: 5 });
     if (!isAllowed) {
-      console.warn(`⚠️ Rate limit exceeded for public submission from IP: ${clientIP}`);
       return new Response(
-        JSON.stringify({ 
-          error: 'Too many requests',
-          message_ar: 'يرجى الانتظار قبل المحاولة مرة أخرى',
-          message_en: 'Please wait before trying again'
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'Retry-After': '60'
-          } 
-        }
+        JSON.stringify({ error: 'Too many requests', message_ar: 'يرجى الانتظار قبل المحاولة مرة أخرى' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
       );
     }
 
-    // Parse request body
     const body: RequestBody = await req.json();
 
-    // Validate required fields
-    if (!body.property_id) {
+    // Validate service type
+    const serviceType = body.service_type?.trim().toLowerCase();
+    if (!serviceType || !VALID_SERVICES.includes(serviceType)) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Property ID is required',
-          message_ar: 'معرف العقار مطلوب',
-          message_en: 'Property ID is required'
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!body.service_type) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Service type is required',
-          message_ar: 'نوع الخدمة مطلوب',
-          message_en: 'Service type is required'
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(body.property_id)) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid property ID format',
-          message_ar: 'صيغة معرف العقار غير صحيحة',
-          message_en: 'Invalid property ID format'
-        }),
+        JSON.stringify({ error: 'Invalid service type', message_ar: 'نوع الخدمة غير صحيح' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Sanitize inputs
-    const sanitizedNotes = body.notes?.trim().slice(0, 500) || '';
+    const sanitizedName = body.client_name?.trim().replace(/[<>"';]/g, '').slice(0, 100) || '';
     const sanitizedPhone = body.client_phone?.replace(/[^\d+]/g, '').slice(0, 15) || '';
-    const serviceType = body.service_type.trim().toLowerCase();
+    const sanitizedEmail = body.client_email?.trim().toLowerCase().slice(0, 100) || '';
+    const sanitizedNotes = (body.description || body.notes || '').trim().slice(0, 500);
+    const priority = VALID_PRIORITIES.includes(body.priority || '') ? body.priority! : 'medium';
+    const channel = body.channel || (body.property_id ? 'qr_guest' : 'public_form');
 
-    // Valid service types
-    const validServices = ['plumbing', 'electrical', 'ac', 'carpentry', 'metalwork', 'painting', 'cleaning', 'other'];
-    if (!validServices.includes(serviceType)) {
+    // Validate: direct mode requires client_name
+    if (!body.property_id && !sanitizedName) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid service type',
-          message_ar: 'نوع الخدمة غير صحيح',
-          message_en: 'Invalid service type'
-        }),
+        JSON.stringify({ error: 'Client name is required', message_ar: 'اسم مقدم الطلب مطلوب' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client with service role to bypass RLS
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify property exists and get related data
-    const { data: property, error: propertyError } = await supabaseAdmin
-      .from('properties')
-      .select(`
-        id,
-        name,
-        address,
-        company_id,
-        branch_id,
-        companies:company_id(id, name),
-        branches:branch_id(id, name)
-      `)
-      .eq('id', body.property_id)
-      .maybeSingle();
+    let companyId: string;
+    let branchId: string;
+    let propertyName = '';
+    let propertyAddress = '';
 
-    if (propertyError || !property) {
-      console.error('Property lookup failed:', propertyError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Property not found',
-          message_ar: 'العقار غير موجود',
-          message_en: 'Property not found'
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (body.property_id) {
+      // QR mode - get company/branch from property
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(body.property_id)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid property ID', message_ar: 'معرف العقار غير صحيح' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: property, error: propError } = await supabaseAdmin
+        .from('properties')
+        .select('id, name, address, company_id, branch_id')
+        .eq('id', body.property_id)
+        .maybeSingle();
+
+      if (propError || !property) {
+        return new Response(
+          JSON.stringify({ error: 'Property not found', message_ar: 'العقار غير موجود' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      companyId = property.company_id;
+      branchId = property.branch_id;
+      propertyName = property.name;
+      propertyAddress = property.address || '';
+    } else {
+      // Direct mode - get default company/branch
+      const { data: defaultOrg, error: orgError } = await supabaseAdmin
+        .from('companies')
+        .select('id, branches(id, name)')
+        .limit(1)
+        .maybeSingle();
+
+      if (orgError || !defaultOrg) {
+        console.error('No default company found:', orgError);
+        return new Response(
+          JSON.stringify({ error: 'System configuration error', message_ar: 'خطأ في إعداد النظام' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      companyId = defaultOrg.id;
+      // Try to match branch by name
+      const branches = (defaultOrg as any).branches as Array<{ id: string; name: string }>;
+      const matchedBranch = body.branch_name 
+        ? branches?.find(b => b.name.includes(body.branch_name!)) 
+        : null;
+      branchId = matchedBranch?.id || branches?.[0]?.id || '';
+
+      if (!branchId) {
+        return new Response(
+          JSON.stringify({ error: 'No branch available', message_ar: 'لا يوجد فرع متاح' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    // Generate tracking number (8 characters)
-    const trackingNumber = `QR${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
-
-    // Service type labels
-    const serviceLabels: Record<string, { ar: string; en: string }> = {
-      plumbing: { ar: 'سباكة', en: 'Plumbing' },
-      electrical: { ar: 'كهرباء', en: 'Electrical' },
-      ac: { ar: 'تكييف', en: 'AC' },
-      carpentry: { ar: 'نجارة', en: 'Carpentry' },
-      metalwork: { ar: 'حدادة', en: 'Metalwork' },
-      painting: { ar: 'دهانات', en: 'Painting' },
-      cleaning: { ar: 'تنظيف', en: 'Cleaning' },
-      other: { ar: 'أخرى', en: 'Other' }
-    };
-
-    const serviceLabel = serviceLabels[serviceType] || { ar: serviceType, en: serviceType };
+    const serviceLabel = SERVICE_LABELS[serviceType] || { ar: serviceType, en: serviceType };
 
     // Create maintenance request
-    const requestData = {
-      property_id: property.id,
-      company_id: property.company_id,
-      branch_id: property.branch_id,
+    const requestData: Record<string, unknown> = {
+      company_id: companyId,
+      branch_id: branchId,
       title: `طلب صيانة - ${serviceLabel.ar}`,
-      description: sanitizedNotes || `طلب صيانة ${serviceLabel.ar} من نموذج QR`,
+      description: sanitizedNotes || `طلب صيانة ${serviceLabel.ar}`,
       service_type: serviceType,
       status: 'Open',
       workflow_stage: 'submitted',
-      channel: 'qr_guest',
-      priority: 'medium',
-      location: property.address,
-      client_name: 'زائر QR',
+      channel,
+      priority,
+      client_name: sanitizedName || 'زائر',
       client_phone: sanitizedPhone || null,
-      customer_notes: `[رقم المتابعة: ${trackingNumber}]\n${sanitizedNotes}`,
+      client_email: sanitizedEmail || null,
+      location: propertyAddress || body.branch_name || null,
     };
 
-    const { data: createdRequest, error: createError } = await supabaseAdmin
+    if (body.property_id) {
+      requestData.property_id = body.property_id;
+    }
+
+    const { data: created, error: createError } = await supabaseAdmin
       .from('maintenance_requests')
       .insert([requestData])
-      .select('id, created_at')
+      .select('id, request_number, created_at')
       .single();
 
     if (createError) {
       console.error('Failed to create request:', createError);
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to create request',
-          message_ar: 'فشل في إنشاء الطلب',
-          message_en: 'Failed to create request'
-        }),
+        JSON.stringify({ error: 'Failed to create request', message_ar: 'فشل في إنشاء الطلب' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Handle image uploads if any
-    let uploadedImages: string[] = [];
+    // Upload images if any
+    let uploadedImages = 0;
     if (body.images && body.images.length > 0) {
-      const maxImages = 5;
-      const imagesToProcess = body.images.slice(0, maxImages);
-
+      const imagesToProcess = body.images.slice(0, 5);
       for (let i = 0; i < imagesToProcess.length; i++) {
         try {
           const base64Data = imagesToProcess[i];
-          // Extract base64 content (remove data:image/...;base64, prefix if present)
-          const base64Content = base64Data.includes(',') 
-            ? base64Data.split(',')[1] 
-            : base64Data;
-          
+          const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
           const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-          const fileName = `${createdRequest.id}/${Date.now()}-${i}.jpg`;
+          const fileName = `${created.id}/${Date.now()}-${i}.jpg`;
 
           const { error: uploadError } = await supabaseAdmin.storage
             .from('maintenance-attachments')
-            .upload(fileName, binaryData, {
-              contentType: 'image/jpeg',
-              upsert: false
-            });
+            .upload(fileName, binaryData, { contentType: 'image/jpeg', upsert: false });
 
-          if (!uploadError) {
-            const { data: urlData } = supabaseAdmin.storage
-              .from('maintenance-attachments')
-              .getPublicUrl(fileName);
-            
-            if (urlData?.publicUrl) {
-              uploadedImages.push(urlData.publicUrl);
-            }
-          }
+          if (!uploadError) uploadedImages++;
         } catch (imgError) {
-          console.warn('Failed to upload image:', imgError);
+          console.warn('Image upload failed:', imgError);
         }
       }
     }
 
-    // Log the submission
+    // Audit log
     await supabaseAdmin.from('audit_logs').insert({
-      action: 'QR_REQUEST_SUBMITTED',
+      action: 'PUBLIC_REQUEST_SUBMITTED',
       table_name: 'maintenance_requests',
-      record_id: createdRequest.id,
+      record_id: created.id,
       new_values: {
-        tracking_number: trackingNumber,
+        request_number: created.request_number,
         service_type: serviceType,
-        property_id: property.id,
+        channel,
         ip: clientIP,
-        images_count: uploadedImages.length,
-        timestamp: new Date().toISOString()
+        images_count: uploadedImages,
       }
     });
 
-    console.log(`✅ QR Request created: ${createdRequest.id} | Tracking: ${trackingNumber}`);
+    // WhatsApp notification to client
+    if (sanitizedPhone) {
+      try {
+        await supabaseAdmin.functions.invoke('send-whatsapp-meta', {
+          body: {
+            to: sanitizedPhone,
+            message: `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم الطلب: ${created.request_number}\n🔧 نوع الخدمة: ${serviceLabel.ar}\n\nيمكنك متابعة حالة طلبك من هنا:\nhttps://uberfiix.lovable.app/track/${created.id}`,
+            requestId: created.id,
+          }
+        });
+      } catch (notifErr) {
+        console.warn('WhatsApp notification failed:', notifErr);
+      }
+    }
 
-    // Return success response
+    console.log(`✅ Public request created: ${created.request_number} (${created.id}) | Channel: ${channel}`);
+
     return new Response(
       JSON.stringify({
         success: true,
-        request_id: createdRequest.id,
-        tracking_number: trackingNumber,
-        message_ar: 'تم إرسال طلبك بنجاح! استخدم رقم المتابعة للتتبع.',
-        message_en: 'Request submitted successfully! Use the tracking number to follow up.',
-        property: {
-          name: property.name,
-          address: property.address
-        },
-        images_uploaded: uploadedImages.length
+        request_id: created.id,
+        request_number: created.request_number,
+        message_ar: `تم إرسال طلبك بنجاح! رقم الطلب: ${created.request_number}`,
+        message_en: `Request submitted successfully! Request #: ${created.request_number}`,
+        track_url: `/track/${created.id}`,
+        images_uploaded: uploadedImages,
       }),
-      { 
-        status: 201, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Unexpected error in submit-public-request:', error);
+    console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        message_ar: 'حدث خطأ غير متوقع',
-        message_en: 'An unexpected error occurred'
-      }),
+      JSON.stringify({ error: 'Internal server error', message_ar: 'حدث خطأ غير متوقع' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
