@@ -36,7 +36,7 @@ export interface NotificationTemplate {
 export const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> = {
   received: {
     status: 'received',
-    channels: ['email', 'whatsapp'],
+    channels: ['whatsapp', 'email'],
     email: {
       subject: 'تم استلام طلب الصيانة',
       bodyTemplate: `مرحبًا {{customer_name}}،
@@ -46,7 +46,7 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemp
       buttonText: 'تتبّع طلب الصيانة',
     },
     whatsapp: {
-      template: `تم استلام طلب الصيانة بنجاح ✅
+      template: `✅ تم استلام طلب الصيانة بنجاح
 رقم الطلب: {{order_id}}
 يمكنك متابعة حالة الطلب من هنا 👇`,
       buttonText: 'تتبّع الطلب',
@@ -55,12 +55,18 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemp
 
   reviewed: {
     status: 'reviewed',
-    channels: ['email'],
+    channels: ['whatsapp', 'email'],
     email: {
       subject: 'تمت مراجعة طلب الصيانة',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تمت مراجعة طلب الصيانة وجارٍ تجهيز التفاصيل اللازمة.`,
       buttonText: 'عرض حالة الطلب',
+    },
+    whatsapp: {
+      template: `📝 تمت مراجعة طلب الصيانة
+رقم الطلب: {{order_id}}
+جارٍ تجهيز التفاصيل اللازمة`,
+      buttonText: 'عرض الحالة',
     },
   },
 
@@ -121,12 +127,18 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemp
 
   closed: {
     status: 'closed',
-    channels: ['email'],
+    channels: ['whatsapp', 'email'],
     email: {
       subject: 'تم إغلاق طلب الصيانة',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تم إغلاق طلب الصيانة بنجاح.
 نشكرك على ثقتك في UberFix.`,
+      buttonText: 'تقييم الخدمة',
+    },
+    whatsapp: {
+      template: `🏁 تم إغلاق طلب الصيانة بنجاح
+رقم الطلب: {{order_id}}
+نشكرك على ثقتك في UberFix 🙏`,
       buttonText: 'تقييم الخدمة',
     },
   },

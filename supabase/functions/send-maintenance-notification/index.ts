@@ -59,29 +59,37 @@ interface NotificationTemplate {
 const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> = {
   received: {
     status: 'received',
-    channels: ['email', 'whatsapp'],
+    channels: ['whatsapp', 'email'],
+    whatsapp: {
+      template: `✅ تم استلام طلب الصيانة بنجاح
+رقم الطلب: {{order_id}}
+📋 {{title}}
+يمكنك متابعة حالة الطلب من هنا 👇
+{{track_url}}`,
+      buttonText: 'تتبّع الطلب',
+    },
     email: {
-      subject: 'تم استلام طلب الصيانة',
+      subject: 'تم استلام طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تم استلام طلب الصيانة الخاص بك بنجاح.
 رقم الطلب: {{order_id}}
 سنقوم بمراجعته والعودة إليك بالتحديثات.`,
       buttonText: 'تتبّع طلب الصيانة',
     },
-    whatsapp: {
-      template: `تم استلام طلب الصيانة بنجاح ✅
-رقم الطلب: {{order_id}}
-يمكنك متابعة حالة الطلب من هنا 👇
-{{track_url}}`,
-      buttonText: 'تتبّع الطلب',
-    },
   },
 
   reviewed: {
     status: 'reviewed',
-    channels: ['email'],
+    channels: ['whatsapp', 'email'],
+    whatsapp: {
+      template: `📝 تمت مراجعة طلب الصيانة
+رقم الطلب: {{order_id}}
+جارٍ تجهيز التفاصيل اللازمة وسيتم التواصل معك قريباً.
+{{track_url}}`,
+      buttonText: 'عرض الحالة',
+    },
     email: {
-      subject: 'تمت مراجعة طلب الصيانة',
+      subject: 'تمت مراجعة طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تمت مراجعة طلب الصيانة وجارٍ تجهيز التفاصيل اللازمة.`,
       buttonText: 'عرض حالة الطلب',
@@ -90,20 +98,21 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
 
   scheduled: {
     status: 'scheduled',
-    channels: ['email', 'whatsapp'],
-    email: {
-      subject: 'تم تحديد موعد الصيانة',
-      bodyTemplate: `مرحبًا {{customer_name}}،
-تم تحديد موعد الزيارة كما يلي:
-📅 {{date}} — ⏰ {{time}}`,
-      buttonText: 'عرض / تغيير الموعد',
-    },
+    channels: ['whatsapp', 'email'],
     whatsapp: {
-      template: `تم تحديد موعد الصيانة 🗓
+      template: `🗓 تم تحديد موعد الصيانة
+رقم الطلب: {{order_id}}
 📅 {{date}} — ⏰ {{time}}
 لمراجعة التفاصيل أو تغيير الموعد:
 {{track_url}}`,
       buttonText: 'إدارة الموعد',
+    },
+    email: {
+      subject: 'تم تحديد موعد الصيانة - {{order_id}}',
+      bodyTemplate: `مرحبًا {{customer_name}}،
+تم تحديد موعد الزيارة كما يلي:
+📅 {{date}} — ⏰ {{time}}`,
+      buttonText: 'عرض / تغيير الموعد',
     },
   },
 
@@ -111,8 +120,9 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     status: 'on_the_way',
     channels: ['whatsapp'],
     whatsapp: {
-      template: `الفني في الطريق إليك الآن 🚚
-يمكنك متابعة الحالة لحظة بلحظة من هنا:
+      template: `🚚 الفني في الطريق إليك الآن!
+رقم الطلب: {{order_id}}
+يمكنك متابعة الحالة لحظة بلحظة:
 {{track_url}}`,
       buttonText: 'تتبّع الفني',
     },
@@ -122,7 +132,8 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     status: 'in_progress',
     channels: ['whatsapp'],
     whatsapp: {
-      template: `بدأ تنفيذ أعمال الصيانة 🛠
+      template: `🛠 بدأ تنفيذ أعمال الصيانة
+رقم الطلب: {{order_id}}
 في حال احتجت أي تواصل أثناء التنفيذ:
 {{track_url}}`,
       buttonText: 'التواصل مع الفني',
@@ -131,27 +142,36 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
 
   completed: {
     status: 'completed',
-    channels: ['email', 'whatsapp'],
+    channels: ['whatsapp', 'email'],
+    whatsapp: {
+      template: `✅ تم الانتهاء من أعمال الصيانة
+رقم الطلب: {{order_id}}
+يرجى مراجعة الأعمال واعتماد الإغلاق ⭐
+{{track_url}}`,
+      buttonText: 'اعتماد الإغلاق',
+    },
     email: {
-      subject: 'تم الانتهاء من أعمال الصيانة',
+      subject: 'تم الانتهاء من أعمال الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تم الانتهاء من أعمال الصيانة بنجاح.
 يرجى مراجعة الأعمال واعتماد الإغلاق.`,
-      buttonText: 'اعتماد الإغلاق',
-    },
-    whatsapp: {
-      template: `تم الانتهاء من الصيانة ✅
-يرجى مراجعة الأعمال واعتماد الإغلاق:
-{{track_url}}`,
       buttonText: 'اعتماد الإغلاق',
     },
   },
 
   closed: {
     status: 'closed',
-    channels: ['email'],
+    channels: ['whatsapp', 'email'],
+    whatsapp: {
+      template: `🏁 تم إغلاق طلب الصيانة بنجاح
+رقم الطلب: {{order_id}}
+نشكرك على ثقتك في UberFix 🙏
+نتطلع لخدمتك دائماً
+{{track_url}}`,
+      buttonText: 'تقييم الخدمة',
+    },
     email: {
-      subject: 'تم إغلاق طلب الصيانة',
+      subject: 'تم إغلاق طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
 تم إغلاق طلب الصيانة بنجاح.
 نشكرك على ثقتك في UberFix.`,
@@ -314,7 +334,8 @@ const sendWhatsApp = async (
   supabase: any,
   to: string,
   message: string,
-  requestId: string
+  requestId: string,
+  notificationStage?: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -362,7 +383,8 @@ const sendWhatsApp = async (
         status: 'sent',
         external_id: messageId,
         sent_at: new Date().toISOString(),
-        metadata: { type: 'notification', trigger: 'status_change' }
+        notification_stage: notificationStage || null,
+        metadata: { type: 'notification', trigger: 'status_change', stage: notificationStage }
       });
 
       return { success: true };
@@ -535,7 +557,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Build variables
     const trackUrl = buildTrackUrl(request_id);
-    const shortOrderId = request_id.substring(0, 8).toUpperCase();
+    const shortOrderId = request.request_number || request_id.substring(0, 8).toUpperCase();
     const customerName = request.client_name || 'عميلنا العزيز';
     const variables: Record<string, string> = {
       customer_name: customerName,
@@ -543,6 +565,7 @@ const handler = async (req: Request): Promise<Response> => {
       track_url: trackUrl,
       date: scheduled_date || '',
       time: scheduled_time || '',
+      title: request.title || 'طلب صيانة',
     };
 
     // Status labels for messages
@@ -585,7 +608,8 @@ const handler = async (req: Request): Promise<Response> => {
           supabase,
           request.client_phone,
           whatsappMessage,
-          request_id
+          request_id,
+          notificationStatus
         );
         results.push({ channel: 'whatsapp', ...whatsappResult });
 

@@ -112,6 +112,9 @@ const WhatsAppMessageLogsPage = lazy(
 const WhatsAppMaintenanceFormPage = lazy(
   () => import("@/pages/whatsapp/WhatsAppMaintenanceFormPage")
 );
+const NotificationCenterPage = lazy(
+  () => import("@/pages/notifications/NotificationCenterPage")
+);
 
 // Projects
 const ProjectDetails = lazy(() => import("@/pages/projects/ProjectDetails"));
@@ -209,7 +212,8 @@ export const protectedRoutes = [
   { path: "/technicians/earnings", element: <TechnicianEarnings />, withLayout: true },
   { path: "/hall-of-excellence", element: <HallOfExcellence />, withLayout: true },
 
-  // Messages
+  // Messages & Notifications
+  { path: "/dashboard/notification-center", element: <NotificationCenterPage />, withLayout: true },
   { path: "/whatsapp", element: <WhatsAppMessages />, withLayout: true },
   { path: "/whatsapp/maintenance-form", element: <WhatsAppMaintenanceFormPage />, withLayout: true },
   { path: "/message-logs", element: <MessageLogs />, withLayout: true },

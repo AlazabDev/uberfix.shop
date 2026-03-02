@@ -26,7 +26,8 @@ import {
   ScrollText,
   Store,
   Archive,
-  Database
+  Database,
+  Bell
 } from "lucide-react";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
@@ -76,6 +77,7 @@ const allMenuItems = [
   { icon: DollarSign, label: "بطاقة الأسعار", href: "/admin/rate-card", moduleKey: "module_settings" },
   { icon: Building2, label: "دليل المولات", href: "/admin/malls", moduleKey: "module_settings" },
   { icon: Database, label: "استيراد البيانات", href: "/admin/data-import", moduleKey: "module_settings" },
+  { icon: Bell, label: "مركز الإشعارات", href: "/dashboard/notification-center", moduleKey: "notification_center" },
   { icon: MessageSquare, label: "قوالب الرسائل", href: "/dashboard/whatsapp/templates", moduleKey: "whatsapp_templates" },
   { icon: MessageSquare, label: "سجل المراسلات", href: "/dashboard/whatsapp/logs", moduleKey: "whatsapp_logs" },
   

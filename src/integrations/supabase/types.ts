@@ -2201,6 +2201,7 @@ export type Database = {
       }
       message_logs: {
         Row: {
+          channel: string | null
           created_at: string
           delivered_at: string | null
           error_message: string | null
@@ -2209,14 +2210,18 @@ export type Database = {
           message_content: string
           message_type: string
           metadata: Json | null
+          notification_stage: string | null
           provider: string
+          read_at: string | null
           recipient: string
           request_id: string | null
+          retry_count: number | null
           sent_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          channel?: string | null
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
@@ -2225,14 +2230,18 @@ export type Database = {
           message_content: string
           message_type: string
           metadata?: Json | null
+          notification_stage?: string | null
           provider?: string
+          read_at?: string | null
           recipient: string
           request_id?: string | null
+          retry_count?: number | null
           sent_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          channel?: string | null
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
@@ -2241,9 +2250,12 @@ export type Database = {
           message_content?: string
           message_type?: string
           metadata?: Json | null
+          notification_stage?: string | null
           provider?: string
+          read_at?: string | null
           recipient?: string
           request_id?: string | null
+          retry_count?: number | null
           sent_at?: string | null
           status?: string
           updated_at?: string
@@ -6733,6 +6745,19 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_stats_daily: {
+        Row: {
+          count: number | null
+          date: string | null
+          delivered_count: number | null
+          failed_count: number | null
+          message_type: string | null
+          read_count: number | null
+          sent_count: number | null
+          status: string | null
+        }
+        Relationships: []
+      }
       profiles_minimal_public: {
         Row: {
           company_id: string | null
@@ -7626,6 +7651,7 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: undefined
       }
+      refresh_notification_stats: { Args: never; Returns: undefined }
       register_technician_profile: {
         Args: {
           p_company_name: string
