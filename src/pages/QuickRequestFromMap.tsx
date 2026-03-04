@@ -9,14 +9,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, ArrowRight } from "lucide-react";
-import { TechnicianLocation } from "@/modules/map/types";
 import { getSpecializationLabel } from "@/constants/technicianConstants";
+
+interface SelectedTechnician {
+  id: string;
+  name: string;
+  phone: string;
+  specialization: string;
+  rating: number;
+  total_reviews: number;
+  status: string;
+  latitude: number;
+  longitude: number;
+}
 
 export default function QuickRequestFromMap() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [technician, setTechnician] = useState<TechnicianLocation | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [technician, setTechnician] = useState<SelectedTechnician | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -25,70 +35,63 @@ export default function QuickRequestFromMap() {
     client_email: '',
     location: '',
     description: '',
-    priority: 'normal' as 'normal' | 'high' | 'urgent',
+    priority: 'medium' as 'low' | 'medium' | 'high',
   });
 
   useEffect(() => {
-    // استرجاع بيانات الفني من sessionStorage
     const savedTechnician = sessionStorage.getItem('selectedTechnician');
     if (savedTechnician) {
-      setTechnician(JSON.parse(savedTechnician));
+      try {
+        setTechnician(JSON.parse(savedTechnician));
+      } catch {
+        navigateBack();
+      }
     } else {
-      toast({
-        title: '⚠️ لم يتم اختيار فني',
-        description: 'يرجى العودة للخريطة واختيار فني',
-        variant: 'destructive',
-      });
-      navigate('/service-map');
+      navigateBack();
     }
-  }, [navigate, toast]);
+  }, []);
+
+  const navigateBack = () => {
+    toast({
+      title: '⚠️ لم يتم اختيار فني',
+      description: 'يرجى العودة للخريطة واختيار فني',
+      variant: 'destructive',
+    });
+    navigate('/service-map');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!technician) return;
     
     setSubmitting(true);
 
     try {
-      // الحصول على معرف الشركة من البروفايل
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', technician.id)
-        .maybeSingle();
-
-      if (!profile?.company_id) {
-        throw new Error('لا يمكن تحديد الشركة');
-      }
-
-      // الحصول على أول فرع متاح للشركة
+      // Get any available branch and company for routing
       const { data: branch } = await supabase
         .from('branches')
-        .select('id')
-        .eq('company_id', profile.company_id)
+        .select('id, company_id')
         .limit(1)
         .maybeSingle();
 
       if (!branch) {
-        throw new Error('لا يوجد فرع متاح');
+        throw new Error('لا يوجد فرع متاح لتوجيه الطلب');
       }
 
-      // إنشاء طلب الصيانة
       const { data: request, error } = await supabase
         .from('maintenance_requests')
         .insert([{
-          title: `طلب صيانة - ${technician.specialization}`,
+          title: `طلب صيانة - ${getSpecializationLabel(technician.specialization)}`,
           description: formData.description,
           client_name: formData.client_name,
           client_phone: formData.client_phone,
-          client_email: formData.client_email,
+          client_email: formData.client_email || null,
           location: formData.location,
           priority: formData.priority,
-          status: 'Open',
-          company_id: profile.company_id,
+          status: 'Open' as any,
+          company_id: branch.company_id,
           branch_id: branch.id,
-          assigned_vendor_id: technician.id,
+          assigned_technician_id: technician.id,
           service_type: technician.specialization,
           channel: 'map',
         }])
@@ -99,14 +102,11 @@ export default function QuickRequestFromMap() {
 
       toast({
         title: '✅ تم إنشاء الطلب بنجاح',
-        description: 'سيتم التواصل معك قريباً',
+        description: `رقم الطلب: ${request?.request_number || request?.id?.slice(0, 8)}`,
       });
 
-      // مسح البيانات المحفوظة
       sessionStorage.removeItem('selectedTechnician');
-
-      // الانتقال لصفحة متابعة الطلبات
-      navigate(`/requests/${request.id}`);
+      navigate('/service-map');
     } catch (error: any) {
       console.error('Error creating request:', error);
       toast({
@@ -127,10 +127,8 @@ export default function QuickRequestFromMap() {
     );
   }
 
-  // getSpecializationLabel is now imported from constants
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background py-8" dir="rtl">
       <div className="container max-w-4xl mx-auto px-4">
         <Card className="border-primary/20 shadow-xl">
           <CardHeader>
@@ -236,9 +234,9 @@ export default function QuickRequestFromMap() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="normal">عادية</SelectItem>
+                    <SelectItem value="low">منخفضة</SelectItem>
+                    <SelectItem value="medium">عادية</SelectItem>
                     <SelectItem value="high">عالية</SelectItem>
-                    <SelectItem value="urgent">عاجلة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

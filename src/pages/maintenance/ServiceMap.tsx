@@ -159,14 +159,19 @@ export default function ServiceMap() {
   };
 
   const handleRequestService = (technician: any) => {
-    navigate("/quick-request-from-map", {
-      state: {
-        technicianId: technician.id,
-        technicianName: technician.name,
-        technicianPhone: technician.phone,
-        specialization: technician.specialization,
-      },
-    });
+    // Save technician data to sessionStorage for QuickRequestFromMap
+    sessionStorage.setItem('selectedTechnician', JSON.stringify({
+      id: technician.id,
+      name: technician.name || 'فني',
+      phone: technician.phone || '',
+      specialization: technician.specialization || 'general',
+      rating: technician.rating || 0,
+      total_reviews: technician.total_reviews || 0,
+      status: technician.status || 'offline',
+      latitude: technician.current_latitude || 0,
+      longitude: technician.current_longitude || 0,
+    }));
+    navigate("/quick-request-from-map");
   };
 
   useEffect(() => {
@@ -314,6 +319,7 @@ export default function ServiceMap() {
                 status={techStatus}
                 availableIn={techStatus === "soon" ? 40 : undefined}
                 onRequestService={() => handleRequestService(tech)}
+                onCall={tech.phone ? () => window.open(`tel:${tech.phone}`) : undefined}
               />
             );
             infoWindow.setContent(div);

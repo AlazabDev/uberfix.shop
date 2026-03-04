@@ -1,41 +1,48 @@
-export interface BranchLocation {
-  id: string;
-  branch: string;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-  status: 'Active' | 'Closed' | 'UnderMaintenance';
-  branch_type: string | null;
-  link: string | null;
-  icon: string | null;
-}
+/**
+ * Service Map Module Types
+ * Aligned with technicians_map_public view and branch_locations table
+ */
 
-export interface TechnicianLocation {
+export interface TechnicianMapData {
   id: string;
   name: string;
-  specialization: 'plumber' | 'carpenter' | 'electrician' | 'painter' | 'ac_technician' | string;
+  specialization: string;
   rating: number;
   total_reviews: number;
-  status: 'available' | 'busy' | 'soon';
-  latitude: number;
-  longitude: number;
-  hourly_rate?: number;
-  available_from?: string;
-  available_to?: string;
-  phone?: string;
-  profile_image?: string;
-  icon_url?: string; // رابط الأيقونة من قاعدة البيانات
+  status: 'online' | 'busy' | 'offline' | 'on_route';
+  current_latitude: number | null;
+  current_longitude: number | null;
+  location_updated_at: string | null;
+  hourly_rate: number | null;
+  available_from: string | null;
+  available_to: string | null;
+  bio: string | null;
+  service_area_radius: number | null;
+  is_verified: boolean;
+  icon_url: string | null;
+  level: string;
+  phone: string | null;
+}
+
+export interface BranchMapData {
+  id: string;
+  branch: string;
+  branch_name: string | null;
+  address: string | null;
+  branch_type: string | null;
+  city: string | null;
+  district: string | null;
+  phone: string | null;
+  link: string | null;
+  icon: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  status: string | null;
 }
 
 export interface MapPin {
   id: string;
   type: 'branch' | 'technician';
-  position: google.maps.LatLngLiteral;
-  data: BranchLocation | TechnicianLocation;
-}
-
-export interface PopupData {
-  type: 'branch' | 'technician';
-  data: BranchLocation | TechnicianLocation;
-  position: { x: number; y: number };
+  position: { lat: number; lng: number };
+  data: TechnicianMapData | BranchMapData;
 }

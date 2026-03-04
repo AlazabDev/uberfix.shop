@@ -7077,6 +7077,7 @@ export type Database = {
           level: string | null
           location_updated_at: string | null
           name: string | null
+          phone: string | null
           rating: number | null
           service_area_radius: number | null
           specialization: string | null
@@ -7601,6 +7602,7 @@ export type Database = {
           level: string
           location_updated_at: string
           name: string
+          phone: string
           rating: number
           service_area_radius: number
           specialization: string
