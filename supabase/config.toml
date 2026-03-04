@@ -217,3 +217,7 @@ verify_jwt = false
 verify_jwt = true
 # Syncs request status changes back to JotForm submissions
 
+[functions.query-maintenance-requests]
+verify_jwt = false
+# Public API endpoint for querying maintenance requests (JotForm, external tools)
+
