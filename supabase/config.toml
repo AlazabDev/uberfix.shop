@@ -208,3 +208,11 @@ verify_jwt = false
 [functions.whatsapp-flow]
 verify_jwt = false
 # WhatsApp Flow data exchange endpoint - uses RSA/AES encryption internally
+
+[functions.jotform-webhook]
+verify_jwt = false
+# JotForm webhook - receives form submissions, creates maintenance requests
+
+[functions.jotform-sync]
+verify_jwt = true
+# Syncs request status changes back to JotForm submissions

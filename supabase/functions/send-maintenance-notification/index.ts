@@ -665,6 +665,23 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Sync status to JotForm if this request came from JotForm
+    if (request.channel === 'jotform') {
+      try {
+        await supabase.functions.invoke('jotform-sync', {
+          body: {
+            request_id,
+            status: request.status,
+            workflow_stage: request.workflow_stage,
+          }
+        });
+        results.push({ channel: 'jotform_sync', success: true });
+      } catch (jotformErr) {
+        console.warn('JotForm sync failed:', jotformErr);
+        results.push({ channel: 'jotform_sync', success: false });
+      }
+    }
+
     console.log('✅ Notifications sent:', results);
 
     return new Response(
