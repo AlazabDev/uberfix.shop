@@ -1,0 +1,1 @@
+UPDATE wa_templates SET name = 'uberfix_hello_world' WHERE id = '793cefa0-b60b-4bb6-af58-716b298a84ae' RETURNING id, name;

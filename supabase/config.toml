@@ -216,3 +216,4 @@ verify_jwt = false
 [functions.jotform-sync]
 verify_jwt = true
 # Syncs request status changes back to JotForm submissions
+
