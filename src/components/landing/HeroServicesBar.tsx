@@ -4,9 +4,7 @@
 import { Wind, Zap, Droplets, Wrench, Building2, ArrowLeft, MessageCircle, PaintBucket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-
-// WhatsApp phone number
-const WHATSAPP_NUMBER = "201004006620";
+import { openWhatsApp } from "@/config/whatsapp";
 
 const services = [
   {
@@ -53,12 +51,6 @@ const services = [
   },
 ];
 
-// فتح واتساب مع رسالة محددة
-const openWhatsApp = (message: string) => {
-  const encodedMessage = encodeURIComponent(message);
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-  window.open(whatsappUrl, '_blank');
-};
 
 export const HeroServicesBar = () => {
   const navigate = useNavigate();

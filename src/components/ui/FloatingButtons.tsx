@@ -2,11 +2,7 @@
 // Dual floating buttons for WhatsApp and Messenger communication
 
 import { useState } from "react";
-
-// WhatsApp phone number
-const WHATSAPP_NUMBER = "201004006620";
-// Messenger link
-const MESSENGER_LINK = "https://m.me/864375353429675";
+import { WHATSAPP_BUSINESS_NUMBER, MESSENGER_LINK } from "@/config/whatsapp";
 
 interface FloatingButtonsProps {
   whatsappMessage?: string;
@@ -21,7 +17,7 @@ export const FloatingButtons = ({
 
   const openWhatsApp = () => {
     const encodedMessage = encodeURIComponent(whatsappMessage);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/${WHATSAPP_BUSINESS_NUMBER}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 

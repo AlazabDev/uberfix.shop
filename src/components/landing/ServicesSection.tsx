@@ -11,9 +11,7 @@ import {
   CheckCircle,
   MessageCircle
 } from "lucide-react";
-
-// WhatsApp phone number - يمكن تغييره لاحقاً
-const WHATSAPP_NUMBER = "201004006620";
+import { openWhatsApp } from "@/config/whatsapp";
 
 export const ServicesSection = () => {
   const services = [
@@ -55,12 +53,6 @@ export const ServicesSection = () => {
     }
   ];
 
-  // فتح واتساب مع رسالة محددة
-  const openWhatsApp = (message: string) => {
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-  };
 
   return (
     <section className="py-20 bg-muted/30">
