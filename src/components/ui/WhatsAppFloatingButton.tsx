@@ -3,9 +3,7 @@
 
 import { MessageCircle } from "lucide-react";
 import { useState } from "react";
-
-// WhatsApp phone number - يمكن تغييره لاحقاً
-const WHATSAPP_NUMBER = "201004006620";
+import { WHATSAPP_BUSINESS_NUMBER } from "@/config/whatsapp";
 
 interface WhatsAppFloatingButtonProps {
   message?: string;
@@ -20,7 +18,7 @@ export const WhatsAppFloatingButton = ({
 
   const openWhatsApp = () => {
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+    const whatsappUrl = `https://wa.me/${WHATSAPP_BUSINESS_NUMBER}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
