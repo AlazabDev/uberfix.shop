@@ -669,6 +669,107 @@ export type Database = {
           },
         ]
       }
+      chatbot_conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          session_id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          session_id: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_knowledge: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          file_name: string | null
+          file_url: string | null
+          id: string
+          is_active: boolean | null
+          source_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          source_type?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          source_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           id: number
@@ -6590,6 +6691,48 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           whatsapp_url?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          customer_name: string | null
+          direction: string
+          id: string
+          media_url: string | null
+          message_type: string
+          phone_number: string
+          status: string | null
+          updated_at: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          customer_name?: string | null
+          direction: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          phone_number: string
+          status?: string | null
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          customer_name?: string | null
+          direction?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          phone_number?: string
+          status?: string | null
+          updated_at?: string
+          wa_message_id?: string | null
         }
         Relationships: []
       }
