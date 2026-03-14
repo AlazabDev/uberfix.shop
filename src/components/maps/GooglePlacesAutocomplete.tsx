@@ -39,9 +39,9 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const autocompleteRef = useRef<any>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   
   const [inputValue, setInputValue] = useState(value);
   const [loading, setLoading] = useState(false);
@@ -201,7 +201,7 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
           });
 
           // Handle map click
-          mapInstanceRef.current.addListener('click', async (e: google.maps.MapMouseEvent) => {
+          mapInstanceRef.current.addListener('click', async (e: any) => {
             if (!e.latLng || !markerRef.current) return;
 
             const lat = e.latLng.lat();

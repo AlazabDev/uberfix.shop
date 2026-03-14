@@ -300,7 +300,7 @@ export default function ProductionMonitor() {
             <div>
               <p className="text-sm font-medium">البيئة</p>
               <p className="text-2xl font-bold">
-                {process.env.NODE_ENV === 'production' ? 'إنتاج' : 'تطوير'}
+                {import.meta.env.PROD ? 'إنتاج' : 'تطوير'}
               </p>
             </div>
           </div>

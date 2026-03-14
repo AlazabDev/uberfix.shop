@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/client" />
+/// <reference types="google.maps" />
 
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
@@ -13,4 +14,10 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+declare const google: any
+
+interface Window {
+  google?: any
 }

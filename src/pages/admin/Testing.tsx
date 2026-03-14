@@ -373,7 +373,7 @@ const Testing = () => {
     
     try {
       // محاولة تحميل Google Maps API إذا لم يكن محملاً
-      if (typeof google === 'undefined' || !google.maps) {
+      if (typeof window.google === 'undefined' || !window.google?.maps) {
         // التحقق من Edge Function للخرائط
         const { data, error } = await supabase.functions.invoke('get-maps-key');
         const duration = Date.now() - start;

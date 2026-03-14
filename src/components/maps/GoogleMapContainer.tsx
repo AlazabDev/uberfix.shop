@@ -18,14 +18,14 @@ interface GoogleMapContainerProps {
   center?: { lat: number; lng: number };
   zoom?: number;
   markers?: MapMarker[];
-  onMapLoad?: (map: google.maps.Map) => void;
-  onMarkerClick?: (marker: MapMarker, mapMarker: google.maps.marker.AdvancedMarkerElement) => void;
+  onMapLoad?: (map: any) => void;
+  onMarkerClick?: (marker: MapMarker, mapMarker: any) => void;
   onMapClick?: (lat: number, lng: number) => void;
   height?: string;
   className?: string;
   interactive?: boolean;
   showCurrentLocation?: boolean;
-  mapStyle?: google.maps.MapTypeStyle[];
+  mapStyle?: any[];
 }
 
 export const GoogleMapContainer = ({
@@ -42,8 +42,8 @@ export const GoogleMapContainer = ({
   mapStyle,
 }: GoogleMapContainerProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -68,7 +68,7 @@ export const GoogleMapContainer = ({
           throw new Error('Google Maps failed to initialize');
         }
 
-        const mapOptions: google.maps.MapOptions = {
+        const mapOptions: any = {
           center,
           zoom,
           mapId: getGoogleMapsId(),
@@ -85,7 +85,7 @@ export const GoogleMapContainer = ({
 
         // استمع لنقرات الخريطة
         if (onMapClick && interactive) {
-          mapInstanceRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
+          mapInstanceRef.current.addListener('click', (e: any) => {
             if (e.latLng) {
               onMapClick(e.latLng.lat(), e.latLng.lng());
             }

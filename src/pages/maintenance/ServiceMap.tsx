@@ -28,7 +28,7 @@ import { createRoot } from "react-dom/client";
 
 declare global {
   interface Window {
-    google: typeof google;
+    google?: any;
   }
 }
 
@@ -53,7 +53,7 @@ const SPECIALTIES = [
   ...SPECIALIZATIONS_LIST.map(s => ({ id: s.id, label: s.label, emoji: s.emoji, keywords: s.keywords }))
 ];
 
-const MAP_STYLE: google.maps.MapTypeStyle[] = [
+const MAP_STYLE: any[] = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
@@ -114,8 +114,8 @@ export default function ServiceMap() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapError, setMapError] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<BranchLocation | null>(null);
 
