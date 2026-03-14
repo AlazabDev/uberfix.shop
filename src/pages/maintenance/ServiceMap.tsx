@@ -114,8 +114,8 @@ export default function ServiceMap() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapError, setMapError] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<BranchLocation | null>(null);
 

@@ -158,7 +158,7 @@ export function InteractiveMap({
         });
 
         // Add map click listener
-        mapInstance.addListener("click", async (e: google.maps.MapMouseEvent) => {
+        mapInstance.addListener("click", async (e: any) => {
           if (!isMounted || isCleaningUpRef.current) return;
           if (!e.latLng) return;
 
