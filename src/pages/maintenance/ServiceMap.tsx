@@ -28,7 +28,7 @@ import { createRoot } from "react-dom/client";
 
 declare global {
   interface Window {
-    google: typeof google;
+    google?: any;
   }
 }
 

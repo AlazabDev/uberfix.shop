@@ -22,9 +22,9 @@ export function InteractiveMap({
 }: InteractiveMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerInstanceRef = useRef<google.maps.Marker | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerInstanceRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
   const isCleaningUpRef = useRef(false);
   
   const [isLoading, setIsLoading] = useState(true);
