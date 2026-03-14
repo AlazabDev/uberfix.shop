@@ -53,7 +53,7 @@ const SPECIALTIES = [
   ...SPECIALIZATIONS_LIST.map(s => ({ id: s.id, label: s.label, emoji: s.emoji, keywords: s.keywords }))
 ];
 
-const MAP_STYLE: google.maps.MapTypeStyle[] = [
+const MAP_STYLE: any[] = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
