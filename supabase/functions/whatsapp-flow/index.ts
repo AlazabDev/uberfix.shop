@@ -10,10 +10,8 @@ import { corsHeaders } from "../_shared/cors.ts";
  * نقوم بفك التشفير → إنشاء طلب صيانة → إرسال إشعار تأكيد
  */
 
-// استيراد Web Crypto API
 const { subtle } = globalThis.crypto;
 
-// تحويل Base64 إلى ArrayBuffer
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -23,7 +21,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-// تحويل ArrayBuffer إلى Base64
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -33,7 +30,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-// استيراد المفتاح الخاص RSA من PEM
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
   const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/g, '')
@@ -53,7 +49,6 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   );
 }
 
-// فك تشفير بيانات WhatsApp Flow
 async function decryptRequest(
   body: string,
   privatePem: string
@@ -62,14 +57,12 @@ async function decryptRequest(
 
   const privateKey = await importPrivateKey(privatePem);
 
-  // فك تشفير مفتاح AES باستخدام RSA
   const aesKeyBuffer = await subtle.decrypt(
     { name: 'RSA-OAEP' },
     privateKey,
     base64ToArrayBuffer(encrypted_aes_key)
   );
 
-  // فك تشفير البيانات باستخدام AES-GCM
   const aesKey = await subtle.importKey(
     'raw',
     aesKeyBuffer,
@@ -91,13 +84,11 @@ async function decryptRequest(
   return { decryptedBody, aesKeyBuffer, initialVectorBuffer };
 }
 
-// تشفير الاستجابة
 async function encryptResponse(
   response: Record<string, unknown>,
   aesKeyBuffer: ArrayBuffer,
   initialVectorBuffer: ArrayBuffer
 ): Promise<string> {
-  // عكس IV لتشفير الاستجابة
   const ivBytes = new Uint8Array(initialVectorBuffer);
   const flippedIv = new Uint8Array(ivBytes.length);
   for (let i = 0; i < ivBytes.length; i++) {
@@ -121,7 +112,6 @@ async function encryptResponse(
   return arrayBufferToBase64(encrypted);
 }
 
-// تحويل الأولوية إلى النظام الداخلي
 function mapPriority(priority: string): string {
   switch (priority) {
     case 'urgent': return 'high';
@@ -131,12 +121,48 @@ function mapPriority(priority: string): string {
   }
 }
 
-// تنسيق رقم الهاتف المصري
 function formatEgyptianPhone(phone: string): string {
   let cleaned = phone.replace(/\D/g, '');
   if (cleaned.startsWith('0')) cleaned = '20' + cleaned.substring(1);
   if (!cleaned.startsWith('20') && cleaned.length === 10) cleaned = '20' + cleaned;
   return '+' + cleaned;
+}
+
+// Helper: get Supabase client
+function getSupabase() {
+  return createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+}
+
+// Helper: fetch branches from DB
+async function fetchBranches(): Promise<Array<{ id: string; title: string }>> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('branches')
+    .select('id, name')
+    .order('name');
+
+  if (error) {
+    console.error('❌ Error fetching branches:', error);
+    return [];
+  }
+
+  return (data || []).map(b => ({ id: b.id, title: b.name }));
+}
+
+// Helper: get branch name by ID
+async function getBranchName(branchId: string): Promise<{ name: string; id: string; companyId: string } | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('branches')
+    .select('id, name, company_id')
+    .eq('id', branchId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return { name: data.name, id: data.id, companyId: data.company_id };
 }
 
 Deno.serve(async (req) => {
@@ -167,14 +193,25 @@ Deno.serve(async (req) => {
   // POST → Data Exchange من WhatsApp Flow
   // ==========================================
   try {
+    const rawBody = await req.text();
+    console.log('📥 WhatsApp Flow request received');
+
+    // Check if it's a simple test/ping (non-encrypted)
+    try {
+      const testBody = JSON.parse(rawBody);
+      if (testBody.test === true || testBody.action === 'ping') {
+        console.log('🏓 Test ping received');
+        return new Response(JSON.stringify({ status: 'active', timestamp: new Date().toISOString() }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } catch { /* not JSON or not a test request, continue with encrypted flow */ }
+
     const privatePem = Deno.env.get('WHATSAPP_FLOW_PRIVATE_KEY');
     if (!privatePem) {
       console.error('❌ WHATSAPP_FLOW_PRIVATE_KEY not configured');
       return new Response('Server error', { status: 500 });
     }
-
-    const rawBody = await req.text();
-    console.log('📥 WhatsApp Flow request received');
 
     // فك التشفير
     const { decryptedBody, aesKeyBuffer, initialVectorBuffer } = await decryptRequest(rawBody, privatePem);
@@ -195,72 +232,110 @@ Deno.serve(async (req) => {
     if (action === 'ping') {
       const response = { version, data: { status: 'active' } };
       const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
-      return new Response(encrypted, {
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ==========================================
-    // INIT → إرسال البيانات الأولية للشاشة
+    // INIT → إرسال البيانات الأولية (الفروع من قاعدة البيانات)
     // ==========================================
     if (action === 'INIT') {
+      console.log('🚀 INIT: Fetching branches from database...');
+      const branches = await fetchBranches();
+      console.log(`📋 Found ${branches.length} branches`);
+
+      const response = {
+        version,
+        screen: 'SELECT_BRANCH',
+        data: {
+          branches,
+        },
+      };
+      const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+    }
+
+    // ==========================================
+    // navigate → عند اختيار الفرع والانتقال للنموذج
+    // ==========================================
+    if (action === 'navigate' && screen === 'SELECT_BRANCH') {
+      const branchId = data.branch_id as string;
+      const branchInfo = await getBranchName(branchId);
+      
       const response = {
         version,
         screen: 'REQUEST_FORM',
-        data: {},
+        data: {
+          branch_name: branchInfo?.name || 'غير محدد',
+        },
       };
       const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
-      return new Response(encrypted, {
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ==========================================
     // data_exchange → استلام بيانات النموذج وإنشاء طلب
     // ==========================================
     if (action === 'data_exchange') {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabase();
 
-      // استخراج بيانات النموذج
       const {
         requester_name,
         maintenance_type,
-        branch_name,
+        branch_id,
         priority,
         description,
       } = data as {
         requester_name: string;
         maintenance_type: string;
-        branch_name: string;
+        branch_id: string;
         priority: string;
         description: string;
       };
 
-      console.log('📋 Flow data:', { requester_name, maintenance_type, branch_name, priority });
+      console.log('📋 Flow data:', { requester_name, maintenance_type, branch_id, priority });
 
-      // استخراج رقم هاتف المرسل من flow_token أو metadata
-      const senderPhone = (decryptedBody as Record<string, unknown>).wa_phone as string || '';
+      // جلب بيانات الفرع
+      const branchInfo = await getBranchName(branch_id);
 
-      // جلب company_id و branch_id الافتراضيين
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      if (!branchInfo) {
+        console.error('❌ Branch not found:', branch_id);
+        // Fallback: use first available branch
+        const { data: fallbackBranch } = await supabase
+          .from('branches')
+          .select('id, name, company_id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
-      const { data: branch } = await supabase
-        .from('branches')
-        .select('id')
-        .eq('company_id', company?.id || '')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        if (!fallbackBranch) {
+          const errorResp = {
+            version,
+            screen: 'REQUEST_FORM',
+            data: { error_message: 'خطأ في النظام. يرجى المحاولة لاحقاً.' },
+          };
+          const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
+          return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+        }
+      }
 
-      if (!company?.id || !branch?.id) {
-        console.error('❌ No company/branch found');
+      const finalBranchId = branchInfo?.id || branch_id;
+      const finalBranchName = branchInfo?.name || 'غير محدد';
+      const finalCompanyId = branchInfo?.companyId;
+
+      // Get company_id if not from branch
+      let companyId = finalCompanyId;
+      if (!companyId) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('id')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        companyId = company?.id;
+      }
+
+      if (!companyId) {
+        console.error('❌ No company found');
         const errorResp = {
           version,
           screen: 'REQUEST_FORM',
@@ -271,25 +346,22 @@ Deno.serve(async (req) => {
       }
 
       // إنشاء طلب الصيانة
-      const requestNumber = `WA-${Date.now().toString(36).toUpperCase()}`;
-      
       const { data: newRequest, error: insertError } = await supabase
         .from('maintenance_requests')
         .insert({
-          title: `${maintenance_type} - ${branch_name}`,
+          title: `${maintenance_type} - ${finalBranchName}`,
           description: description,
           client_name: requester_name,
-          client_phone: senderPhone || null,
           service_type: maintenance_type,
-          location: branch_name,
+          location: finalBranchName,
           priority: mapPriority(priority),
           status: 'Open',
           workflow_stage: 'submitted',
           channel: 'whatsapp_flow',
-          company_id: company.id,
-          branch_id: branch.id,
+          company_id: companyId,
+          branch_id: finalBranchId,
         })
-        .select('id')
+        .select('id, request_number')
         .single();
 
       if (insertError) {
@@ -304,42 +376,8 @@ Deno.serve(async (req) => {
       }
 
       const requestId = newRequest.id;
-      const shortId = requestId.slice(0, 8).toUpperCase();
-      console.log('✅ Maintenance request created:', requestId);
-
-      // إرسال إشعار تأكيد عبر WhatsApp للمرسل
-      if (senderPhone) {
-        try {
-          const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
-          const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
-
-          if (accessToken && phoneNumberId) {
-            const formattedPhone = formatEgyptianPhone(senderPhone).replace('+', '');
-
-            await fetch(
-              `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${accessToken}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  messaging_product: 'whatsapp',
-                  to: formattedPhone,
-                  type: 'text',
-                  text: {
-                    body: `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم الطلب: ${shortId}\n✍️ مقدم الطلب: ${requester_name}\n🔧 النوع: ${maintenance_type}\n🏢 الفرع: ${branch_name}\n📋 الأولوية: ${priority === 'urgent' ? '🔴 عاجل' : priority === 'medium' ? '🟡 متوسط' : '🟢 عادي'}\n\nسيتم التواصل معك قريباً لمعاينة الطلب. 🛠️ UberFix`,
-                  },
-                }),
-              }
-            );
-            console.log('📤 Confirmation sent to:', formattedPhone);
-          }
-        } catch (notifErr) {
-          console.error('⚠️ Failed to send confirmation:', notifErr);
-        }
-      }
+      const requestNumber = newRequest.request_number || requestId.slice(0, 8).toUpperCase();
+      console.log('✅ Maintenance request created:', requestId, 'Number:', requestNumber);
 
       // إرسال إشعار للإدارة
       try {
@@ -356,17 +394,18 @@ Deno.serve(async (req) => {
       // سجل الرسالة
       await supabase.from('message_logs').insert({
         request_id: requestId,
-        recipient: senderPhone || 'whatsapp_flow_user',
+        recipient: 'whatsapp_flow_user',
         message_type: 'whatsapp',
-        message_content: `طلب صيانة جديد من WhatsApp Flow: ${maintenance_type} - ${branch_name}`,
+        message_content: `طلب صيانة جديد من WhatsApp Flow: ${maintenance_type} - ${finalBranchName}`,
         provider: 'meta',
         status: 'sent',
         metadata: {
           source: 'whatsapp_flow',
-          flow_id: '1403208574894392',
+          flow_id: '1946584099618562',
           requester_name,
           maintenance_type,
-          branch_name,
+          branch_name: finalBranchName,
+          branch_id: finalBranchId,
           priority,
         },
       });
@@ -379,7 +418,7 @@ Deno.serve(async (req) => {
           extension_message_response: {
             params: {
               flow_token,
-              request_number: shortId,
+              request_number: requestNumber,
               requester_name: requester_name,
             },
           },
@@ -387,16 +426,33 @@ Deno.serve(async (req) => {
       };
 
       const encrypted = await encryptResponse(successResp, aesKeyBuffer, initialVectorBuffer);
-      return new Response(encrypted, {
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+    }
+
+    // ==========================================
+    // BACK → العودة للشاشة السابقة
+    // ==========================================
+    if (action === 'BACK') {
+      let targetScreen = 'SELECT_BRANCH';
+      let screenData: Record<string, unknown> = {};
+
+      if (screen === 'REQUEST_FORM') {
+        targetScreen = 'SELECT_BRANCH';
+        const branches = await fetchBranches();
+        screenData = { branches };
+      }
+
+      const response = { version, screen: targetScreen, data: screenData };
+      const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ==========================================
     // إجراء غير معروف
     // ==========================================
     console.warn('⚠️ Unknown action:', action);
-    const fallback = { version, screen: 'REQUEST_FORM', data: {} };
+    const branches = await fetchBranches();
+    const fallback = { version, screen: 'SELECT_BRANCH', data: { branches } };
     const encrypted = await encryptResponse(fallback, aesKeyBuffer, initialVectorBuffer);
     return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
 
