@@ -201,7 +201,7 @@ export const GooglePlacesAutocomplete: React.FC<GooglePlacesAutocompleteProps> =
           });
 
           // Handle map click
-          mapInstanceRef.current.addListener('click', async (e: google.maps.MapMouseEvent) => {
+          mapInstanceRef.current.addListener('click', async (e: any) => {
             if (!e.latLng || !markerRef.current) return;
 
             const lat = e.latLng.lat();

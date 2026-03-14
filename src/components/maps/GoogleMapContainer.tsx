@@ -85,7 +85,7 @@ export const GoogleMapContainer = ({
 
         // استمع لنقرات الخريطة
         if (onMapClick && interactive) {
-          mapInstanceRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
+          mapInstanceRef.current.addListener('click', (e: any) => {
             if (e.latLng) {
               onMapClick(e.latLng.lat(), e.latLng.lng());
             }
