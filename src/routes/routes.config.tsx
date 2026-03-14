@@ -112,6 +112,9 @@ const WhatsAppMessageLogsPage = lazy(
 const WhatsAppMaintenanceFormPage = lazy(
   () => import("@/pages/whatsapp/WhatsAppMaintenanceFormPage")
 );
+const WhatsAppFlowManager = lazy(
+  () => import("@/pages/whatsapp/WhatsAppFlowManager")
+);
 const NotificationCenterPage = lazy(
   () => import("@/pages/notifications/NotificationCenterPage")
 );
