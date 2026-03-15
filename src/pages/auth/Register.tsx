@@ -15,13 +15,14 @@ import { FaFacebook } from "react-icons/fa";
 import { registerFormSchema } from "@/lib/validationSchemas";
 import { secureGoogleSignIn, secureFacebookSignIn } from "@/lib/secureOAuth";
 import { useAuth } from "@/contexts/AuthContext";
+import { clearPendingOAuthContext, savePendingOAuthContext } from "@/lib/roleRedirect";
 
 type RegisterFormData = z.infer<typeof registerFormSchema>;
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const selectedRole = searchParams.get("role") || "customer";
+  const selectedRole = searchParams.get("role") || searchParams.get("type") || "customer";
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
@@ -104,9 +105,11 @@ export default function Register() {
   const handleGoogleSignup = async () => {
     setIsLoading(true);
     try {
+      savePendingOAuthContext('signup', selectedRole);
       const result = await secureGoogleSignIn('/auth/callback');
 
       if (!result.success) {
+        clearPendingOAuthContext();
         toast({
           title: "خطأ في التسجيل",
           description: result.error?.message || "تعذر التسجيل بجوجل",
@@ -114,6 +117,7 @@ export default function Register() {
         });
       }
     } catch (error) {
+      clearPendingOAuthContext();
       toast({
         title: "حدث خطأ",
         description: "حاول مرة أخرى لاحقاً",
@@ -127,9 +131,11 @@ export default function Register() {
   const handleFacebookSignup = async () => {
     setIsLoading(true);
     try {
+      savePendingOAuthContext('signup', selectedRole);
       const result = await secureFacebookSignIn('/auth/callback');
 
       if (!result.success) {
+        clearPendingOAuthContext();
         toast({
           title: "خطأ في التسجيل",
           description: result.error?.message || "تعذر التسجيل بفيسبوك",
@@ -137,6 +143,7 @@ export default function Register() {
         });
       }
     } catch (error) {
+      clearPendingOAuthContext();
       toast({
         title: "حدث خطأ",
         description: "حاول مرة أخرى لاحقاً",

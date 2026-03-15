@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { detectUserRole } from '@/lib/roleRedirect';
+import { resolveUserRedirectAfterAuth } from '@/lib/roleRedirect';
 
 /**
  * OAuth Callback Handler
@@ -122,7 +122,7 @@ const AuthCallback = () => {
 
     setMessage('جاري تحديد صلاحياتك...');
 
-    detectUserRole(user.id, user.email)
+    resolveUserRedirectAfterAuth(user.id, user.email)
       .then((roleInfo) => {
         toast({
           title: 'تم تسجيل الدخول بنجاح',

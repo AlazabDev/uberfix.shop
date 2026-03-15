@@ -11,7 +11,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaFacebook } from "react-icons/fa";
 import { PhoneOTPLogin } from "@/components/auth/PhoneOTPLogin";
 import { secureGoogleSignIn, secureFacebookSignIn } from "@/lib/secureOAuth";
-import { detectUserRole } from "@/lib/roleRedirect";
+import { clearPendingOAuthContext, resolveUserRedirectAfterAuth, savePendingOAuthContext } from "@/lib/roleRedirect";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -43,7 +43,7 @@ export default function Login() {
     }
 
     // اكتشاف الدور والتوجيه
-    detectUserRole(user.id, user.email).then(roleInfo => {
+    resolveUserRedirectAfterAuth(user.id, user.email).then(roleInfo => {
       navigate(roleInfo.redirectPath, { replace: true });
     }).catch(() => {
       navigate('/dashboard', { replace: true });
@@ -81,8 +81,10 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+      savePendingOAuthContext('login');
       const result = await secureGoogleSignIn('/auth/callback');
       if (!result.success) {
+        clearPendingOAuthContext();
         toast({
           title: "خطأ في تسجيل الدخول",
           description: result.error?.message || "تعذر تسجيل الدخول بجوجل",
@@ -92,6 +94,7 @@ export default function Login() {
       }
       // Success: browser redirects to Google → callback → AuthCallback handles it
     } catch (error) {
+      clearPendingOAuthContext();
       toast({
         title: "حدث خطأ",
         description: "حاول مرة أخرى لاحقاً",
@@ -104,8 +107,10 @@ export default function Login() {
   const handleFacebookLogin = async () => {
     setIsLoading(true);
     try {
+      savePendingOAuthContext('login');
       const result = await secureFacebookSignIn('/auth/callback');
       if (!result.success) {
+        clearPendingOAuthContext();
         toast({
           title: "خطأ في تسجيل الدخول",
           description: result.error?.message || "تعذر تسجيل الدخول بفيسبوك",
@@ -115,6 +120,7 @@ export default function Login() {
       }
       // Success: browser redirects to Facebook → callback → AuthCallback handles it
     } catch (error) {
+      clearPendingOAuthContext();
       toast({
         title: "حدث خطأ",
         description: "حاول مرة أخرى لاحقاً",
