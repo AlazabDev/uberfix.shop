@@ -7,21 +7,26 @@ import { Footer } from "@/components/landing/Footer";
 import { secureGoogleSignIn, secureFacebookSignIn } from "@/lib/secureOAuth";
 import { toast } from "sonner";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
+import { clearPendingOAuthContext, savePendingOAuthContext } from "@/lib/roleRedirect";
 
 /**
  * صفحة اختيار نوع الحساب للمستخدمين الجدد
  */
 export default function RoleSelection() {
   const handleGoogleLogin = async () => {
+    savePendingOAuthContext('signup');
     const result = await secureGoogleSignIn();
     if (!result.success) {
+      clearPendingOAuthContext();
       toast.error(result.error?.message || "فشل تسجيل الدخول بـ Google");
     }
   };
 
   const handleFacebookLogin = async () => {
+    savePendingOAuthContext('signup');
     const result = await secureFacebookSignIn();
     if (!result.success) {
+      clearPendingOAuthContext();
       toast.error(result.error?.message || "فشل تسجيل الدخول بـ Facebook");
     }
   };
@@ -98,7 +103,7 @@ export default function RoleSelection() {
                   <li>• تتبع حالة الطلبات</li>
                   <li>• تقييم الخدمات</li>
                 </ul>
-                <Link to="/register?type=customer" className="block">
+                <Link to="/register?role=customer" className="block">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     التسجيل كعميل
                     <ArrowRight className="mr-2 h-4 w-4" />
