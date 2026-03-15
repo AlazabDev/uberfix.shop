@@ -165,103 +165,48 @@ Deno.serve(async (req) => {
 
     const serviceLabel = SERVICE_LABELS[serviceType] || { ar: serviceType, en: serviceType };
 
-    // Create maintenance request
-    const requestData: Record<string, unknown> = {
-      company_id: companyId,
-      branch_id: branchId,
-      title: `طلب صيانة - ${serviceLabel.ar}`,
-      description: sanitizedNotes || `طلب صيانة ${serviceLabel.ar}`,
-      service_type: serviceType,
-      status: 'Open',
-      workflow_stage: 'submitted',
-      channel,
-      priority,
-      client_name: sanitizedName || 'زائر',
-      client_phone: sanitizedPhone || null,
-      client_email: sanitizedEmail || null,
-      location: propertyAddress || body.branch_name || null,
-    };
+    // ─── Route through Unified Gateway ─────────────────────────
+    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('maintenance-gateway', {
+      body: {
+        channel,
+        client_name: sanitizedName || 'زائر',
+        client_phone: sanitizedPhone || undefined,
+        client_email: sanitizedEmail || undefined,
+        service_type: serviceType,
+        priority,
+        description: sanitizedNotes || `طلب صيانة ${serviceLabel.ar}`,
+        location: propertyAddress || body.branch_name || undefined,
+        property_id: body.property_id || undefined,
+        branch_name: body.branch_name || undefined,
+        company_id: companyId,
+        branch_id: branchId,
+        images: body.images,
+        source_id: body.property_id || undefined,
+        source_metadata: {
+          submission_mode: body.property_id ? 'qr' : 'direct',
+          property_name: propertyName || undefined,
+        }
+      }
+    });
 
-    if (body.property_id) {
-      requestData.property_id = body.property_id;
-    }
-
-    const { data: created, error: createError } = await supabaseAdmin
-      .from('maintenance_requests')
-      .insert([requestData])
-      .select('id, request_number, created_at')
-      .single();
-
-    if (createError) {
-      console.error('Failed to create request:', createError);
+    if (gatewayError || !gatewayResult?.success) {
+      console.error('Gateway error:', gatewayError || gatewayResult);
       return new Response(
         JSON.stringify({ error: 'Failed to create request', message_ar: 'فشل في إنشاء الطلب' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Upload images if any
-    let uploadedImages = 0;
-    if (body.images && body.images.length > 0) {
-      const imagesToProcess = body.images.slice(0, 5);
-      for (let i = 0; i < imagesToProcess.length; i++) {
-        try {
-          const base64Data = imagesToProcess[i];
-          const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-          const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-          const fileName = `${created.id}/${Date.now()}-${i}.jpg`;
-
-          const { error: uploadError } = await supabaseAdmin.storage
-            .from('maintenance-attachments')
-            .upload(fileName, binaryData, { contentType: 'image/jpeg', upsert: false });
-
-          if (!uploadError) uploadedImages++;
-        } catch (imgError) {
-          console.warn('Image upload failed:', imgError);
-        }
-      }
-    }
-
-    // Audit log
-    await supabaseAdmin.from('audit_logs').insert({
-      action: 'PUBLIC_REQUEST_SUBMITTED',
-      table_name: 'maintenance_requests',
-      record_id: created.id,
-      new_values: {
-        request_number: created.request_number,
-        service_type: serviceType,
-        channel,
-        ip: clientIP,
-        images_count: uploadedImages,
-      }
-    });
-
-    // WhatsApp notification to client
-    if (sanitizedPhone) {
-      try {
-        await supabaseAdmin.functions.invoke('send-whatsapp-meta', {
-          body: {
-            to: sanitizedPhone,
-            message: `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم الطلب: ${created.request_number}\n🔧 نوع الخدمة: ${serviceLabel.ar}\n\nيمكنك متابعة حالة طلبك من هنا:\nhttps://uberfiix.lovable.app/track/${created.id}`,
-            requestId: created.id,
-          }
-        });
-      } catch (notifErr) {
-        console.warn('WhatsApp notification failed:', notifErr);
-      }
-    }
-
-    console.log(`✅ Public request created: ${created.request_number} (${created.id}) | Channel: ${channel}`);
+    console.log(`✅ Public request → Gateway → ${gatewayResult.request_number} | Channel: ${channel}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        request_id: created.id,
-        request_number: created.request_number,
-        message_ar: `تم إرسال طلبك بنجاح! رقم الطلب: ${created.request_number}`,
-        message_en: `Request submitted successfully! Request #: ${created.request_number}`,
-        track_url: `/track/${created.id}`,
-        images_uploaded: uploadedImages,
+        request_id: gatewayResult.request_id,
+        request_number: gatewayResult.request_number,
+        message_ar: `تم إرسال طلبك بنجاح! رقم الطلب: ${gatewayResult.request_number}`,
+        message_en: `Request submitted successfully! Request #: ${gatewayResult.request_number}`,
+        track_url: `/track/${gatewayResult.request_id}`,
       }),
       { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

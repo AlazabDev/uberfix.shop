@@ -73,6 +73,60 @@ export type Database = {
           },
         ]
       }
+      api_gateway_logs: {
+        Row: {
+          client_ip: unknown
+          consumer_id: string | null
+          consumer_type: string | null
+          created_at: string | null
+          duration_ms: number
+          id: string
+          method: string
+          request_body: string | null
+          request_headers: Json | null
+          request_id: string
+          response_headers: Json | null
+          response_size: number | null
+          route: string
+          status_code: number
+          user_agent: string | null
+        }
+        Insert: {
+          client_ip: unknown
+          consumer_id?: string | null
+          consumer_type?: string | null
+          created_at?: string | null
+          duration_ms: number
+          id?: string
+          method: string
+          request_body?: string | null
+          request_headers?: Json | null
+          request_id: string
+          response_headers?: Json | null
+          response_size?: number | null
+          route: string
+          status_code: number
+          user_agent?: string | null
+        }
+        Update: {
+          client_ip?: unknown
+          consumer_id?: string | null
+          consumer_type?: string | null
+          created_at?: string | null
+          duration_ms?: number
+          id?: string
+          method?: string
+          request_body?: string | null
+          request_headers?: Json | null
+          request_id?: string
+          response_headers?: Json | null
+          response_size?: number | null
+          route?: string
+          status_code?: number
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       app_control: {
         Row: {
           id: string

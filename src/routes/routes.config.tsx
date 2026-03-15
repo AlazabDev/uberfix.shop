@@ -137,6 +137,9 @@ const UsersPage = lazy(() => import("@/pages/UsersPage"));
 // Module Settings (Owner only)
 const ModuleSettings = lazy(() => import("@/pages/admin/ModuleSettings"));
 
+// Gateway
+const MaintenanceGateway = lazy(() => import("@/pages/gateway/MaintenanceGateway"));
+
 // Maintenance Module Pages
 const CreateMaintenanceRequest = lazy(() => import("@/pages/maintenance/CreateMaintenanceRequest"));
 const MaintenanceOverview = lazy(() => import("@/pages/maintenance/MaintenanceOverview"));
@@ -223,6 +226,7 @@ export const protectedRoutes = [
   { path: "/dashboard/whatsapp/templates", element: <WhatsAppTemplatesPage />, withLayout: true },
   { path: "/dashboard/whatsapp/logs", element: <WhatsAppMessageLogsPage />, withLayout: true },
   { path: "/dashboard/whatsapp/flow-manager", element: <WhatsAppFlowManager />, withLayout: true },
+  { path: "/dashboard/gateway", element: <MaintenanceGateway />, withLayout: true },
 
   // No layout (service-map is public - see publicRoutes)
   { path: "/emergency-service/:technicianId", element: <EmergencyService />, withLayout: false },

@@ -192,70 +192,56 @@ Deno.serve(async (req) => {
 
     const serviceLabel = SERVICE_LABELS[serviceType] || serviceType;
 
-    // Create maintenance request
-    const { data: created, error: createError } = await supabaseAdmin
-      .from('maintenance_requests')
-      .insert([{
-        company_id: companyId,
-        branch_id: branchId,
-        title: `طلب صيانة - ${serviceLabel}`,
-        description: description || `طلب صيانة ${serviceLabel}`,
-        service_type: serviceType,
-        status: 'Open',
-        workflow_stage: 'submitted',
+    // ─── Route through Unified Gateway ─────────────────────────
+    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('maintenance-gateway', {
+      body: {
         channel: 'jotform',
-        priority,
         client_name: clientName,
-        client_phone: clientPhone || null,
-        client_email: clientEmail || null,
-        location: location || null,
-      }])
-      .select('id, request_number, created_at')
-      .single();
+        client_phone: clientPhone || undefined,
+        client_email: clientEmail || undefined,
+        service_type: serviceType,
+        priority,
+        description: description || `طلب صيانة ${serviceLabel}`,
+        location: location || undefined,
+        branch_name: fields.branch_name || undefined,
+        source_id: String(submissionId),
+        source_metadata: {
+          jotform_form_id: String(formId),
+          jotform_submission_id: String(submissionId),
+        }
+      }
+    });
 
-    if (createError) {
-      console.error('Failed to create request:', createError);
-      return new Response(JSON.stringify({ error: 'Failed to create request' }), {
+    if (gatewayError) {
+      console.error('Gateway error:', gatewayError);
+      return new Response(JSON.stringify({ error: 'Failed to create request via gateway' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Store JotForm submission mapping for bidirectional sync
+    const created = gatewayResult;
+
+    // Store JotForm-specific audit log
     await supabaseAdmin.from('audit_logs').insert({
       action: 'JOTFORM_SUBMISSION_RECEIVED',
       table_name: 'maintenance_requests',
-      record_id: created.id,
+      record_id: created.request_id,
       new_values: {
         jotform_submission_id: String(submissionId),
         jotform_form_id: String(formId),
         request_number: created.request_number,
-        service_type: serviceType,
         channel: 'jotform',
+        routed_via: 'maintenance-gateway',
       }
     });
 
-    // Send WhatsApp confirmation if phone provided
-    if (clientPhone) {
-      try {
-        await supabaseAdmin.functions.invoke('send-whatsapp-meta', {
-          body: {
-            to: clientPhone,
-            message: `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم الطلب: ${created.request_number}\n🔧 نوع الخدمة: ${serviceLabel}\n📝 المصدر: JotForm\n\nيمكنك متابعة حالة طلبك من هنا:\nhttps://uberfiix.lovable.app/track/${created.id}`,
-            requestId: created.id,
-          }
-        });
-      } catch (e) {
-        console.warn('WhatsApp notification failed:', e);
-      }
-    }
-
-    console.log(`✅ JotForm request created: ${created.request_number} (${created.id})`);
+    console.log(`✅ JotForm → Gateway → ${created.request_number} (${created.request_id})`);
 
     return new Response(JSON.stringify({
       success: true,
-      request_id: created.id,
+      request_id: created.request_id,
       request_number: created.request_number,
-      track_url: `https://uberfiix.lovable.app/track/${created.id}`,
+      track_url: created.track_url,
     }), {
       status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

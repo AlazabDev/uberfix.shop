@@ -221,3 +221,8 @@ verify_jwt = true
 verify_jwt = false
 # Public API endpoint for querying maintenance requests (JotForm, external tools)
 
+[functions.maintenance-gateway]
+verify_jwt = false
+# Unified API Gateway for all maintenance request channels
+# Security: called internally by other edge functions + externally with rate limiting
+
