@@ -152,20 +152,17 @@ export function useMaintenanceRequests() {
         .eq('id', id)
         .maybeSingle();
 
-      // Build DB-safe update object
-      const dbUpdates: Record<string, unknown> = { ...updates };
-
       // تحديث status إذا تم تغيير workflow_stage
       if (updates.workflow_stage) {
         const stage = updates.workflow_stage as WorkflowStage;
         if (WORKFLOW_STAGES[stage]) {
-          dbUpdates.status = WORKFLOW_STAGES[stage].status as MrStatus;
+          updates.status = WORKFLOW_STAGES[stage].status as MrStatus;
         }
       }
 
       const { data, error } = await supabase
         .from('maintenance_requests')
-        .update(dbUpdates as MaintenanceRequest)
+        .update(updates as unknown as MaintenanceRequestInsert)
         .eq('id', id)
         .select()
         .maybeSingle();
