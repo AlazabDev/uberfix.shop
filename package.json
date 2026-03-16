@@ -104,7 +104,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "vaul": "^0.9.9",
-    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-pwa": "0.19.8",
     "workbox-window": "^7.3.0",
     "zod": "^4.3.5",
     "zustand": "^5.0.8"
