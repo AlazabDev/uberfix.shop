@@ -140,7 +140,7 @@ const checkSLAViolations = async () => {
         });
       }
       
-      if (hoursRemaining < 0 && request.status === 'InProgress') {
+      if (hoursRemaining < 0 && (request.status === 'In Progress' || request.status === 'InProgress')) {
         violations.push({
           request_id: request.id,
           request_title: request.title,
