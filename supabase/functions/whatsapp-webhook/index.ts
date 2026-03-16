@@ -260,7 +260,8 @@ async function executeTool(name: string, args: Record<string, unknown>, senderPh
     if (!requests.length) return JSON.stringify({ success: true, results: [], message: 'لا توجد طلبات' });
     
     const statusMap: Record<string, string> = {
-      'Open': 'مفتوح', 'In Progress': 'قيد التنفيذ', 'Completed': 'مكتمل',
+      'Open': 'مفتوح', 'Assigned': 'تم التعيين', 'In Progress': 'قيد التنفيذ', 'InProgress': 'قيد التنفيذ',
+      'On Hold': 'معلق', 'Waiting': 'معلق', 'Completed': 'مكتمل', 'Rejected': 'مرفوض',
       'Closed': 'مغلق', 'Cancelled': 'ملغي'
     };
     return JSON.stringify({
