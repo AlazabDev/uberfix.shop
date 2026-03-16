@@ -10,7 +10,9 @@
     ],
     "types": [
       "vite/client",
-      "google.maps"
+      "google.maps",
+      "vitest/globals",
+      "@testing-library/jest-dom"
     ],
     "module": "ESNext",
     "moduleDetection": "force",
