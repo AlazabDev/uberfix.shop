@@ -487,6 +487,14 @@ const handler = async (req: Request): Promise<Response> => {
       send_sms = false,
     } = body;
 
+    // Health check / system_check — return OK without querying DB
+    if (event_type === 'system_check') {
+      return new Response(
+        JSON.stringify({ success: true, message: 'Notification service is healthy' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validate request
     if (!request_id) {
       return new Response(
