@@ -22,7 +22,7 @@
     "fix": "bash ./scripts/fix.sh",
     "test:e2e": "echo \"No E2E tests configured\"",
     "test": "npm run test:unit",
-    "test:unit": "vitest run --coverage"
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.1",
