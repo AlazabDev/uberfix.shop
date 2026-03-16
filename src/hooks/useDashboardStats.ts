@@ -54,7 +54,7 @@ export function useDashboardStats() {
       // Calculate statistics
       const totalRequests = requestsArray.length;
       const pendingRequests = requestsArray.filter(r => 
-        r.status === 'Open' || r.status === 'Waiting' || r.workflow_stage === 'submitted'
+        r.status === 'Open' || r.status === 'On Hold' || r.status === 'Waiting' || r.workflow_stage === 'submitted'
       ).length;
       const completedRequests = requestsArray.filter(r => 
         r.status === 'Completed' || r.workflow_stage === 'completed'
