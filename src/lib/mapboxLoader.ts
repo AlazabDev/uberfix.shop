@@ -63,7 +63,7 @@ export const loadMapbox = async (): Promise<typeof mapboxglType> => {
     }
     
     mapboxLoaded = true;
-    console.log('✅ Mapbox loaded successfully (promotional use only)');
+    // Mapbox loaded successfully
     
     return mapboxgl.default;
   })();

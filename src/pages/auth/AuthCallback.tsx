@@ -41,7 +41,7 @@ const AuthCallback = () => {
       const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
       const errorCode = hashParams.get('error_code') || queryParams.get('error_code');
 
-      console.log('🔍 Auth Callback:', { type, hasTokenHash: !!tokenHash, error: errorParam });
+      
 
       // Handle errors from OAuth provider
       if (errorParam) {

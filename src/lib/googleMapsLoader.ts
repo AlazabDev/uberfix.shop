@@ -74,7 +74,7 @@ class GoogleMapsLoader {
         script.defer = true;
         script.onload = () => {
           this.isLoaded = true;
-          console.log('✅ Google Maps loaded successfully');
+          // Google Maps loaded
           resolve();
         };
         script.onerror = () => {

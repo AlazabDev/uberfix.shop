@@ -152,7 +152,7 @@ export function NewRequestForm({ onSuccess, onCancel, initialPropertyId }: NewRe
           
           if (validUrls.length > 0) {
             // حفظ روابط الصور في جدول منفصل أو في حقل JSON
-            console.log('Uploaded images:', validUrls);
+            
           }
         }
         // إنشاء إشعار للمستخدم
