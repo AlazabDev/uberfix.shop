@@ -8473,6 +8473,9 @@ export type Database = {
         | "Completed"
         | "Rejected"
         | "Cancelled"
+        | "In Progress"
+        | "Closed"
+        | "On Hold"
       priority_level: "low" | "medium" | "high"
       provider_type_t: "internal_team" | "external_vendor"
       request_status_t:
@@ -8731,6 +8734,9 @@ export const Constants = {
         "Completed",
         "Rejected",
         "Cancelled",
+        "In Progress",
+        "Closed",
+        "On Hold",
       ],
       priority_level: ["low", "medium", "high"],
       provider_type_t: ["internal_team", "external_vendor"],
