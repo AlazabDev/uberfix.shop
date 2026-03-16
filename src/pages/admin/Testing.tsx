@@ -822,7 +822,7 @@ const Testing = () => {
     const start = Date.now();
     
     try {
-      const statuses: Array<'Open' | 'InProgress' | 'Completed'> = ['Open', 'InProgress', 'Completed'];
+      const statuses: Array<'Open' | 'In Progress' | 'Completed'> = ['Open', 'In Progress', 'Completed'];
       const checks = await Promise.all(
         statuses.map(status => 
           supabase
