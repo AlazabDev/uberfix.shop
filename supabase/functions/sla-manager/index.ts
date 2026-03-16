@@ -129,7 +129,7 @@ const checkSLAViolations = async () => {
       const timeDiff = completeDue.getTime() - now.getTime();
       const hoursRemaining = Math.floor(timeDiff / 3600000);
 
-      if (hoursRemaining > 0 && hoursRemaining <= 2 && request.status === 'InProgress') {
+      if (hoursRemaining > 0 && hoursRemaining <= 2 && (request.status === 'In Progress' || request.status === 'InProgress')) {
         warnings.push({
           request_id: request.id,
           request_title: request.title,
