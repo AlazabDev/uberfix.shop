@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         console.log('✅ OTP sent via Twilio:', twilioResult.sid);
       }
     } else {
-      console.log('⚠️ Twilio not configured, OTP stored in database only:', otp);
+      console.warn('⚠️ Twilio not configured — OTP stored in DB only (code redacted from logs)');
     }
 
     return new Response(

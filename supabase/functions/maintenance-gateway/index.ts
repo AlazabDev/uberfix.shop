@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { rateLimit, createRateLimitResponse } from '../_shared/rateLimiter.ts';
 
 /**
  * 🌐 Unified Maintenance Gateway (API Gateway)
@@ -139,6 +140,12 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                    req.headers.get('cf-connecting-ip') || 'unknown';
+
+  // ─── Rate Limiting ──────────────────────────────────────────
+  const isAllowed = rateLimit(`gateway_${clientIP}`, { windowMs: 60_000, maxRequests: 10 });
+  if (!isAllowed) {
+    return createRateLimitResponse();
+  }
 
   try {
     const body: GatewayRequest = await req.json();
