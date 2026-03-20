@@ -121,6 +121,33 @@ function mapPriority(priority: string): string {
   }
 }
 
+function mapStatusToArabic(status: string, stage?: string): string {
+  const stageMap: Record<string, string> = {
+    'submitted': 'تم الإرسال',
+    'triaged': 'قيد المراجعة',
+    'assigned': 'تم تعيين فني',
+    'scheduled': 'تم جدولة الموعد',
+    'in_progress': 'قيد التنفيذ',
+    'inspection': 'قيد الفحص',
+    'completed': 'مكتمل',
+    'closed': 'مغلق',
+    'cancelled': 'ملغي',
+  };
+  const statusMap: Record<string, string> = {
+    'Open': 'مفتوح',
+    'In Progress': 'قيد التنفيذ',
+    'Completed': 'مكتمل',
+    'Closed': 'مغلق',
+    'Cancelled': 'ملغي',
+  };
+  return stageMap[stage || ''] || statusMap[status || ''] || status || 'غير محدد';
+}
+
+function mapPriorityToArabic(priority: string): string {
+  const map: Record<string, string> = { 'high': 'عالية', 'medium': 'متوسطة', 'low': 'منخفضة' };
+  return map[priority] || priority || 'غير محدد';
+}
+
 function formatEgyptianPhone(phone: string): string {
   let cleaned = phone.replace(/\D/g, '');
   if (cleaned.startsWith('0')) cleaned = '20' + cleaned.substring(1);
@@ -134,6 +161,46 @@ function getSupabase() {
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
+}
+
+// Helper: track a request by number
+async function trackRequest(requestNumber: string): Promise<Record<string, unknown> | null> {
+  const supabase = getSupabase();
+  const cleaned = requestNumber.trim().toUpperCase();
+  
+  const { data, error } = await supabase
+    .from('maintenance_requests')
+    .select('id, request_number, status, workflow_stage, service_type, priority, client_name, location, created_at, branch_id, assigned_vendor_id')
+    .or(`request_number.eq.${cleaned},id.eq.${cleaned.length === 36 ? cleaned : '00000000-0000-0000-0000-000000000000'}`)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  // Get branch name
+  let branchName = 'غير محدد';
+  if (data.branch_id) {
+    const { data: branch } = await supabase.from('branches').select('name').eq('id', data.branch_id).maybeSingle();
+    if (branch) branchName = branch.name;
+  }
+
+  // Get technician name
+  let techName = 'لم يتم التعيين بعد';
+  if (data.assigned_vendor_id) {
+    const { data: vendor } = await supabase.from('vendors').select('name').eq('id', data.assigned_vendor_id).maybeSingle();
+    if (vendor) techName = vendor.name;
+  }
+
+  return {
+    request_number: data.request_number || data.id.slice(0, 8).toUpperCase(),
+    status_text: mapStatusToArabic(data.status, data.workflow_stage),
+    service_type: data.service_type || 'غير محدد',
+    priority_text: mapPriorityToArabic(data.priority),
+    created_date: data.created_at ? new Date(data.created_at).toLocaleDateString('ar-EG') : 'غير محدد',
+    branch_name: branchName,
+    technician_name: techName,
+    track_url: `https://uberfiix.lovable.app/track/${data.request_number || data.id}`,
+  };
 }
 
 // Helper: fetch branches from DB
@@ -269,6 +336,51 @@ Deno.serve(async (req) => {
         },
       };
       const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+    }
+
+    // ==========================================
+    // data_exchange → تتبع طلب (Tracking Flow)
+    // ==========================================
+    if (action === 'data_exchange' && (data as Record<string, unknown>).flow_action === 'track_request') {
+      const requestNumber = (data as Record<string, unknown>).request_number as string;
+      console.log('🔍 Tracking request:', requestNumber);
+
+      if (!requestNumber || requestNumber.trim().length < 3) {
+        const errorResp = {
+          version,
+          screen: 'TRACK_INPUT',
+          data: { error_message: 'يرجى إدخال رقم طلب صحيح' },
+        };
+        const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
+        return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+      }
+
+      const result = await trackRequest(requestNumber);
+
+      if (!result) {
+        const errorResp = {
+          version,
+          screen: 'TRACK_INPUT',
+          data: { error_message: `لم يتم العثور على طلب برقم: ${requestNumber.trim()}` },
+        };
+        const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
+        return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+      }
+
+      const successResp = {
+        version,
+        screen: 'SUCCESS',
+        data: {
+          extension_message_response: {
+            params: {
+              flow_token,
+              ...result,
+            },
+          },
+        },
+      };
+      const encrypted = await encryptResponse(successResp, aesKeyBuffer, initialVectorBuffer);
       return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
     }
 
