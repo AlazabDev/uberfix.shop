@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
 
       const successResp = {
         version,
-        screen: 'TRACK_RESULT',
+        screen: 'SUCCESS',
         data: {
           extension_message_response: {
             params: {
