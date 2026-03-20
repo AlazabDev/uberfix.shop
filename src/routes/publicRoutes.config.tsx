@@ -93,6 +93,7 @@ export const publicRoutes = [
   { path: "/quick-request", element: <QuickRequestFromMap /> },
   { path: "/quick-request-from-map", element: <QuickRequestFromMap /> },
   { path: "/track-orders", element: <TrackOrders /> },
+  { path: "/track", element: <TrackOrder /> },
   { path: "/track/:orderId", element: <TrackOrder /> },
   { path: "/completed-services", element: <CompletedServices /> },
   { path: "/whatsapp-status", element: <WhatsAppStatusPage /> },
