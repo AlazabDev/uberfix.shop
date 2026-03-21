@@ -134,7 +134,7 @@ export default function MaintenanceArchive() {
     { label: "متوسط التكلفة", value: `${records.length ? Math.round(totalCost / records.length).toLocaleString() : 0} ج.م`, color: "text-muted-foreground", icon: <Clock className="h-4 w-4 text-muted-foreground" /> },
   ];
 
-  const handleExportPdf = (data: any[]) => {
+  const handleExportPdf = async (data: any[]) => {
     const headers = ["#", "الوصف", "التكلفة الفعلية", "التكلفة التقديرية", "تاريخ الجدولة", "تاريخ الإتمام"];
     const rows = data.map((r, i) => [
       String(i + 1),
@@ -144,7 +144,7 @@ export default function MaintenanceArchive() {
       r.scheduled_date ? format(new Date(r.scheduled_date), "dd/MM/yyyy") : "",
       r.completion_date ? format(new Date(r.completion_date), "dd/MM/yyyy") : "",
     ]);
-    exportTablePdf(`أرشيف طلبات الصيانة (${data.length} طلب)`, headers, rows, "maintenance-archive.pdf");
+    await exportTablePdf(`أرشيف طلبات الصيانة (${data.length} طلب)`, headers, rows, "maintenance-archive.pdf");
   };
 
   const handleExportCsv = (data: any[]) => {
