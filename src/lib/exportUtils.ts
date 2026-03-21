@@ -1,85 +1,133 @@
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 /**
- * Export data rows as a PDF table (RTL-friendly, Arabic text)
+ * Export data rows as a PDF table with proper Arabic text support.
+ * Uses html2canvas to leverage the browser's native Arabic text rendering,
+ * which correctly handles RTL, ligatures, and all Arabic glyphs.
  */
-export function exportTablePdf(
+export async function exportTablePdf(
   title: string,
   headers: string[],
   rows: string[][],
   filename: string = "export.pdf"
 ) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  // Create a hidden container for the HTML table
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position: fixed; top: -9999px; left: -9999px;
+    width: 1120px; padding: 30px;
+    background: white; font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    direction: rtl; color: #222;
+  `;
+
+  // Build HTML
+  const dateStr = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
   
-  // Title
-  doc.setFontSize(16);
-  doc.text(title, doc.internal.pageSize.width / 2, 15, { align: "center" });
-  doc.setFontSize(8);
-  doc.text(`Generated: ${new Date().toLocaleDateString("ar-EG")}`, doc.internal.pageSize.width / 2, 21, { align: "center" });
-  
-  // Table setup
-  const startY = 28;
-  const marginX = 10;
-  const pageW = doc.internal.pageSize.width - marginX * 2;
-  const colW = pageW / headers.length;
-  const rowH = 8;
-  const headerH = 10;
-  
-  let y = startY;
-  
-  // Header
-  doc.setFillColor(41, 128, 185);
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.rect(marginX, y, pageW, headerH, "F");
-  headers.forEach((h, i) => {
-    doc.text(h, marginX + i * colW + colW / 2, y + headerH / 2 + 2, { align: "center" });
-  });
-  y += headerH;
-  
-  // Rows
-  doc.setTextColor(51, 51, 51);
-  doc.setFontSize(8);
-  
-  rows.forEach((row, ri) => {
-    if (y + rowH > doc.internal.pageSize.height - 15) {
-      doc.addPage();
-      y = 15;
-      // Re-draw header on new page
-      doc.setFillColor(41, 128, 185);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.rect(marginX, y, pageW, headerH, "F");
-      headers.forEach((h, i) => {
-        doc.text(h, marginX + i * colW + colW / 2, y + headerH / 2 + 2, { align: "center" });
-      });
-      y += headerH;
-      doc.setTextColor(51, 51, 51);
-      doc.setFontSize(8);
-    }
-    
-    if (ri % 2 === 0) {
-      doc.setFillColor(245, 247, 250);
-      doc.rect(marginX, y, pageW, rowH, "F");
-    }
-    
-    row.forEach((cell, ci) => {
-      const truncated = cell.length > 30 ? cell.slice(0, 30) + ".." : cell;
-      doc.text(truncated, marginX + ci * colW + colW / 2, y + rowH / 2 + 2, { align: "center" });
+  container.innerHTML = `
+    <div style="text-align:center; margin-bottom:24px;">
+      <h1 style="font-size:22px; font-weight:700; color:#030957; margin:0 0 4px 0;">${title}</h1>
+      <p style="font-size:11px; color:#888; margin:0;">تاريخ التصدير: ${dateStr}</p>
+    </div>
+    <table style="width:100%; border-collapse:collapse; font-size:12px;">
+      <thead>
+        <tr>
+          ${headers.map(h => `<th style="
+            background:#2980B3; color:white; padding:10px 8px;
+            text-align:center; font-weight:600; font-size:12px;
+            border:1px solid #2472a0;
+          ">${h}</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row, ri) => `
+          <tr style="background:${ri % 2 === 0 ? "#f8f9fc" : "#ffffff"};">
+            ${row.map(cell => `<td style="
+              padding:8px; text-align:center; border:1px solid #e8eaed;
+              font-size:11px; color:#333;
+            ">${cell}</td>`).join("")}
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+    <div style="text-align:center; margin-top:20px; font-size:10px; color:#aaa;">
+      UberFix © ${new Date().getFullYear()} — جميع الحقوق محفوظة
+    </div>
+  `;
+
+  document.body.appendChild(container);
+
+  try {
+    // Wait for fonts to be ready
+    await document.fonts.ready;
+
+    const canvas = await html2canvas(container, {
+      scale: 2, // High quality
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
     });
-    y += rowH;
-  });
-  
-  // Footer
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text(`Page ${i} / ${pageCount}`, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 5, { align: "center" });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+
+    // Calculate PDF dimensions (landscape A4)
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const usableWidth = pdfWidth - margin * 2;
+
+    // Scale image to fit PDF width
+    const ratio = usableWidth / imgWidth;
+    const scaledHeight = imgHeight * ratio;
+
+    // Handle multi-page if content is taller than one page
+    const usableHeight = pdfHeight - margin * 2;
+    let remainingHeight = scaledHeight;
+    let sourceY = 0;
+    let page = 0;
+
+    while (remainingHeight > 0) {
+      if (page > 0) pdf.addPage();
+
+      const sliceHeight = Math.min(remainingHeight, usableHeight);
+      
+      // Calculate source crop from original canvas
+      const sourceSliceHeight = sliceHeight / ratio;
+      
+      // Create a cropped canvas for this page
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = imgWidth;
+      pageCanvas.height = Math.ceil(sourceSliceHeight);
+      const ctx = pageCanvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceSliceHeight, 0, 0, imgWidth, sourceSliceHeight);
+      
+      const pageImgData = pageCanvas.toDataURL("image/jpeg", 0.95);
+      pdf.addImage(pageImgData, "JPEG", margin, margin, usableWidth, sliceHeight);
+
+      // Page number
+      pdf.setFontSize(8);
+      pdf.setTextColor(180);
+      pdf.text(
+        `${page + 1}`,
+        pdfWidth / 2,
+        pdfHeight - 4,
+        { align: "center" }
+      );
+
+      sourceY += sourceSliceHeight;
+      remainingHeight -= usableHeight;
+      page++;
+    }
+
+    pdf.save(filename);
+  } finally {
+    document.body.removeChild(container);
   }
-  
-  doc.save(filename);
 }
 
 /**
