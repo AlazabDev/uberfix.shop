@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { Navigate } from "react-router-dom";
 
 // Auth pages
 const Index = lazy(() => import("@/pages/public/Index"));
@@ -91,7 +92,7 @@ export const publicRoutes = [
   { path: "/pwa-settings", element: <PWASettings /> },
   { path: "/quick-request/:propertyId", element: <QuickRequest /> },
   { path: "/qr/:propertyId", element: <PublicQuickRequest /> },
-  { path: "/quick-request", element: <QuickRequestFromMap /> },
+  { path: "/quick-request", element: <Navigate to="/uf" replace /> },
   { path: "/quick-request-from-map", element: <QuickRequestFromMap /> },
   { path: "/track-orders", element: <TrackOrders /> },
   { path: "/track", element: <TrackOrder /> },

@@ -9,7 +9,7 @@ export const Footer = () => {
   const footerLinks = {
     services: [
       { label: t('services.maintenance'), href: "/services" },
-      { label: t('services.quickMaintenance'), href: "/quick-request" },
+      { label: t('services.quickMaintenance'), href: "/uf" },
       { label: t('footer.gallery'), href: "/gallery" },
       { label: t('footer.serviceRequest'), href: "/service-request" }
     ],
