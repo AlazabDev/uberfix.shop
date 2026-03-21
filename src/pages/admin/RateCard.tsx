@@ -93,14 +93,14 @@ export default function RateCard() {
     { label: "متوسط سعر الساعة", value: `${avgHourly} ج.م`, color: "text-amber-600" },
   ];
 
-  const handleExportPdf = (data: any[]) => {
+  const handleExportPdf = async (data: any[]) => {
     const headers = ["التخصص", "سعر الساعة", "بعد الدوام", "أقل ساعات", "رسم الانتقال", "أقل فاتورة"];
     const rows = data.map((i) => [
       TRADE_NAMES[i.trade_id] || `#${i.trade_id}`,
       `${i.normal_hourly} ج.م`, `${i.after_hours_hourly} ج.م`,
       `${i.min_billable_hours}`, `${i.trip_charge} ج.م`, `${i.min_invoice} ج.م`,
     ]);
-    exportTablePdf("بطاقة الأسعار", headers, rows, "rate-card.pdf");
+    await exportTablePdf("بطاقة الأسعار", headers, rows, "rate-card.pdf");
   };
 
   const handleExportCsv = (data: any[]) => {

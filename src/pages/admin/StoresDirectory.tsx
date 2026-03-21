@@ -104,10 +104,10 @@ export default function StoresDirectory() {
     { label: "التصنيفات", value: categories.length, color: "text-amber-600" },
   ];
 
-  const handleExportPdf = (data: any[]) => {
+  const handleExportPdf = async (data: any[]) => {
     const headers = ["الاسم", "الموقع", "التصنيف", "الحالة", "الهاتف"];
     const rows = data.map((s) => [s.name || "", s.location || "", s.category || "عام", s.status === "active" ? "نشط" : "غير نشط", s.phone || ""]);
-    exportTablePdf("دليل الفروع والمتاجر", headers, rows, "stores-directory.pdf");
+    await exportTablePdf("دليل الفروع والمتاجر", headers, rows, "stores-directory.pdf");
   };
 
   const handleExportCsv = (data: any[]) => {

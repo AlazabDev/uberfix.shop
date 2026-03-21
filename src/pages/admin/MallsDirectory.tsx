@@ -68,10 +68,10 @@ export default function MallsDirectory() {
     { label: "أنواع التصنيف", value: types.length, color: "text-amber-600" },
   ];
 
-  const handleExportPdf = (data: any[]) => {
+  const handleExportPdf = async (data: any[]) => {
     const headers = ["الاسم", "الموقع", "النوع"];
     const rows = data.map((m) => [m.name || "", m.location || "", m.type || ""]);
-    exportTablePdf("دليل المولات والمراكز التجارية", headers, rows, "malls-directory.pdf");
+    await exportTablePdf("دليل المولات والمراكز التجارية", headers, rows, "malls-directory.pdf");
   };
 
   const handleExportCsv = (data: any[]) => {
