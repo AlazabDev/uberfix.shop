@@ -251,7 +251,7 @@ export async function sendWhatsApp(
     
     const formParams: Record<string, string> = {
       To: toNumber,
-      From: 'whatsapp:+14155238886',
+      From: `whatsapp:${Deno.env.get('TWILIO_WHATSAPP_NUMBER') || '+15557285727'}`,
       StatusCallback: `${Deno.env.get('SUPABASE_URL')}/functions/v1/twilio-delivery-status`
     };
 
