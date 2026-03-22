@@ -29,8 +29,8 @@ export interface MapCredentials {
 export function getTwilioCredentials(requireAll: boolean = true): TwilioCredentials | null {
   const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
   const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-  const phoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '+12294082463';
-  const whatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+14155238886';
+  const phoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '+15557285727';
+  const whatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+15557285727';
 
   if (requireAll && (!accountSid || !authToken)) {
     console.error('Missing required Twilio credentials');

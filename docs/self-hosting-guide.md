@@ -635,7 +635,7 @@ cd /opt/supabase/supabase/docker
 docker compose exec functions sh -c "
   export TWILIO_ACCOUNT_SID=your-twilio-sid
   export TWILIO_AUTH_TOKEN=your-twilio-token
-  export TWILIO_PHONE_NUMBER=+12294082463
+  export TWILIO_PHONE_NUMBER=+15557285727
   export RESEND_API_KEY=your-resend-key
   export FACEBOOK_APP_SECRET=your-fb-secret
   export WHATSAPP_VERIFY_TOKEN=your-wa-token
