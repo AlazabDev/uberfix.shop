@@ -486,7 +486,7 @@ export default function TrackOrder() {
                 <MessageCircle className="h-5 w-5 text-green-600" />
                 <span className="text-xs font-medium">واتساب</span>
               </Button>
-              <a href="tel:+201004006620" className="contents">
+              <a href="tel:+15557285727" className="contents">
                 <Button variant="outline" className="h-14 flex-col gap-1">
                   <Phone className="h-5 w-5 text-primary" />
                   <span className="text-xs font-medium">اتصل بنا</span>

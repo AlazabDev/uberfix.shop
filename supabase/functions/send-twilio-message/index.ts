@@ -90,7 +90,7 @@ serve(async (req) => {
 
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '+12294082463';
+    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER') || '+15557285727';
 
     if (!twilioAccountSid || !twilioAuthToken) {
       return new Response(

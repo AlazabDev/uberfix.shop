@@ -160,7 +160,7 @@ export async function sendSMS(
     
     const formData = new URLSearchParams({
       To: toNumber,
-      From: phoneNumber || '+12294082463',
+      From: phoneNumber || Deno.env.get('TWILIO_PHONE_NUMBER') || '+15557285727',
       Body: data.message,
       StatusCallback: `${Deno.env.get('SUPABASE_URL')}/functions/v1/twilio-delivery-status`
     });
