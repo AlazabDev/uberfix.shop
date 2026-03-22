@@ -5,7 +5,7 @@
  * الرقم الرسمي المتزامن مع WhatsApp Business Platform (Meta)
  * هذا هو نفس الرقم المسجل في WHATSAPP_PHONE_NUMBER_ID على المنصة
  */
-export const WHATSAPP_BUSINESS_NUMBER = "201004006620";
+export const WHATSAPP_BUSINESS_NUMBER = "15557285727";
 
 /** رابط Messenger الرسمي */
 export const MESSENGER_LINK = "https://m.me/864375353429675";
