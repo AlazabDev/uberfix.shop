@@ -167,7 +167,7 @@ export function clearPendingOAuthContext(): void {
 
   try {
     window.sessionStorage.removeItem(OAUTH_CONTEXT_KEY);
-  } catch {}
+  } catch (_e) { /* ignored */ }
 }
 
 /**
