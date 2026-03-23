@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     // Clean up any legacy Facebook session data
-    try { localStorage.removeItem('facebook_session'); } catch {}
+    try { localStorage.removeItem('facebook_session'); } catch (_e) { /* ignored */ }
     setUser(null);
     setSession(null);
   }, []);
