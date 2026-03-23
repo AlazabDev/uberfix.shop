@@ -14,11 +14,42 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      disable: process.env.CAPACITOR_ENV === 'true',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-      manifest: false, // We use manifest.webmanifest
+      manifest: false,
+      injectRegister: 'script',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/auth\/callback/, /^\/auth\/update-password/],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
+        globIgnores: [
+          '**/android/**',
+          '**/ios/**',
+          '**/capacitor.config.*',
+          '**/splash/**',
+          '**/capacitor/**'
+        ],
+        navigateFallbackDenylist: [
+          /^\/~oauth/,
+          /^\/auth\/callback/,
+          /^\/auth\/update-password/,
+          /^\/__capacitor__/,
+          /^\/_capacitor/,
+          /^\/capacitor\//,
+          /^\/capacitor\/webview/,
+          /^\/__\/webview/,
+          /^\/plugins\//,
+          /^\/native\//,
+          /^\/__native__\//,
+          /^\/bridge\//,
+          /^\/__\/console/,
+          /^\/capacitor.*/i,
+          /^\/__capacitor.*/i,
+          /^\/_capacitor.*/i,
+          /^\/native.*/i,
+          /^\/api\/capacitor/,
+          /^\/api\/native/,
+          /^\/api\/plugins/
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -27,7 +58,7 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -42,17 +73,43 @@ export default defineConfig(({ mode }) => ({
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 1 day
+                maxAgeSeconds: 60 * 60 * 24
               },
               cacheableResponse: {
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7
+              }
+            }
+          },
+          {
+            urlPattern: /^\/__capacitor__\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'capacitor-api'
+            }
+          },
+          {
+            urlPattern: /^\/capacitor\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'capacitor-api'
+            }
           }
         ]
       },
       devOptions: {
-        enabled: false
+        enabled: false,
+        type: 'module'
       }
     })
   ].filter(Boolean),
@@ -66,14 +123,49 @@ export default defineConfig(({ mode }) => ({
     target: 'es2020',
     sourcemap: false,
     minify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         format: "es",
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs']
-        }
+          ui: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast'
+          ],
+          supabase: ['@supabase/supabase-js'],
+          maps: ['@googlemaps/js-api-loader', '@googlemaps/markerclusterer', 'mapbox-gl']
+        },
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       }
     },
+    reportCompressedSize: false,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu'
+    ],
+    esbuildOptions: {
+      target: 'es2020'
+    }
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    supported: {
+      'top-level-await': true
+    }
+  }
 }));
