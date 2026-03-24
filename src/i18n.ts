@@ -50,6 +50,21 @@ i18n
           contracts: 'العقود',
           vendors: 'الموردين',
           messages: 'الرسائل',
+          // Navigation
+          'nav.home': 'الرئيسية',
+          'nav.about': 'من نحن',
+          'nav.services': 'خدماتنا',
+          'nav.projects': 'المشاريع',
+          'nav.gallery': 'المعرض',
+          'nav.blog': 'المدونة',
+          'nav.quickRequest': 'طلب سريع',
+          'nav.login': 'تسجيل الدخول',
+          'nav.register': 'إنشاء حساب',
+          'nav.openMenu': 'فتح القائمة',
+          // Footer
+          'footer.smartSystem': 'نظام إدارة الصيانة الذكي',
+          // Map
+          'map.loading': 'جاري تحميل الخريطة...',
           // Hero Section
           'hero.badge': '🔧 خبراء الصيانة المعتمدين',
           'hero.titleLine1': 'نحول مشاكل الصيانة إلى',
@@ -102,6 +117,21 @@ i18n
           contracts: 'Contracts',
           vendors: 'Vendors',
           messages: 'Messages',
+          // Navigation
+          'nav.home': 'Home',
+          'nav.about': 'About',
+          'nav.services': 'Services',
+          'nav.projects': 'Projects',
+          'nav.gallery': 'Gallery',
+          'nav.blog': 'Blog',
+          'nav.quickRequest': 'Quick Request',
+          'nav.login': 'Login',
+          'nav.register': 'Register',
+          'nav.openMenu': 'Open Menu',
+          // Footer
+          'footer.smartSystem': 'Smart Maintenance System',
+          // Map
+          'map.loading': 'Loading map...',
           // Hero Section
           'hero.badge': '🔧 Certified Maintenance Experts',
           'hero.titleLine1': 'We turn maintenance problems into',
