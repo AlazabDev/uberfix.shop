@@ -3,38 +3,15 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "UberFix.shop - Modern ride-fixing platform",
-  "keywords": [
-    "uberfix",
-    "ride",
-    "fix",
-    "shop",
-    "react",
-    "supabase"
-  ],
-  "author": {
-    "name": "Alazab Dev",
-    "email": "admin@alazab.dev",
-    "url": "https://www.alazab.dev"
-  },
-  "homepage": "https://uberfix.shop",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/AlazabDev/UberFix.shop.git"
-  },
-  "bugs": {
-    "url": "https://github.com/AlazabDev/UberFix.shop/issues"
-  },
-  "license": "ISC",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=20.10.0",
+    "pnpm": ">=10.0.0",
     "npm": ">=10.0.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "SKIP_E2E=true vite build",
+    "build": "vite build",
     "build:dev": "vite build",
-    "build:android": "SKIP_E2E=true npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
     "preview": "vite preview",
     "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.{ts,tsx}\" \"supabase/**/*.ts\" \"scripts/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint . --fix",
@@ -48,9 +25,9 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@capacitor-community/app-icon": "^7.0.0",
-    "@capacitor/android": "^8.2.0",
-    "@capacitor/core": "^8.2.0",
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
     "@emailjs/browser": "^4.4.1",
     "@googlemaps/js-api-loader": "^2.0.2",
@@ -97,7 +74,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "docx": "^9.5.1",
-    "dompurify": "^3.3.3",
+    "dompurify": "^3.3.1",
     "embla-carousel-react": "^8.6.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^11.18.2",
@@ -105,8 +82,8 @@
     "i18next": "^25.7.4",
     "i18next-browser-languagedetector": "^8.2.0",
     "input-otp": "^1.4.2",
-    "jsdom": "^23.0.0",
-    "jspdf": "^4.2.1",
+    "jsdom": "^20.0.3",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.462.0",
     "mapbox-gl": "^3.6.0",
     "next-themes": "^0.3.0",
@@ -129,12 +106,12 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "vaul": "^0.9.9",
+    "vite-plugin-pwa": "0.19.8",
     "workbox-window": "^7.3.0",
     "zod": "^4.3.5",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.2.0",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
@@ -148,37 +125,37 @@
     "globals": "^15.15.0",
     "lovable-tagger": "^1.1.9",
     "postcss": "^8.5.6",
-    "supabase": "^2.83.0",
+    "supabase": "^2.62.5",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^8.0.2",
-    "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.1"
+    "vite": "^7.2.2",
+    "vitest": "^1.4.0"
+  },
+  "resolutions": {
+    "glob": "11.0.0",
+    "archiver": "6.0.0",
+    "archiver-utils": "5.0.2",
+    "zip-stream": "5.0.2",
+    "rimraf": "5.0.5",
+    "workbox-build": "7.1.0",
+    "serialize-javascript": "7.0.3"
   },
   "overrides": {
-    "serialize-javascript": "7.0.3",
-    "glob": "11.1.0",
-    "rimraf": "^5.0.10",
-    "minimatch": "10.2.3",
-    "tar": "7.5.11",
-    "lodash": "4.17.23",
-    "ajv": "8.18.0",
-    "flatted": "3.4.2",
-    "@isaacs/brace-expansion": "5.0.0",
-    "source-map": "0.7.4",
-    "magic-string": "0.30.17",
-    "workbox-build": "7.1.0",
-    "archiver": "^6.0.2",
-    "archiver-utils": "^5.0.2",
-    "zip-stream": "^5.0.2",
-    "unzipper": "^0.10.14",
-    "fstream": "1.0.12"
+    "serialize-javascript": "7.0.3"
   },
   "optionalDependencies": {
     "@swc/core": "^1.15.3",
     "core-js": "^3.47.0",
     "esbuild": "^0.27.1"
-  }
+  },
+  "description": "![UberFix Logo](https://al-azab.co/img/uber.gif)",
+  "main": "build-dev.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

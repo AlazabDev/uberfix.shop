@@ -42,12 +42,3 @@ lerna-debug.log*
 
 # System files
 Thumbs.db
-android/app/release.keystore
-*.keystore
-*.jks
-keystore-passwords.txt
-secure-backups/
-*.keystore
-*.jks
-android/app/release.keystore
-android/release.keystore

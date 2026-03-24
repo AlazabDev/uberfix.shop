@@ -4,18 +4,18 @@ import { CapacitorConfig } from '@capacitor/cli';
 const isProduction = process.env.NODE_ENV === 'production';
 
 const config: CapacitorConfig = {
-  appId: 'com.alazab.uberfix',
+  appId: 'shop.uberfix.app',
   appName: 'UberFix',
   webDir: 'dist',
-
+  
   // Server configuration - only for development
   ...(isProduction ? {} : {
     server: {
-      url: 'https://uberfix.alazab.com?forceHideBadge=true',
+      url: 'https://c6adaf51-0eef-43e8-bf45-d65ac7ebe1aa.lovableproject.com?forceHideBadge=true',
       cleartext: true
     }
   }),
-
+  
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
@@ -48,7 +48,7 @@ const config: CapacitorConfig = {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
   },
-
+  
   // Android specific settings for Google Play
   android: {
     allowMixedContent: false,
@@ -56,7 +56,7 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: !isProduction,
     backgroundColor: '#0b1e36',
   },
-
+  
   // iOS specific settings
   ios: {
     contentInset: 'automatic',

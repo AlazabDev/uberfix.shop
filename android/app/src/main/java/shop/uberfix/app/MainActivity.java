@@ -1,4 +1,4 @@
-package com.alazab.uberfix;
+package shop.uberfix.app;
 
 import com.getcapacitor.BridgeActivity;
 
