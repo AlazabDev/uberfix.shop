@@ -257,14 +257,12 @@ export const HeroSection = () => {
         {/* Main Title */}
         <div className="max-w-5xl mx-auto mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight animate-[fadeInUp_0.6s_ease-out_both]">
-            <span className="text-white block mb-2">{t('hero.titleLine1')}</span>
-            <span 
-              className={`text-[#d4a017] transition-all duration-700 ease-out ${
-                isTextVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-              }`}
-            >
-              {t('hero.titleLine2')}
-            </span>
+255:             <span className="text-white block mb-2">{t('hero.titleLine1')}</span>
+            <RotatingText
+              texts={rotatingTexts}
+              className="text-[#f5bf23] font-bold"
+              interval={3000}
+            />
           </h1>
         </div>
 
