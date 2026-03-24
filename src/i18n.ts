@@ -343,8 +343,9 @@ i18n
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
+      order: typeof window !== 'undefined' && window.localStorage ? ['localStorage'] : ['navigator'],
+      caches: typeof window !== 'undefined' && window.localStorage ? ['localStorage'] : [],
+      lookupLocalStorage: 'i18nextLng',
     },
   });
 
