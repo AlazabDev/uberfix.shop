@@ -127,16 +127,24 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         format: "es",
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast'
-          ],
-          supabase: ['@supabase/supabase-js'],
-          maps: ['@googlemaps/js-api-loader', '@googlemaps/markerclusterer', 'mapbox-gl']
+        manualChunks: (id) => {
+          // vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            if (id.includes('@googlemaps') || id.includes('mapbox-gl')) {
+              return 'maps';
+            }
+            // default vendor chunk
+            return 'vendor';
+          }
         },
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',

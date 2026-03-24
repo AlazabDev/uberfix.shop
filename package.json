@@ -32,8 +32,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "SKIP_E2E=true vite build",
     "build:dev": "vite build",
+    "build:android": "SKIP_E2E=true npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
     "preview": "vite preview",
     "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.{ts,tsx}\" \"supabase/**/*.ts\" \"scripts/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint . --fix",
@@ -47,7 +48,8 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.1",
+    "@capacitor-community/app-icon": "^7.0.0",
+    "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.0.0",
     "@emailjs/browser": "^4.4.1",
