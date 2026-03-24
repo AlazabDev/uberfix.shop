@@ -50,6 +50,17 @@ i18n
           contracts: 'العقود',
           vendors: 'الموردين',
           messages: 'الرسائل',
+          // Hero Section
+          'hero.badge': '🔧 خبراء الصيانة المعتمدين',
+          'hero.titleLine1': 'نحول مشاكل الصيانة إلى',
+          'hero.rotatingTexts': 'حلول ذكية,خدمة احترافية,راحة بال,جودة مضمونة',
+          'hero.subtitle': 'نقدم خدمات صيانة شاملة للمنازل والشركات في جميع أنحاء مصر. فريق فني محترف، استجابة سريعة، وضمان على جميع الأعمال.',
+          'hero.cta': 'ابدأ الآن',
+          'hero.consultation': 'احجز استشارة',
+          'hero.stats.satisfaction': '% رضا العملاء',
+          'hero.stats.projects': 'مشروع منجز',
+          'hero.stats.experts': 'فني متخصص',
+          'hero.scrollDown': 'اكتشف المزيد',
         },
       },
       en: {
