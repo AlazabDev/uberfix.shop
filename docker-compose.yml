@@ -1,5 +1,6 @@
 # ========================================
 # UberFix Production Docker Compose
+# Domain: uberfix.alazab.com
 # ========================================
 
 services:
@@ -12,12 +13,15 @@ services:
         - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
         - VITE_GOOGLE_MAPS_API_KEY=${VITE_GOOGLE_MAPS_API_KEY}
         - VITE_MAPBOX_TOKEN=${VITE_MAPBOX_TOKEN}
-        - VITE_APP_URL=${VITE_APP_URL}
-        - VITE_PUBLIC_SITE_URL=${VITE_PUBLIC_SITE_URL}
+        - VITE_APP_URL=${VITE_APP_URL:-https://uberfix.alazab.com}
+        - VITE_PUBLIC_SITE_URL=${VITE_PUBLIC_SITE_URL:-https://uberfix.alazab.com}
     container_name: uberfix-web
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8880:80"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
     networks:
       - uberfix-network
     healthcheck:
@@ -27,7 +31,37 @@ services:
       retries: 3
       start_period: 10s
 
-  # Optional: Watchtower for auto-updates
+  # Nginx reverse proxy with SSL
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: uberfix-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+    depends_on:
+      uberfix:
+        condition: service_healthy
+    networks:
+      - uberfix-network
+
+  # Certbot for SSL renewal
+  certbot:
+    image: certbot/certbot
+    container_name: uberfix-certbot
+    restart: unless-stopped
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
+    networks:
+      - uberfix-network
+
+  # Watchtower for auto-updates
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
@@ -37,8 +71,12 @@ services:
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_LABEL_ENABLE=true
     networks:
       - uberfix-network
+
+volumes:
+  certbot-webroot:
 
 networks:
   uberfix-network:
