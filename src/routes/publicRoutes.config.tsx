@@ -48,6 +48,7 @@ const ServiceMap = lazy(() => import("@/pages/maintenance/ServiceMap"));
 const ChatPage = lazy(() => import("@/pages/messages/ChatPage"));
 const PublicMaintenanceForm = lazy(() => import("@/pages/whatsapp/WhatsAppMaintenanceFormPage"));
 const UberFixRequestForm = lazy(() => import("@/pages/public/UberFixRequestForm"));
+const BetaTest = lazy(() => import("@/pages/public/BetaTest"));
 
 // Technician pages
 const TechnicianRegistration = lazy(() => import("@/pages/technicians/TechnicianRegistration"));
