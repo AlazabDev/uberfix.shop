@@ -117,6 +117,21 @@ i18n
           contracts: 'Contracts',
           vendors: 'Vendors',
           messages: 'Messages',
+          // Navigation
+          'nav.home': 'Home',
+          'nav.about': 'About',
+          'nav.services': 'Services',
+          'nav.projects': 'Projects',
+          'nav.gallery': 'Gallery',
+          'nav.blog': 'Blog',
+          'nav.quickRequest': 'Quick Request',
+          'nav.login': 'Login',
+          'nav.register': 'Register',
+          'nav.openMenu': 'Open Menu',
+          // Footer
+          'footer.smartSystem': 'Smart Maintenance System',
+          // Map
+          'map.loading': 'Loading map...',
           // Hero Section
           'hero.badge': '🔧 Certified Maintenance Experts',
           'hero.titleLine1': 'We turn maintenance problems into',
