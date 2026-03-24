@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Globe, Check } from 'lucide-react';
 import { useEffect } from 'react';
+import { safeStorage } from '@/lib/safeStorage';
 
 const languages = [
   { code: 'ar', name: 'العربية', dir: 'rtl' },
@@ -21,22 +22,23 @@ export const LanguageSwitcher = () => {
   const changeLanguage = (langCode: string) => {
     i18n.changeLanguage(langCode);
     const lang = languages.find(l => l.code === langCode);
-    if (lang) {
+    if (lang && typeof document !== 'undefined') {
       document.documentElement.dir = lang.dir;
       document.documentElement.lang = langCode;
-      localStorage.setItem('i18nextLng', langCode);
     }
+
+    safeStorage.setItem('i18nextLng', langCode);
   };
 
   // Set initial direction on mount
   useEffect(() => {
-    const savedLang = localStorage.getItem('i18nextLng') || 'ar';
+    const savedLang = safeStorage.getItem('i18nextLng') || i18n.resolvedLanguage || 'ar';
     const lang = languages.find(l => l.code === savedLang);
-    if (lang) {
+    if (lang && typeof document !== 'undefined') {
       document.documentElement.dir = lang.dir;
       document.documentElement.lang = savedLang;
     }
-  }, []);
+  }, [i18n.resolvedLanguage]);
 
   return (
     <DropdownMenu>

@@ -1,6 +1,9 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { canUseLocalStorage } from '@/lib/safeStorage';
+
+const supportsLocalStorage = canUseLocalStorage();
 
 i18n
   .use(LanguageDetector)
@@ -343,8 +346,8 @@ i18n
       escapeValue: false,
     },
     detection: {
-      order: typeof window !== 'undefined' && window.localStorage ? ['localStorage'] : ['navigator'],
-      caches: typeof window !== 'undefined' && window.localStorage ? ['localStorage'] : [],
+      order: supportsLocalStorage ? ['localStorage', 'navigator'] : ['navigator'],
+      caches: supportsLocalStorage ? ['localStorage'] : [],
       lookupLocalStorage: 'i18nextLng',
     },
   });
