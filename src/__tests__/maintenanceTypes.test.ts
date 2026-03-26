@@ -2,7 +2,7 @@
  * اختبارات صارمة لأنواع الصيانة والتحقق من تكامل البيانات
  */
 import { describe, it, expect } from "vitest";
-import { WORKFLOW_STAGES, type WorkflowStage } from "@/constants/workflowStages";
+import { WORKFLOW_STAGES, HAPPY_PATH_STAGES, type WorkflowStage } from "@/constants/workflowStages";
 
 describe("Maintenance Type - Status Sync Integrity", () => {
   it("workflow_stage 'submitted' must map to status 'Open'", () => {
