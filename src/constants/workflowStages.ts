@@ -137,7 +137,7 @@ export const WORKFLOW_STAGES: Record<WorkflowStage, WorkflowStageConfig> = {
     bgColor: 'bg-indigo-500',
     textColor: 'text-indigo-600',
     actions: ['بدء العمل', 'إعادة الجدولة', 'تعليق'],
-    nextStages: ['in_progress', 'scheduled', 'on_hold'],
+    nextStages: ['in_progress', 'assigned', 'on_hold'],
     status: 'Assigned',
   },
   in_progress: {

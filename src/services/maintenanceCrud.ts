@@ -7,18 +7,37 @@ import { WORKFLOW_STAGES, type WorkflowStage } from "@/constants/workflowStages"
 import type { MaintenanceRequest, MaintenanceRequestInsert, MrStatus } from "@/types/maintenance";
 import { notifyRequestCreated, notifyStatusChanged } from "./maintenanceNotifications";
 
-/** جلب جميع الطلبات */
-export async function fetchAllRequests(): Promise<MaintenanceRequest[]> {
+/** جلب جميع الطلبات مع pagination لتجنب حد 1000 صف */
+export async function fetchAllRequests(page = 0, pageSize = 500): Promise<MaintenanceRequest[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('maintenance_requests')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const allData: MaintenanceRequest[] = [];
+  let currentPage = page;
+  let hasMore = true;
 
-  if (error) throw error;
-  return (data as MaintenanceRequest[]) || [];
+  while (hasMore) {
+    const from = currentPage * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from('maintenance_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allData.push(...(data as MaintenanceRequest[]));
+      hasMore = data.length === pageSize;
+      currentPage++;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
 }
 
 /** إنشاء طلب جديد */

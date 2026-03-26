@@ -39,12 +39,31 @@ export function useDashboardStats() {
       setError(null);
 
 
-      // Fetch all maintenance requests
-      const { data: requests, error: fetchError } = await supabase
-        .from('maintenance_requests')
-        .select('id, status, workflow_stage, priority, estimated_cost, actual_cost, created_at');
+      // Fetch all maintenance requests with pagination to avoid 1000 row limit
+      let allRequests: any[] = [];
+      let page = 0;
+      const pageSize = 500;
+      let hasMore = true;
 
-      if (fetchError) throw fetchError;
+      while (hasMore) {
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        const { data: batch, error: fetchError } = await supabase
+          .from('maintenance_requests')
+          .select('id, status, workflow_stage, priority, estimated_cost, actual_cost, created_at')
+          .range(from, to);
+
+        if (fetchError) throw fetchError;
+        if (batch && batch.length > 0) {
+          allRequests.push(...batch);
+          hasMore = batch.length === pageSize;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      const requests = allRequests;
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
