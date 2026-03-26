@@ -92,7 +92,6 @@ describe("Maintenance Type - Stage Count Validation", () => {
   });
 
   it("happy path must have exactly 11 stages", () => {
-    const { HAPPY_PATH_STAGES } = require("@/constants/workflowStages");
     expect(HAPPY_PATH_STAGES.length).toBe(11);
   });
 });
