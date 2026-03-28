@@ -1,5 +1,0 @@
-// Generated compatibility bridge for Capacitor Android builds.
-// This file is intentionally committed because settings.gradle references it during CI builds.
-
-include ':capacitor-android'
-project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
