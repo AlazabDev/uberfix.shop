@@ -8300,6 +8300,37 @@ export type Database = {
           client_phone: string
         }[]
       }
+      get_public_default_branch_company: {
+        Args: never
+        Returns: {
+          branch_id: string
+          branch_name: string
+          city: string
+          company_id: string
+        }[]
+      }
+      get_public_technicians_for_map: {
+        Args: never
+        Returns: {
+          available_from: string
+          available_to: string
+          bio: string
+          current_latitude: number
+          current_longitude: number
+          hourly_rate: number
+          icon_url: string
+          id: string
+          is_verified: boolean
+          level: string
+          location_updated_at: string
+          name: string
+          rating: number
+          service_area_radius: number
+          specialization: string
+          status: string
+          total_reviews: number
+        }[]
+      }
       get_safe_app_settings: {
         Args: never
         Returns: {
