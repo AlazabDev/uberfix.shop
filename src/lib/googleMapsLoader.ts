@@ -22,6 +22,14 @@ class GoogleMapsLoader {
   private async getApiKey(): Promise<string> {
     if (this.cachedApiKey) return this.cachedApiKey;
 
+    // Prefer client-side browser key when available.
+    // This is a public browser key and avoids preview failures if the edge secret is restricted.
+    const envKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (envKey) {
+      this.cachedApiKey = envKey;
+      return envKey;
+    }
+
     // Try edge function first
     try {
       const { data, error } = await supabase.functions.invoke('get-maps-key');
@@ -32,13 +40,6 @@ class GoogleMapsLoader {
       console.warn('Edge function failed:', error);
     } catch (e) {
       console.warn('Failed to fetch maps key from edge function:', e);
-    }
-
-    // Fallback to env var
-    const envKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (envKey) {
-      this.cachedApiKey = envKey;
-      return envKey;
     }
 
     throw new Error('Google Maps API key not available');

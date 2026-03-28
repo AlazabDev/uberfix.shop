@@ -54,23 +54,16 @@ export const useTechnicians = (filter?: { status?: string; specialization?: stri
         return;
       }
 
-      // Use the public-safe view that doesn't require special RLS permissions
-      let query = (supabase as any)
-        .from('technicians_map_public')
-        .select('*');
-
-      if (filterStatus) {
-        query = query.eq('status', filterStatus);
-      }
-
-      if (filterSpecialization) {
-        query = query.eq('specialization', filterSpecialization);
-      }
-
-      const { data, error: dbError } = await query.order('rating', { ascending: false });
+      const { data, error: dbError } = await supabase.rpc('get_public_technicians_for_map');
 
       if (dbError) throw dbError;
-      setTechnicians(data as Technician[] || []);
+
+      const filteredData = ((data as Technician[] | null) || [])
+        .filter((tech) => (filterStatus ? tech.status === filterStatus : true))
+        .filter((tech) => (filterSpecialization ? tech.specialization === filterSpecialization : true))
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      setTechnicians(filteredData);
     } catch (err) {
       console.error('Error fetching technicians:', err);
       setError(err as Error);

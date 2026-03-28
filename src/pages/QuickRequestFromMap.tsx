@@ -14,7 +14,6 @@ import { getSpecializationLabel } from "@/constants/technicianConstants";
 interface SelectedTechnician {
   id: string;
   name: string;
-  phone: string;
   specialization: string;
   rating: number;
   total_reviews: number;
@@ -67,42 +66,33 @@ export default function QuickRequestFromMap() {
     setSubmitting(true);
 
     try {
-      // Get any available branch and company for routing
-      const { data: branch } = await supabase
-        .from('branches')
-        .select('id, company_id')
-        .limit(1)
-        .maybeSingle();
+      const enrichedDescription = [
+        formData.description,
+        '',
+        `الفني المختار من الخريطة: ${technician.name}`,
+        `معرف الفني: ${technician.id}`,
+        `التخصص: ${getSpecializationLabel(technician.specialization)}`,
+      ].join('\n');
 
-      if (!branch) {
-        throw new Error('لا يوجد فرع متاح لتوجيه الطلب');
-      }
-
-      const { data: request, error } = await supabase
-        .from('maintenance_requests')
-        .insert([{
-          title: `طلب صيانة - ${getSpecializationLabel(technician.specialization)}`,
-          description: formData.description,
+      const { data: request, error } = await supabase.functions.invoke('submit-public-request', {
+        body: {
           client_name: formData.client_name,
           client_phone: formData.client_phone,
-          client_email: formData.client_email || null,
-          location: formData.location,
-          priority: formData.priority,
-          status: 'Open' as any,
-          company_id: branch.company_id,
-          branch_id: branch.id,
-          assigned_technician_id: technician.id,
+          client_email: formData.client_email || undefined,
           service_type: technician.specialization,
-          channel: 'map',
-        }])
-        .select()
-        .maybeSingle();
+          priority: formData.priority,
+          description: enrichedDescription,
+          notes: enrichedDescription,
+          branch_name: '',
+          channel: 'public_form',
+        },
+      });
 
-      if (error) throw error;
+      if (error || !request?.success) throw error || new Error('فشل في إنشاء الطلب');
 
       toast({
         title: '✅ تم إنشاء الطلب بنجاح',
-        description: `رقم الطلب: ${request?.request_number || request?.id?.slice(0, 8)}`,
+        description: `رقم الطلب: ${request?.request_number || request?.request_id?.slice(0, 8)}`,
       });
 
       sessionStorage.removeItem('selectedTechnician');

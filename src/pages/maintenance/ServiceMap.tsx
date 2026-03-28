@@ -124,6 +124,12 @@ export default function ServiceMap() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const createMarkerIcon = (url: string) => ({
+    url,
+    scaledSize: new google.maps.Size(40, 48),
+    anchor: new google.maps.Point(20, 48),
+  });
+
   const fetchUserData = async () => {
     try {
       const {
@@ -215,12 +221,12 @@ export default function ServiceMap() {
             center: MAPS_CONFIG.defaultCenter,
             zoom: 13,
             styles: MAP_STYLE,
-            mapId: MAPS_CONFIG.defaultOptions.mapId,
             mapTypeControl: false,
             fullscreenControl: false,
             streetViewControl: false,
             zoomControl: true,
             gestureHandling: "greedy",
+            backgroundColor: "#f8fafc",
           });
         }
 
@@ -240,15 +246,10 @@ export default function ServiceMap() {
           if (isNaN(lat) || isNaN(lng)) return;
 
           // استخدام أيقونة الفرع المرفقة بدون أي تعديل
-          const branchIconUrl = getBranchIcon();
-          const markerImg = document.createElement("img");
-          markerImg.src = branchIconUrl;
-          markerImg.style.cssText = "cursor: pointer; width: 40px; height: 48px;";
-
-          const marker = new google.maps.marker.AdvancedMarkerElement({
+          const marker = new google.maps.Marker({
             map: mapInstanceRef.current!,
             position: { lat, lng },
-            content: markerImg,
+            icon: createMarkerIcon(getBranchIcon()),
             title: branch.branch,
             zIndex: 100,
           });
@@ -292,15 +293,10 @@ export default function ServiceMap() {
           const techStatus = mapStatusToMapLabel(tech.status || 'offline');
 
           // استخدام أيقونة الفني المرفقة بدون أي تعديل
-          const techIconUrl = getTechnicianIconByText(tech.specialization || "");
-          const markerImg = document.createElement("img");
-          markerImg.src = techIconUrl;
-          markerImg.style.cssText = "cursor: pointer; width: 40px; height: 48px;";
-
-          const marker = new google.maps.marker.AdvancedMarkerElement({
+          const marker = new google.maps.Marker({
             map: mapInstanceRef.current!,
             position: { lat, lng },
-            content: markerImg,
+            icon: createMarkerIcon(getTechnicianIconByText(tech.specialization || "")),
             title: tech.name || "فني",
             zIndex: 200,
           });
@@ -513,7 +509,7 @@ export default function ServiceMap() {
                     <span className="font-semibold">خريطة الخدمات غير متاحة حالياً</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    حدث خطأ أثناء تحميل خرائط Google. يرجى التأكد من إعداد مفتاح الخرائط في لوحة إعدادات النظام.
+                    حدث خطأ أثناء تحميل الخريطة أو بيانات الفنيين. تم تفعيل مسار تحميل أبسط، ويمكنك إعادة المحاولة الآن.
                   </p>
                   <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                     إعادة المحاولة
