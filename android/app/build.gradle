@@ -3,29 +3,69 @@ apply plugin: 'com.android.application'
 android {
     namespace = "shop.uberfix.app"
     compileSdk = rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "shop.uberfix.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // Signing config for release builds
+    signingConfigs {
+        def signingPropsFile = file('signing.properties')
+        if (signingPropsFile.exists()) {
+            def signingProps = new Properties()
+            signingProps.load(new FileInputStream(signingPropsFile))
+            release {
+                storeFile file(signingProps['storeFile'] ?: 'uberfix-release-key.jks')
+                storePassword signingProps['storePassword'] ?: ''
+                keyAlias signingProps['keyAlias'] ?: 'uberfix-key'
+                keyPassword signingProps['keyPassword'] ?: ''
+            }
+        }
+    }
+
     buildTypes {
-        release {
+        debug {
+            debuggable true
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            def signingPropsFile = file('signing.properties')
+            if (signingPropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    // Prevent duplicate files
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/LICENSE', 'META-INF/NOTICE']
         }
     }
 }
 
 repositories {
-    flatDir{
+    flatDir {
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
 }
@@ -49,6 +89,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch (Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
