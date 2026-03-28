@@ -58,7 +58,13 @@ export const useTechnicians = (filter?: { status?: string; specialization?: stri
 
       if (dbError) throw dbError;
 
-      const filteredData = ((data as Technician[] | null) || [])
+      const normalizedData: Technician[] = (((data as unknown as Omit<Technician, 'is_active'>[] | null) || [])
+        .map((tech) => ({
+          ...tech,
+          is_active: true,
+        })));
+
+      const filteredData = normalizedData
         .filter((tech) => (filterStatus ? tech.status === filterStatus : true))
         .filter((tech) => (filterSpecialization ? tech.specialization === filterSpecialization : true))
         .sort((a, b) => (b.rating || 0) - (a.rating || 0));
