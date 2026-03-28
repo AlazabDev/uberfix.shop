@@ -12,22 +12,33 @@
   "dir": "rtl",
   "icons": [
     {
-      "src": "/logo/mainicon.png",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/logo/mainicon.png",
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/logo/uberfix-icon.gif",
-      "sizes": "192x192",
-      "type": "image/gif",
-      "purpose": "any"
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     },
     {
       "src": "/favicon.ico",
@@ -38,7 +49,7 @@
   "categories": ["business", "productivity", "utilities"],
   "screenshots": [
     {
-      "src": "/logo/mainicon.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide"
@@ -50,24 +61,14 @@
       "short_name": "طلبات",
       "description": "عرض الطلبات الجديدة",
       "url": "/requests",
-      "icons": [
-        {
-          "src": "/logo/mainicon.png",
-          "sizes": "96x96"
-        }
-      ]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "لوحة التحكم",
       "short_name": "لوحة",
       "description": "لوحة التحكم الرئيسية",
       "url": "/dashboard",
-      "icons": [
-        {
-          "src": "/logo/mainicon.png",
-          "sizes": "96x96"
-        }
-      ]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
   "related_applications": [],
