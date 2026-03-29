@@ -139,14 +139,16 @@ export default function ServiceMap() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("first_name, last_name, avatar_url, role")
+        .select("full_name, name, first_name, last_name, avatar_url, role")
         .eq("id", user.id)
         .maybeSingle();
 
+      const displayName = profile?.full_name || profile?.name || '';
+      const nameParts = displayName.split(' ');
       setUserData({
         email: user.email || "",
-        firstName: profile?.first_name || "مستخدم",
-        lastName: profile?.last_name || "",
+        firstName: profile?.first_name || nameParts[0] || "مستخدم",
+        lastName: profile?.last_name || nameParts.slice(1).join(' ') || "",
         avatarUrl: profile?.avatar_url || null,
         role:
           profile?.role === "admin"
