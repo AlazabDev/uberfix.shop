@@ -122,10 +122,28 @@ export const ServicesSection = () => {
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <Button className="flex-1 group/btn">
-                    اطلب الخدمة
-                    <ArrowLeft className="h-4 w-4 mr-2 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="flex-1 group/btn">
+                        اطلب الخدمة
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-56">
+                      <DropdownMenuItem asChild>
+                        <Link to="/uf" className="flex items-center gap-2 cursor-pointer">
+                          <Wrench className="h-4 w-4" />
+                          طلب صيانة
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/quote" className="flex items-center gap-2 cursor-pointer">
+                          <FileText className="h-4 w-4" />
+                          طلب عرض أسعار
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button 
                     onClick={() => openWhatsApp(service.whatsappMessage)}
                     className="bg-[#25D366] hover:bg-[#128C7E] text-white px-6 flex items-center gap-2 font-semibold shadow-lg hover:shadow-xl transition-all"
