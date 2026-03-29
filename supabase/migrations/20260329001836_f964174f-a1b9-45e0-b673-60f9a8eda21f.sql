@@ -1,0 +1,7 @@
+-- Add 5 new technicians in Cairo/Giza with valid level values
+INSERT INTO technicians (name, phone, email, specialization, city_id, district_id, current_latitude, current_longitude, status, is_active, is_verified, rating, total_reviews, level, hourly_rate, bio) VALUES
+('حسام الدين عبدالله', '01012345601', 'hussam.tech@uberfix.shop', 'جبس بورد وديكورات', 15, 181, 30.0560, 31.2050, 'online', true, true, 4.7, 44, 'certified', 120, 'متخصص في أعمال الجبس بورد والديكورات'),
+('مصطفى كمال', '01012345602', 'mustafa.tech@uberfix.shop', 'أرضيات وسيراميك', 8, 81, 30.0070, 31.0120, 'online', true, true, 4.8, 52, 'senior', 150, 'خبرة 12 سنة في تركيب الأرضيات'),
+('طارق حسني', '01012345603', 'tarek.tech@uberfix.shop', 'كاميرات وأنظمة أمنية', 15, 179, 30.1150, 31.3530, 'busy', true, true, 4.3, 20, 'certified', 180, 'تركيب وصيانة أنظمة المراقبة'),
+('فاطمة الزهراء', '01012345604', 'fatma.tech@uberfix.shop', 'صيانة أجهزة منزلية', 15, 173, 30.1200, 31.3100, 'online', true, true, 4.6, 33, 'certified', 100, 'صيانة غسالات وثلاجات'),
+('إبراهيم محمود', '01012345605', 'ibrahim.tech@uberfix.shop', 'عوازل حرارية ومائية', 8, 96, 30.0320, 31.2080, 'online', true, true, 4.4, 27, 'senior', 200, 'متخصص في العزل المائي والحراري')
