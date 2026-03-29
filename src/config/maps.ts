@@ -15,7 +15,7 @@ export const MAPS_CONFIG = {
     mapTypeControl: true,
     streetViewControl: true,
     fullscreenControl: true,
-    mapId: 'b41c60a3f8e58bdb15b2c668',
+    mapId: 'cbebd74833941bfb8b76b91b',
     clickableIcons: true,
     gestureHandling: 'greedy',
   },
