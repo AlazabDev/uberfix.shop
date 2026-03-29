@@ -6,9 +6,15 @@ import { Button } from "@/components/ui/button";
 import { 
   Wrench, Building2, Droplet, Zap, PaintBucket, 
   ShieldCheck, Clock, Award, ArrowLeft, Hammer,
-  Home, Lightbulb
+  Home, Lightbulb, ChevronDown, FileText
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Services() {
   const services = [
@@ -135,12 +141,28 @@ export default function Services() {
                     ))}
                   </div>
                   
-                  <Link to="/register">
-                    <Button className="w-full group">
-                      اطلب الخدمة الآن
-                      <ArrowLeft className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="w-full group">
+                        اطلب الخدمة الآن
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-56">
+                      <DropdownMenuItem asChild>
+                        <Link to="/uf" className="flex items-center gap-2 cursor-pointer">
+                          <Wrench className="h-4 w-4" />
+                          طلب صيانة
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/quote" className="flex items-center gap-2 cursor-pointer">
+                          <FileText className="h-4 w-4" />
+                          طلب عرض أسعار
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </Card>
             ))}
