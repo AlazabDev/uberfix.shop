@@ -39,9 +39,9 @@ export function BrandLogo({
 
   const LogoIcon = () => (
     <div
-      className={`${s.icon} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0`}
+      className={`${s.icon} flex items-center justify-center flex-shrink-0`}
       style={glow ? {
-        boxShadow: "0 0 18px 4px rgba(255,185,0,0.35), 0 0 40px 8px rgba(255,185,0,0.15)",
+        filter: "drop-shadow(0 0 10px rgba(255,185,0,0.4)) drop-shadow(0 0 20px rgba(255,185,0,0.15))",
       } : undefined}
     >
       <img
@@ -54,7 +54,7 @@ export function BrandLogo({
 
   const LogoText = () => (
     <div className="min-w-0">
-      <span className={`${s.text} font-bold tracking-tight leading-tight font-['Jozoor',sans-serif]`}>
+      <span className={`${s.text} font-bold tracking-[0.08em] leading-tight font-['Jozoor',sans-serif]`}>
         <span style={{ color: darkBg ? "#FFFFFF" : "#030957" }}>
           Uber
         </span>
