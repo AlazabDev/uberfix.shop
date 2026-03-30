@@ -14,11 +14,18 @@ let cachedToken: string | null = null;
  * جلب مفتاح Mapbox من Edge Function
  */
 export const getMapboxToken = async (): Promise<string> => {
-  // إذا كان المفتاح موجود في الذاكرة المؤقتة
   if (cachedToken) {
     return cachedToken;
   }
 
+  // Prefer client-side env var (public browser key)
+  const envToken = import.meta.env.VITE_MAPBOX_TOKEN;
+  if (envToken) {
+    cachedToken = envToken;
+    return envToken;
+  }
+
+  // Fallback to edge function
   try {
     const { data, error } = await supabase.functions.invoke('get-mapbox-token');
     
