@@ -26,7 +26,7 @@ export const LandingHeader = () => {
     <header className="bg-card/95 backdrop-blur-md border-b border-border/50 px-3 sm:px-6 py-2 sm:py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm safe-area-inset standalone-header tap-highlight-none">
       {/* Logo */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <BrandLogo size="md" showSubtitle subtitle={t('footer.smartSystem')} />
+        <BrandLogo size="md" showSubtitle subtitle={t('footer.smartSystem')} animated glow />
       </div>
 
       {/* Desktop Navigation Menu */}

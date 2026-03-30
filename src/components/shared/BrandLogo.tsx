@@ -8,13 +8,19 @@ interface BrandLogoProps {
   className?: string;
   iconOnly?: boolean;
   variant?: "full" | "icon" | "text";
+  /** Use on dark backgrounds - makes "Uber" white */
+  darkBg?: boolean;
+  /** Use animated gif icon */
+  animated?: boolean;
+  /** Add glow effect to icon */
+  glow?: boolean;
 }
 
 const sizeMap = {
-  sm: { icon: "w-8 h-8", uber: "text-base", fix: "text-base", subtitle: "text-[9px]", iconImg: "w-6 h-6" },
-  md: { icon: "w-10 h-10", uber: "text-lg", fix: "text-lg", subtitle: "text-[10px]", iconImg: "w-8 h-8" },
-  lg: { icon: "w-12 h-12", uber: "text-xl", fix: "text-xl", subtitle: "text-xs", iconImg: "w-10 h-10" },
-  xl: { icon: "w-16 h-16", uber: "text-3xl", fix: "text-3xl", subtitle: "text-sm", iconImg: "w-14 h-14" },
+  sm: { icon: "w-9 h-9", text: "text-lg", subtitle: "text-[9px]", iconImg: "w-7 h-7", gap: "gap-2" },
+  md: { icon: "w-11 h-11", text: "text-xl", subtitle: "text-[10px]", iconImg: "w-9 h-9", gap: "gap-2.5" },
+  lg: { icon: "w-14 h-14", text: "text-2xl", subtitle: "text-xs", iconImg: "w-12 h-12", gap: "gap-3" },
+  xl: { icon: "w-20 h-20", text: "text-4xl", subtitle: "text-sm", iconImg: "w-16 h-16", gap: "gap-4" },
 };
 
 export function BrandLogo({
@@ -24,13 +30,22 @@ export function BrandLogo({
   linkTo = "/",
   className = "",
   variant = "full",
+  darkBg = false,
+  animated = false,
+  glow = false,
 }: BrandLogoProps) {
   const s = sizeMap[size];
+  const iconSrc = animated ? "/uf-icon.gif" : "/uf-icon.png";
 
   const LogoIcon = () => (
-    <div className={`${s.icon} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md`}>
+    <div
+      className={`${s.icon} rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0`}
+      style={glow ? {
+        boxShadow: "0 0 18px 4px rgba(255,185,0,0.35), 0 0 40px 8px rgba(255,185,0,0.15)",
+      } : undefined}
+    >
       <img
-        src="/uf-icon.png"
+        src={iconSrc}
         alt="UberFix"
         className={`${s.iconImg} object-contain`}
       />
@@ -39,16 +54,16 @@ export function BrandLogo({
 
   const LogoText = () => (
     <div className="min-w-0">
-      <h1 className={`font-bold tracking-tight leading-tight`}>
-        <span className={`${s.uber} font-['Jozoor',sans-serif]`} style={{ color: "#030957" }}>
+      <span className={`${s.text} font-bold tracking-tight leading-tight font-['Jozoor',sans-serif]`}>
+        <span style={{ color: darkBg ? "#FFFFFF" : "#030957" }}>
           Uber
         </span>
-        <span className={`${s.fix} font-['Jozoor',sans-serif]`} style={{ color: "#FFB900" }}>
+        <span style={{ color: "#FFB900" }}>
           Fix
         </span>
-      </h1>
+      </span>
       {showSubtitle && subtitle && (
-        <p className={`${s.subtitle} text-muted-foreground font-medium line-clamp-1`}>
+        <p className={`${s.subtitle} font-medium line-clamp-1 ${darkBg ? "text-white/60" : "text-muted-foreground"}`}>
           {subtitle}
         </p>
       )}
@@ -56,24 +71,24 @@ export function BrandLogo({
   );
 
   const content = (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center ${s.gap} ${className}`}>
       {variant !== "text" && <LogoIcon />}
       {variant !== "icon" && <LogoText />}
     </div>
   );
 
   if (linkTo) {
-    return <Link to={linkTo} className="flex items-center gap-2 no-underline">{content}</Link>;
+    return <Link to={linkTo} className="flex items-center no-underline">{content}</Link>;
   }
 
   return content;
 }
 
 /** Inline brand text for footers / small references */
-export function BrandText({ className = "" }: { className?: string }) {
+export function BrandText({ className = "", darkBg = false }: { className?: string; darkBg?: boolean }) {
   return (
     <span className={`font-['Jozoor',sans-serif] font-bold ${className}`}>
-      <span style={{ color: "#030957" }}>Uber</span>
+      <span style={{ color: darkBg ? "#FFFFFF" : "#030957" }}>Uber</span>
       <span style={{ color: "#FFB900" }}>Fix</span>
     </span>
   );
