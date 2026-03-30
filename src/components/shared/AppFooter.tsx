@@ -19,7 +19,7 @@ export function AppFooter({ className = "", variant = "simple" }: AppFooterProps
           <Link to="/data-deletion" className="hover:text-primary transition-colors">حذف البيانات</Link>
         </div>
         <div className="mt-2">
-          جميع الحقوق محفوظة © 2025 UberFix.shop
+          جميع الحقوق محفوظة © 2025 UberFix
         </div>
       </footer>
     );

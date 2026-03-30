@@ -1,7 +1,7 @@
 {
   "name": "UberFix - نظام إدارة الصيانة",
   "short_name": "UberFix",
-  "description": "نظام إدارة طلبات الصيانة المحمول المتكامل",
+  "description": "اوبرفيكس - نظام إدارة طلبات الصيانة المحمول المتكامل",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b1e36",

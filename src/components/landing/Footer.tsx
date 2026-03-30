@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { BrandLogo, BrandText } from "@/components/shared/BrandLogo";
 
 export const Footer = () => {
   const { t } = useTranslation();
@@ -48,14 +49,8 @@ export const Footer = () => {
           {/* Company Info */}
           <div className="lg:col-span-2 space-y-6">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-primary-foreground rounded-lg flex items-center justify-center">
-                  <span className="text-primary font-bold">Az</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">UberFix.shop</h3>
-                  <p className="text-sm text-primary-foreground/70">{t('footer.smartSystem')}</p>
-                </div>
+              <div className="mb-4">
+                <BrandLogo size="lg" showSubtitle subtitle={t('footer.smartSystem')} linkTo="" />
               </div>
 
               <p className="text-primary-foreground/80 leading-relaxed">

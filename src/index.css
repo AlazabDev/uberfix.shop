@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
 
+/* Jozoor Brand Font */
+@font-face {
+  font-family: 'Jozoor';
+  src: url('/src/assets/fonts/Jozoor.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
