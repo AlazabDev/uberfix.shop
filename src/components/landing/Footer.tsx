@@ -50,7 +50,7 @@ export const Footer = () => {
           <div className="lg:col-span-2 space-y-6">
             <div>
               <div className="mb-4">
-                <BrandLogo size="lg" showSubtitle subtitle={t('footer.smartSystem')} linkTo="" />
+                <BrandLogo size="lg" showSubtitle subtitle={t('footer.smartSystem')} linkTo="" darkBg animated glow />
               </div>
 
               <p className="text-primary-foreground/80 leading-relaxed">
