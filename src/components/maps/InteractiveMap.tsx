@@ -3,7 +3,7 @@ import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { loadGoogleMaps, getGoogleMapsId } from "@/lib/googleMapsLoader";
 
 interface InteractiveMapProps {
   latitude: number;
@@ -37,49 +37,6 @@ export function InteractiveMap({
     setCurrentLng(longitude);
   }, [latitude, longitude]);
 
-  // Load Google Maps SDK
-  const loadGoogleMaps = useCallback(async () => {
-    if (window.google?.maps) return true;
-    if (document.getElementById("google-maps-sdk")) {
-      // Wait for script to load
-      return new Promise<boolean>((resolve) => {
-        const checkInterval = setInterval(() => {
-          if (window.google?.maps) {
-            clearInterval(checkInterval);
-            resolve(true);
-          }
-        }, 100);
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          resolve(false);
-        }, 10000);
-      });
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke("get-google-maps-key");
-      if (error) throw error;
-
-      const apiKey = data?.apiKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-      return new Promise<boolean>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.id = "google-maps-sdk";
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error("Failed to load Google Maps"));
-        document.head.appendChild(script);
-      });
-    } catch (error) {
-      console.error("Failed to load Google Maps API key:", error);
-      return false;
-    }
-  }, []);
-
   // Initialize map ONCE ONLY
   useEffect(() => {
     let isMounted = true;
@@ -89,8 +46,8 @@ export function InteractiveMap({
         // Check if wrapper exists
         if (!wrapperRef.current) return;
         
-        const loaded = await loadGoogleMaps();
-        if (!loaded || !isMounted || !wrapperRef.current) {
+        await loadGoogleMaps();
+        if (!window.google?.maps || !isMounted || !wrapperRef.current) {
           throw new Error("Failed to load Google Maps SDK");
         }
 
@@ -104,6 +61,8 @@ export function InteractiveMap({
         wrapperRef.current.appendChild(mapDiv);
         mapDivRef.current = mapDiv;
 
+        const mapId = getGoogleMapsId();
+
         // Create map instance with mapId to prevent warnings
         const mapInstance = new google.maps.Map(mapDiv, {
           center: { lat: currentLat, lng: currentLng },
@@ -112,7 +71,7 @@ export function InteractiveMap({
           streetViewControl: false,
           fullscreenControl: false,
           zoomControl: true,
-          mapId: '8e0a97af9386fef', // Google Maps Map ID to use Advanced Markers
+          ...(mapId ? { mapId } : {}),
         });
 
         // Create marker
@@ -229,7 +188,7 @@ export function InteractiveMap({
         // Cleanup error, safe to ignore
       }
     };
-  }, [loadGoogleMaps, onLocationChange, currentLat, currentLng, height]);
+  }, [onLocationChange, height]);
 
   // Update marker position when coordinates change
   useEffect(() => {

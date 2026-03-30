@@ -6,6 +6,9 @@ import { rateLimit } from '../_shared/rateLimiter.ts';
 // Allowed origins for additional validation
 const ALLOWED_ORIGINS = [
   'https://uberfix.shop',
+  'https://www.uberfix.shop',
+  'https://uberfix.alazab.com',
+  'https://www.uberfix.alazab.com',
   'https://uberfiix.lovable.app',
   'https://lovableproject.com',
   'http://localhost:5173',
@@ -14,6 +17,7 @@ const ALLOWED_ORIGINS = [
 
 const isAllowedOrigin = (origin: string) => {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (origin.endsWith('.alazab.com')) return true;
   // Allow Lovable preview domains
   if (origin.includes('.lovable.app') || origin.includes('.lovableproject.com')) return true;
   return false;
