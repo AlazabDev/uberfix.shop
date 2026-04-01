@@ -638,6 +638,48 @@ export type Database = {
           },
         ]
       }
+      builds: {
+        Row: {
+          app_id: string | null
+          artifact_size: number | null
+          build_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          download_url: string | null
+          error_message: string | null
+          id: string
+          platform: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          artifact_size?: number | null
+          build_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          download_url?: string | null
+          error_message?: string | null
+          id?: string
+          platform?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          artifact_size?: number | null
+          build_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          download_url?: string | null
+          error_message?: string | null
+          id?: string
+          platform?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           description: string | null
@@ -2687,6 +2729,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification: {
+        Row: {
+          build_id: string | null
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string | null
+          platform: string | null
+          read: boolean | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
