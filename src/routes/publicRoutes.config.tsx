@@ -108,6 +108,7 @@ export const publicRoutes = [
   { path: "/uf", element: <UberFixRequestForm /> },
   { path: "/quote", element: <QuoteRequestForm /> },
   { path: "/beta-test", element: <BetaTest /> },
+  { path: "/sitemap", element: <SiteMap /> },
   { path: "/technicians/register", element: <TechnicianRegistration /> },
   { path: "/technicians/registration/wizard", element: <TechnicianRegistrationWizard /> },
   { path: "/technicians/registration/thank-you", element: <RegistrationThankYou /> },

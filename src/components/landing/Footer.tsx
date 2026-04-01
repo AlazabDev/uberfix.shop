@@ -23,7 +23,8 @@ export const Footer = () => {
     company: [
       { label: t('footer.aboutCompany'), href: "/about" },
       { label: t('footer.blog'), href: "/blog" },
-      { label: t('footer.technicianSupport'), href: "/technicians/register" }
+      { label: t('footer.technicianSupport'), href: "/technicians/register" },
+      { label: "خريطة التطبيق", href: "/sitemap" }
     ],
     legal: [
       { label: t('footer.terms'), href: "/terms-of-service" },
