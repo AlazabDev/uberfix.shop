@@ -50,6 +50,7 @@ const PublicMaintenanceForm = lazy(() => import("@/pages/whatsapp/WhatsAppMainte
 const UberFixRequestForm = lazy(() => import("@/pages/public/UberFixRequestForm"));
 const QuoteRequestForm = lazy(() => import("@/pages/public/QuoteRequestForm"));
 const BetaTest = lazy(() => import("@/pages/public/BetaTest"));
+const SiteMap = lazy(() => import("@/pages/public/SiteMap"));
 
 // Technician pages
 const TechnicianRegistration = lazy(() => import("@/pages/technicians/TechnicianRegistration"));
