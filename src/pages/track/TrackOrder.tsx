@@ -99,12 +99,19 @@ export default function TrackOrder() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await fetchByIdOrNumber(id);
+      const { data, error: fetchError } = await fetchByQuery(id);
       if (fetchError) {
         setError(fetchError.code === 'PGRST116' ? 'لم يتم العثور على الطلب' : 'حدث خطأ في تحميل البيانات');
         return;
       }
-      setRequest(data);
+      // If array (phone search), take first
+      if (Array.isArray(data)) {
+        setRequest(data[0]);
+        setPhoneResults(data.length > 1 ? data : []);
+      } else {
+        setRequest(data);
+        setPhoneResults([]);
+      }
     } catch {
       setError('حدث خطأ غير متوقع');
     } finally {
