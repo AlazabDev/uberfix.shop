@@ -8509,6 +8509,26 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
+      public_track_request: {
+        Args: { query_text: string }
+        Returns: {
+          channel: string
+          client_name: string
+          created_at: string
+          description: string
+          id: string
+          location: string
+          priority: string
+          rating: number
+          request_number: string
+          service_type: string
+          sla_due_date: string
+          status: string
+          title: string
+          updated_at: string
+          workflow_stage: string
+        }[]
+      }
       recalc_request_totals: {
         Args: { p_request_id: string }
         Returns: undefined
