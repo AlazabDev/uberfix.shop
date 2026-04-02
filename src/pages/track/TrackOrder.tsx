@@ -82,25 +82,17 @@ export default function TrackOrder() {
   const [searching, setSearching] = useState(false);
   const { toast } = useToast();
 
-  const fetchByIdOrNumber = async (query: string) => {
-    // Try by UUID first
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(query)) {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
-        .select('*')
-        .eq('id', query)
-        .single();
-      return { data, error };
-    }
-    
-    // Try by request_number
+  const fetchByQuery = async (query: string) => {
+    // Use public RPC that supports UUID, request_number, and phone lookup
     const { data, error } = await supabase
-      .from('maintenance_requests')
-      .select('*')
-      .eq('request_number', query.toUpperCase())
-      .single();
-    return { data, error };
+      .rpc('public_track_request', { query_text: query.trim() });
+    
+    if (error) return { data: null, error };
+    if (!data || data.length === 0) {
+      return { data: null, error: { code: 'PGRST116', message: 'Not found' } as any };
+    }
+    // If single result, return it; if multiple (phone search), return array
+    return { data: data.length === 1 ? data[0] : data, error: null };
   };
 
   const loadRequest = async (id: string) => {
