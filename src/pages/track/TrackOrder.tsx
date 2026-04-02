@@ -196,7 +196,7 @@ export default function TrackOrder() {
               <Search className="h-8 w-8 text-primary" />
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">تتبع طلبك</h1>
-            <p className="text-muted-foreground">أدخل رقم الطلب لمعرفة حالته</p>
+            <p className="text-muted-foreground">أدخل رقم الطلب أو رقم الهاتف لمعرفة حالته</p>
           </div>
 
           <Card className="border-2 border-primary/10">
