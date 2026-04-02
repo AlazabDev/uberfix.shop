@@ -203,7 +203,7 @@ export default function TrackOrder() {
             <CardContent className="pt-6">
               <div className="flex gap-2">
                 <Input
-                  placeholder="MR-26-01016"
+                  placeholder="MR-26-01016 أو 01012345678"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -215,7 +215,7 @@ export default function TrackOrder() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-3 text-center">
-                مثال: MR-26-01016 أو UUID الطلب
+                أدخل رقم الطلب (MR-26-XXXXX) أو رقم الهاتف
               </p>
             </CardContent>
           </Card>
