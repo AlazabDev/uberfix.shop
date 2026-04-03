@@ -98,7 +98,7 @@ cd android
 ```typescript
 const config: CapacitorConfig = {
   appId: 'app.lovable.c6adaf510eef43e8bf45d65ac7ebe1aa',
-  appName: 'uberfiix',
+  appName: 'UberFix',
   webDir: 'dist',
   // احذف قسم server للإنتاج
   plugins: {

@@ -199,7 +199,7 @@ async function trackRequest(requestNumber: string): Promise<Record<string, unkno
     created_date: data.created_at ? new Date(data.created_at).toLocaleDateString('ar-EG') : 'غير محدد',
     branch_name: branchName,
     technician_name: techName,
-    track_url: `https://uberfiix.lovable.app/track/${data.request_number || data.id}`,
+    track_url: `https://uberfix.shop/track/${data.request_number || data.id}`,
   };
 }
 

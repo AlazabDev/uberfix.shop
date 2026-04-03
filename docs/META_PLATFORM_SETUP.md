@@ -27,14 +27,14 @@
 | **Facebook App ID** | `25094190933553883` |
 | **WhatsApp Phone Number ID** | `644995285354639` |
 | **Supabase Project ID** | `zrrffsjbfkphridqyais` |
-| **Production Domain** | `uberfiix.lovable.app` |
+| **Production Domain** | `uberfix.shop` |
 | **Preview Domain** | `id-preview--c6adaf51-0eef-43e8-bf45-d65ac7ebe1aa.lovable.app` |
 
 ### الروابط المهمة
 
 | الرابط | الوصف |
 |--------|-------|
-| `https://uberfiix.lovable.app` | الموقع الإنتاجي |
+| `https://uberfix.shop` | الموقع الإنتاجي |
 | `https://zrrffsjbfkphridqyais.supabase.co` | Supabase Project URL |
 | `https://developers.facebook.com/apps/25094190933553883` | لوحة تحكم التطبيق على Meta |
 
@@ -55,19 +55,19 @@
 #### Valid OAuth Redirect URIs (أضف كل هذه الروابط):
 
 ```
-https://uberfiix.lovable.app/auth/callback
+https://uberfix.shop/auth/callback
 https://zrrffsjbfkphridqyais.supabase.co/auth/v1/callback
 https://id-preview--c6adaf51-0eef-43e8-bf45-d65ac7ebe1aa.lovable.app/auth/callback
 ```
 
 #### Deauthorize Callback URL:
 ```
-https://uberfiix.lovable.app/auth/deauthorize
+https://uberfix.shop/auth/deauthorize
 ```
 
 #### Data Deletion Request URL:
 ```
-https://uberfiix.lovable.app/data-deletion
+https://uberfix.shop/data-deletion
 ```
 
 ### الخطوة 3: إعدادات Client OAuth

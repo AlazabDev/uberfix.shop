@@ -458,7 +458,7 @@ Deno.serve(async (req) => {
       success: true,
       request_id: created.id,
       request_number: created.request_number,
-      track_url: `https://uberfiix.lovable.app/track/${created.id}`,
+      track_url: `https://uberfix.shop/track/${created.id}`,
       channel: body.channel,
       created_at: created.created_at,
     };
