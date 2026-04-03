@@ -128,17 +128,7 @@ export async function updateMaintenanceRequest(
 
   if (error) throw error;
 
-  // إشعارات في الخلفية
-  if (oldData) {
-    notifyStatusChanged(
-      id,
-      oldData.status,
-      updates.status || null,
-      oldData.workflow_stage,
-      updates.workflow_stage || null,
-      data?.client_phone
-    );
-  }
+  // الإشعارات تتم تلقائياً عبر DB trigger عند تغيير status أو workflow_stage
 
   return data as MaintenanceRequest;
 }
