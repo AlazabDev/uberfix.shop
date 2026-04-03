@@ -34,7 +34,7 @@
 
 | الرابط | الوصف |
 |--------|-------|
-| `https://uberfiix.lovable.app` | الموقع الإنتاجي |
+| `https://uberfix.shop` | الموقع الإنتاجي |
 | `https://zrrffsjbfkphridqyais.supabase.co` | Supabase Project URL |
 | `https://developers.facebook.com/apps/25094190933553883` | لوحة تحكم التطبيق على Meta |
 
