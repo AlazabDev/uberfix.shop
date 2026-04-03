@@ -1,11 +1,15 @@
 /**
  * خدمة CRUD لطلبات الصيانة
  * العمليات الأساسية: إنشاء، تحديث، حذف، جلب
+ * 
+ * ملاحظة: الإشعارات تتم تلقائياً عبر DB triggers:
+ * - trg_auto_notify_status_change → يستدعي send-maintenance-notification (WhatsApp + Email)
+ * - trigger_notify_customer_on_status_change → إشعار داخلي في التطبيق
+ * لا حاجة لاستدعاء الإشعارات يدوياً من الكود
  */
 import { supabase } from "@/integrations/supabase/client";
 import { WORKFLOW_STAGES, type WorkflowStage } from "@/constants/workflowStages";
 import type { MaintenanceRequest, MaintenanceRequestInsert, MrStatus } from "@/types/maintenance";
-import { notifyRequestCreated, notifyStatusChanged } from "./maintenanceNotifications";
 
 /** جلب جميع الطلبات مع pagination لتجنب حد 1000 صف */
 export async function fetchAllRequests(page = 0, pageSize = 500): Promise<MaintenanceRequest[]> {
