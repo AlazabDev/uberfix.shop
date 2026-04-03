@@ -205,7 +205,7 @@ const SILENT_STAGES = ['draft', 'waiting_parts', 'on_hold', 'cancelled', 'billed
 // Helper Functions
 // ==========================================
 const buildTrackUrl = (orderId: string): string => {
-  const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://uberfix.shop';
+  const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://uberfiix.lovable.app';
   return `${baseUrl}/track/${orderId}`;
 };
 

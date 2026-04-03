@@ -292,33 +292,20 @@ async function uploadImages(
 async function sendNotifications(
   supabaseAdmin: ReturnType<typeof createClient>,
   requestId: string,
-  requestNumber: string,
-  clientPhone: string,
-  serviceLabel: string,
-  channel: string
+  _requestNumber: string,
+  _clientPhone: string,
+  _serviceLabel: string,
+  _channel: string
 ) {
-  // WhatsApp notification to client
-  if (clientPhone) {
-    try {
-      await supabaseAdmin.functions.invoke('send-whatsapp-meta', {
-        body: {
-          to: clientPhone,
-          message: `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم الطلب: ${requestNumber}\n🔧 نوع الخدمة: ${serviceLabel}\n📡 القناة: ${channel}\n\nيمكنك متابعة حالة طلبك من هنا:\nhttps://uberfiix.lovable.app/track/${requestId}`,
-          requestId,
-        }
-      });
-    } catch (notifErr) {
-      console.warn('WhatsApp notification failed:', notifErr);
-    }
-  }
-
-  // Admin notification
+  // Unified notification via send-maintenance-notification
+  // This handles WhatsApp, Email, and in-app notifications in one call
+  // DO NOT call send-whatsapp-meta directly here to avoid duplicate messages
   try {
     await supabaseAdmin.functions.invoke('send-maintenance-notification', {
       body: { request_id: requestId, event_type: 'request_created' }
     });
   } catch (notifErr) {
-    console.warn('Admin notification failed:', notifErr);
+    console.warn('Notification failed:', notifErr);
   }
 }
 
