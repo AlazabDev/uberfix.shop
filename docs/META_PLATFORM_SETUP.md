@@ -27,7 +27,7 @@
 | **Facebook App ID** | `25094190933553883` |
 | **WhatsApp Phone Number ID** | `644995285354639` |
 | **Supabase Project ID** | `zrrffsjbfkphridqyais` |
-| **Production Domain** | `uberfiix.lovable.app` |
+| **Production Domain** | `uberfix.shop` |
 | **Preview Domain** | `id-preview--c6adaf51-0eef-43e8-bf45-d65ac7ebe1aa.lovable.app` |
 
 ### الروابط المهمة
