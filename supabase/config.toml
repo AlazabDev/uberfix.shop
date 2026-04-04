@@ -77,7 +77,8 @@ verify_jwt = false
 # Public access - returns public Mapbox token, protected by origin validation and rate limiting
 
 [functions.send-maintenance-notification]
-verify_jwt = true
+verify_jwt = false
+# Called by DB trigger (auto_notify_on_status_change) with anon key - internal auth check in code
 
 [functions.send-twilio-message]
 verify_jwt = true
