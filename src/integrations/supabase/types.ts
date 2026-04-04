@@ -8512,6 +8512,7 @@ export type Database = {
       public_track_request: {
         Args: { query_text: string }
         Returns: {
+          branch_name: string
           channel: string
           client_name: string
           created_at: string
