@@ -440,7 +440,55 @@ Deno.serve(async (req) => {
     }
 
     // ==========================================
-    // data_exchange → استلام بيانات SUMMARY وإنشاء طلب
+    // data_exchange from DETAILS → بناء ملخص وعرض SUMMARY
+    // ==========================================
+    if (action === 'data_exchange' && screen === 'DETAILS') {
+      const serviceLabels: Record<string, string> = {
+        plumbing: 'سباكة', electrical: 'كهرباء', ac: 'تكييف وتبريد',
+        carpentry: 'نجارة', painting: 'دهانات', cleaning: 'تنظيف',
+        appliances: 'أجهزة منزلية', glass: 'زجاج ومرايا',
+        pest_control: 'مكافحة حشرات', general: 'صيانة عامة',
+      };
+      const priorityLabels: Record<string, string> = {
+        urgent: '🔴 عاجل', medium: '🟡 متوسط', normal: '🟢 عادي',
+      };
+
+      const dept = data.department as string;
+      const loc = data.location as string;
+      const prio = data.date as string;
+
+      // Get branch name
+      let branchLabel = 'غير محدد';
+      if (loc) {
+        const info = await getBranchName(loc);
+        if (info) branchLabel = info.name;
+      }
+
+      const appointmentText = `نوع الخدمة: ${serviceLabels[dept] || dept}\nالفرع: ${branchLabel}\nالأولوية: ${priorityLabels[prio] || prio}`;
+      const detailsText = `الاسم: ${data.name || ''}\nالهاتف: ${data.phone || ''}\n${data.email ? 'البريد: ' + data.email + '\n' : ''}\n${data.more_details || ''}`;
+
+      const response = {
+        version,
+        screen: 'SUMMARY',
+        data: {
+          appointment: appointmentText,
+          details: detailsText,
+          department: dept,
+          location: loc,
+          date: prio,
+          time: (data.time as string) || '',
+          name: (data.name as string) || '',
+          email: (data.email as string) || '',
+          phone: (data.phone as string) || '',
+          more_details: (data.more_details as string) || '',
+        },
+      };
+      const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
+      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
+    }
+
+    // ==========================================
+    // data_exchange from SUMMARY → إنشاء طلب الصيانة
     // ==========================================
     if (action === 'data_exchange') {
       const supabase = getSupabase();
