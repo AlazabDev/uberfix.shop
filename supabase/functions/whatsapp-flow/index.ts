@@ -388,10 +388,6 @@ Deno.serve(async (req) => {
       };
       const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
       return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
-        },
-      };
-      const encrypted = await encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
-      return new Response(encrypted, { headers: { 'Content-Type': 'text/plain' } });
     }
 
     // ==========================================
