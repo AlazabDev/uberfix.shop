@@ -472,7 +472,7 @@ Deno.serve(async (req) => {
         if (!fallbackBranch) {
           const errorResp = {
             version,
-            screen: 'REQUEST_FORM',
+            screen: 'DETAILS',
             data: { error_message: 'خطأ في النظام. يرجى المحاولة لاحقاً.' },
           };
           const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
@@ -500,7 +500,7 @@ Deno.serve(async (req) => {
         console.error('❌ No company found');
         const errorResp = {
           version,
-          screen: 'REQUEST_FORM',
+          screen: 'DETAILS',
           data: { error_message: 'خطأ في النظام. يرجى المحاولة لاحقاً.' },
         };
         const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
@@ -512,8 +512,10 @@ Deno.serve(async (req) => {
         .from('maintenance_requests')
         .insert({
           title: `${maintenance_type} - ${finalBranchName}`,
-          description: description,
+          description: description || null,
           client_name: requester_name,
+          client_phone: client_phone || null,
+          client_email: client_email || null,
           service_type: maintenance_type,
           location: finalBranchName,
           priority: mapPriority(priority),
@@ -530,7 +532,7 @@ Deno.serve(async (req) => {
         console.error('❌ Insert error:', insertError);
         const errorResp = {
           version,
-          screen: 'REQUEST_FORM',
+          screen: 'DETAILS',
           data: { error_message: 'فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.' },
         };
         const encrypted = await encryptResponse(errorResp, aesKeyBuffer, initialVectorBuffer);
