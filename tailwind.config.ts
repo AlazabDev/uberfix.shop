@@ -19,7 +19,7 @@ export default {
     			lg: '2rem',
     		},
     		screens: {
-    			'2xl': '1400px'
+    			'2xl': '1280px'
     		}
     	},
     	screens: {
@@ -94,68 +94,33 @@ export default {
     		},
     		keyframes: {
     			'accordion-down': {
-    				from: {
-    					height: '0'
-    				},
-    				to: {
-    					height: 'var(--radix-accordion-content-height)'
-    				}
+    				from: { height: '0' },
+    				to: { height: 'var(--radix-accordion-content-height)' }
     			},
     			'accordion-up': {
-    				from: {
-    					height: 'var(--radix-accordion-content-height)'
-    				},
-    				to: {
-    					height: '0'
-    				}
+    				from: { height: 'var(--radix-accordion-content-height)' },
+    				to: { height: '0' }
     			},
     			'pulse-soft': {
-    				'0%, 100%': {
-    					opacity: '1',
-    					transform: 'scale(1)'
-    				},
-    				'50%': {
-    					opacity: '0.8',
-    					transform: 'scale(1.05)'
-    				}
+    				'0%, 100%': { opacity: '1', transform: 'scale(1)' },
+    				'50%': { opacity: '0.85', transform: 'scale(1.03)' }
     			},
     			'pulse-ring': {
-    				'0%': {
-    					transform: 'scale(0.95)',
-    					opacity: '1'
-    				},
-    				'50%': {
-    					transform: 'scale(1.05)',
-    					opacity: '0.7'
-    				},
-    				'100%': {
-    					transform: 'scale(1.15)',
-    					opacity: '0'
-    				}
+    				'0%': { transform: 'scale(0.95)', opacity: '1' },
+    				'50%': { transform: 'scale(1.05)', opacity: '0.7' },
+    				'100%': { transform: 'scale(1.15)', opacity: '0' }
     			},
     			float: {
-    				'0%, 100%': {
-    					transform: 'translateY(0px)'
-    				},
-    				'50%': {
-    					transform: 'translateY(-10px)'
-    				}
+    				'0%, 100%': { transform: 'translateY(0px)' },
+    				'50%': { transform: 'translateY(-8px)' }
     			},
     			glow: {
-    				'0%, 100%': {
-    					boxShadow: '0 0 20px rgba(245, 191, 35, 0.3)'
-    				},
-    				'50%': {
-    					boxShadow: '0 0 40px rgba(245, 191, 35, 0.6)'
-    				}
+    				'0%, 100%': { boxShadow: '0 0 16px rgba(255, 185, 0, 0.25)' },
+    				'50%': { boxShadow: '0 0 32px rgba(255, 185, 0, 0.5)' }
     			},
     			shimmer: {
-    				'0%': {
-    					backgroundPosition: '-200% 0'
-    				},
-    				'100%': {
-    					backgroundPosition: '200% 0'
-    				}
+    				'0%': { backgroundPosition: '-200% 0' },
+    				'100%': { backgroundPosition: '200% 0' }
     			}
     		},
     		animation: {
@@ -163,38 +128,22 @@ export default {
     			'accordion-up': 'accordion-up 0.2s ease-out',
     			'pulse-soft': 'pulse-soft 3s ease-in-out infinite',
     			'pulse-ring': 'pulse-ring 2s ease-out infinite',
-    			float: 'float 4s ease-in-out infinite',
-    			glow: 'glow 2s ease-in-out infinite',
+    			float: 'float 5s ease-in-out infinite',
+    			glow: 'glow 3s ease-in-out infinite',
     			shimmer: 'shimmer 3s linear infinite'
     		},
     		fontFamily: {
     			sans: [
-    				'ui-sans-serif',
-    				'system-ui',
+    				'Cairo',
+    				'-apple-system',
+    				'BlinkMacSystemFont',
+    				'Segoe UI',
     				'sans-serif',
     				'Apple Color Emoji',
-    				'Segoe UI Emoji',
-    				'Segoe UI Symbol',
-    				'Noto Color Emoji'
+    				'Segoe UI Emoji'
     			],
-    			serif: [
-    				'ui-serif',
-    				'Georgia',
-    				'Cambria',
-    				'Times New Roman',
-    				'Times',
-    				'serif'
-    			],
-    			mono: [
-    				'ui-monospace',
-    				'SFMono-Regular',
-    				'Menlo',
-    				'Monaco',
-    				'Consolas',
-    				'Liberation Mono',
-    				'Courier New',
-    				'monospace'
-    			]
+    			serif: ['ui-serif', 'Georgia', 'serif'],
+    			mono: ['ui-monospace', 'SFMono-Regular', 'monospace']
     		}
     	}
     },
