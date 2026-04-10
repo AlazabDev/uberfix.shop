@@ -39,6 +39,7 @@ export interface ConversationFlow {
 }
 
 export interface ConversationStep {
+  id?: string;
   question: string;
   expectedAnswerType: "text" | "number" | "phone" | "email" | "choice";
   choices?: string[];
