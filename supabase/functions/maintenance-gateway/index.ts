@@ -30,7 +30,7 @@ import { rateLimit, createRateLimitResponse } from '../_shared/rateLimiter.ts';
 type Channel = 
   | 'whatsapp_flow' | 'jotform' | 'public_form' | 'qr_guest' 
   | 'facebook_lead' | 'phone' | 'internal' | 'whatsapp_chat'
-  | 'email' | 'api';
+  | 'email' | 'api' | 'bot_gateway';
 
 interface GatewayRequest {
   channel: Channel;
@@ -75,7 +75,7 @@ interface ApiConsumer {
 const VALID_CHANNELS: Channel[] = [
   'whatsapp_flow', 'jotform', 'public_form', 'qr_guest',
   'facebook_lead', 'phone', 'internal', 'whatsapp_chat',
-  'email', 'api',
+  'email', 'api', 'bot_gateway',
 ];
 
 const SERVICE_MAP: Record<string, string> = {
@@ -103,7 +103,7 @@ const API_KEY_CHANNELS: Channel[] = ['api'];
 // Channels called internally by other edge functions (trusted)
 const INTERNAL_CHANNELS: Channel[] = [
   'whatsapp_flow', 'jotform', 'public_form', 'qr_guest',
-  'facebook_lead', 'phone', 'internal', 'whatsapp_chat', 'email',
+  'facebook_lead', 'phone', 'internal', 'whatsapp_chat', 'email', 'bot_gateway',
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────
