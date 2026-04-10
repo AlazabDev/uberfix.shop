@@ -1,22 +1,25 @@
 /**
  * Test data for E2E tests
  * بيانات الاختبار للـ E2E tests
+ * 
+ * IMPORTANT: Credentials are loaded from environment variables.
+ * Set TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD, etc. in your CI/CD environment.
  */
 
 export const testUsers = {
   admin: {
-    email: 'admin@uberfix.shop',
-    password: 'Admin@123',
+    email: process.env.TEST_ADMIN_EMAIL || '',
+    password: process.env.TEST_ADMIN_PASSWORD || '',
     role: 'admin',
   },
   vendor: {
-    email: 'vendor@uberfix.shop',
-    password: 'Vendor@123',
+    email: process.env.TEST_VENDOR_EMAIL || '',
+    password: process.env.TEST_VENDOR_PASSWORD || '',
     role: 'vendor',
   },
   customer: {
-    email: 'customer@uberfix.shop',
-    password: 'Customer@123',
+    email: process.env.TEST_CUSTOMER_EMAIL || '',
+    password: process.env.TEST_CUSTOMER_PASSWORD || '',
     role: 'customer',
   },
 };

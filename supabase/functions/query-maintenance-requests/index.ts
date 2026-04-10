@@ -2,9 +2,54 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
+
+async function validateApiKey(supabase: any, apiKey: string): Promise<{ valid: boolean; consumer?: any; error?: string }> {
+  if (!apiKey) {
+    return { valid: false, error: "Missing x-api-key header" };
+  }
+
+  const { data, error } = await supabase
+    .from("api_consumers")
+    .select("id, name, is_active, rate_limit_per_minute, company_id, branch_id, total_requests")
+    .eq("api_key", apiKey)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { valid: false, error: "Invalid or inactive API key" };
+  }
+
+  // Update last_used_at and total_requests
+  await supabase
+    .from("api_consumers")
+    .update({ last_used_at: new Date().toISOString(), total_requests: (data.total_requests || 0) + 1 })
+    .eq("id", data.id);
+
+  return { valid: true, consumer: data };
+}
+
+async function validateJWT(req: Request): Promise<{ valid: boolean; userId?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { valid: false };
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    return { valid: false };
+  }
+
+  return { valid: true, userId: user.id };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,6 +60,37 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // === Authentication: require either x-api-key OR valid JWT ===
+    const apiKey = req.headers.get("x-api-key");
+    let authenticated = false;
+
+    if (apiKey) {
+      const apiKeyResult = await validateApiKey(supabase, apiKey);
+      if (!apiKeyResult.valid) {
+        return new Response(JSON.stringify({ success: false, error: apiKeyResult.error }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      authenticated = true;
+    } else {
+      const jwtResult = await validateJWT(req);
+      if (!jwtResult.valid) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized: provide x-api-key header or Authorization Bearer token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      authenticated = true;
+    }
+
+    if (!authenticated) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Support both GET (query params) and POST (body)
     let filters: Record<string, string> = {};
@@ -29,9 +105,10 @@ Deno.serve(async (req) => {
       filters = body;
     }
 
+    // Redact PII: only return safe fields, exclude client_email
     let query = supabase
       .from("maintenance_requests")
-      .select("id, request_number, title, description, status, workflow_stage, priority, service_type, client_name, client_phone, client_email, location, estimated_cost, actual_cost, created_at, updated_at")
+      .select("id, request_number, title, description, status, workflow_stage, priority, service_type, location, estimated_cost, actual_cost, created_at, updated_at")
       .order("created_at", { ascending: false });
 
     // Apply filters
