@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Mic, Trash2, ArrowRight, Download, MessageCircle } from "lucide-react";
+import { Send, Mic, Trash2, ArrowRight, Download, MessageCircle, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useTTS } from "@/hooks/useTTS";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -39,10 +40,12 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { speak, stop, isSpeaking, speakingMessageId } = useTTS();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,6 +74,7 @@ export default function ChatPage() {
     const decoder = new TextDecoder();
     let buffer = '';
     let assistantContent = '';
+    let streamMsgId = `stream-${Date.now()}`;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -92,14 +96,21 @@ export default function ChatPage() {
             assistantContent += delta;
             setMessages(prev => {
               const last = prev[prev.length - 1];
-              if (last?.role === 'assistant' && last.id.startsWith('stream-')) {
+              if (last?.role === 'assistant' && last.id === streamMsgId) {
                 return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
               }
-              return [...prev, { id: `stream-${Date.now()}`, content: assistantContent, role: 'assistant', timestamp: new Date() }];
+              return [...prev, { id: streamMsgId, content: assistantContent, role: 'assistant', timestamp: new Date() }];
             });
           }
         } catch { /* skip partial */ }
       }
+    }
+
+    // Auto-speak if voice tab is active
+    if (autoSpeak && assistantContent) {
+      try {
+        await speak(assistantContent, streamMsgId);
+      } catch { /* TTS error, non-critical */ }
     }
   };
 
@@ -126,7 +137,16 @@ export default function ChatPage() {
     }
   };
 
+  const handleSpeakMessage = async (message: Message) => {
+    try {
+      await speak(message.content, message.id);
+    } catch {
+      toast({ title: "خطأ", description: "فشل تشغيل الصوت", variant: "destructive" });
+    }
+  };
+
   const clearChat = () => {
+    stop();
     setMessages([{
       id: '1',
       content: 'مرحباً! أنا عزبوت 👋\nكيف يمكنني مساعدتك؟',
@@ -188,7 +208,7 @@ export default function ChatPage() {
       {/* Tabs */}
       <div className="flex border-b border-border bg-muted/30">
         <button
-          onClick={() => setActiveTab('text')}
+          onClick={() => { setActiveTab('text'); setAutoSpeak(false); }}
           className={cn(
             "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors",
             activeTab === 'text'
@@ -200,10 +220,7 @@ export default function ChatPage() {
           محادثة نصية
         </button>
         <button
-          onClick={() => {
-            setActiveTab('voice');
-            toast({ title: "محادثة صوتية", description: "ستكون متاحة قريباً!" });
-          }}
+          onClick={() => { setActiveTab('voice'); setAutoSpeak(true); }}
           className={cn(
             "flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors",
             activeTab === 'voice'
@@ -230,21 +247,38 @@ export default function ChatPage() {
                   <p className="text-muted-foreground">كيف يمكنني مساعدتك؟</p>
                 </div>
               ) : (
-                <div className={cn("flex", message.role === 'user' ? "justify-start" : "justify-end")}>
-                  <div className={cn(
-                    "max-w-[75%] rounded-2xl px-4 py-3 shadow-sm",
-                    message.role === 'user'
-                      ? "bg-[#f5bf23] text-[#111]"
-                      : "bg-muted"
-                  )}>
-                    {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="text-sm">{message.content}</p>
-                    )}
+                <div>
+                  <div className={cn("flex", message.role === 'user' ? "justify-start" : "justify-end")}>
+                    <div className={cn(
+                      "max-w-[75%] rounded-2xl px-4 py-3 shadow-sm",
+                      message.role === 'user'
+                        ? "bg-[#f5bf23] text-[#111]"
+                        : "bg-muted"
+                    )}>
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:my-1 [&>ol]:my-1">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm">{message.content}</p>
+                      )}
+                    </div>
                   </div>
+                  {message.role === 'assistant' && (
+                    <div className="flex justify-end mt-1">
+                      <button
+                        onClick={() => handleSpeakMessage(message)}
+                        className="p-1.5 rounded-full hover:bg-muted/80 transition-colors"
+                        title={speakingMessageId === message.id ? "إيقاف الصوت" : "تشغيل الصوت"}
+                      >
+                        {speakingMessageId === message.id && isSpeaking ? (
+                          <VolumeX className="h-4 w-4 text-[#f5bf23]" />
+                        ) : (
+                          <Volume2 className="h-4 w-4 text-muted-foreground hover:text-[#f5bf23]" />
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

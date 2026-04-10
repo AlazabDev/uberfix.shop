@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, X, Send, Mic, Maximize2 } from "lucide-react";
+import { MessageCircle, X, Send, Mic, Maximize2, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useTTS } from "@/hooks/useTTS";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -40,9 +41,11 @@ export function UFBotWidget() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { speak, stop, isSpeaking, speakingMessageId } = useTTS();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,6 +73,7 @@ export function UFBotWidget() {
     const decoder = new TextDecoder();
     let buffer = '';
     let assistantContent = '';
+    let streamMsgId = `stream-${Date.now()}`;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -91,14 +95,21 @@ export function UFBotWidget() {
             assistantContent += delta;
             setMessages(prev => {
               const last = prev[prev.length - 1];
-              if (last?.role === 'assistant' && last.id.startsWith('stream-')) {
+              if (last?.role === 'assistant' && last.id === streamMsgId) {
                 return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
               }
-              return [...prev, { id: `stream-${Date.now()}`, content: assistantContent, role: 'assistant', timestamp: new Date() }];
+              return [...prev, { id: streamMsgId, content: assistantContent, role: 'assistant', timestamp: new Date() }];
             });
           }
         } catch { /* partial JSON, skip */ }
       }
+    }
+
+    // Auto-speak if voice tab is active
+    if (autoSpeak && assistantContent) {
+      try {
+        await speak(assistantContent, streamMsgId);
+      } catch { /* TTS error, non-critical */ }
     }
   };
 
@@ -128,6 +139,14 @@ export function UFBotWidget() {
       toast({ title: "خطأ", description: err.message || "حدث خطأ في الاتصال", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSpeakMessage = async (message: Message) => {
+    try {
+      await speak(message.content, message.id);
+    } catch {
+      toast({ title: "خطأ", description: "فشل تشغيل الصوت", variant: "destructive" });
     }
   };
 
@@ -178,7 +197,7 @@ export function UFBotWidget() {
           {/* Tabs */}
           <div className="flex border-b border-border bg-muted/30">
             <button
-              onClick={() => setActiveTab('text')}
+              onClick={() => { setActiveTab('text'); setAutoSpeak(false); }}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors",
                 activeTab === 'text'
@@ -190,10 +209,7 @@ export function UFBotWidget() {
               محادثة نصية
             </button>
             <button
-              onClick={() => {
-                setActiveTab('voice');
-                toast({ title: "محادثة صوتية", description: "ستكون متاحة قريباً!" });
-              }}
+              onClick={() => { setActiveTab('voice'); setAutoSpeak(true); }}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors",
                 activeTab === 'voice'
@@ -220,17 +236,33 @@ export function UFBotWidget() {
                       <p className="text-sm text-muted-foreground">كيف يمكنني مساعدتك؟</p>
                     </div>
                   ) : (
-                    <div className={cn(
-                      "max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm",
-                      message.role === 'user'
-                        ? "bg-[#f5bf23] text-[#111] self-start"
-                        : "bg-muted self-end"
-                    )}>
-                      {message.role === 'assistant' ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
-                          <ReactMarkdown>{message.content}</ReactMarkdown>
-                        </div>
-                      ) : message.content}
+                    <div className="w-full">
+                      <div className={cn(
+                        "max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm",
+                        message.role === 'user'
+                          ? "bg-[#f5bf23] text-[#111] self-start"
+                          : "bg-muted self-end float-left"
+                      )}>
+                        {message.role === 'assistant' ? (
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
+                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                          </div>
+                        ) : message.content}
+                      </div>
+                      {message.role === 'assistant' && message.id !== '1' && (
+                        <button
+                          onClick={() => handleSpeakMessage(message)}
+                          className="mt-1 p-1 rounded-full hover:bg-muted/80 transition-colors float-left clear-left"
+                          title={speakingMessageId === message.id ? "إيقاف الصوت" : "تشغيل الصوت"}
+                        >
+                          {speakingMessageId === message.id && isSpeaking ? (
+                            <VolumeX className="h-3.5 w-3.5 text-[#f5bf23]" />
+                          ) : (
+                            <Volume2 className="h-3.5 w-3.5 text-muted-foreground hover:text-[#f5bf23]" />
+                          )}
+                        </button>
+                      )}
+                      <div className="clear-both" />
                     </div>
                   )}
                 </div>
