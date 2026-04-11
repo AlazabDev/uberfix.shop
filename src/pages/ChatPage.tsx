@@ -621,10 +621,10 @@ export default function ChatPage() {
 
       {/* Text Tab: Input bar */}
       {activeTab === 'text' && (
-        <div className="border-t bg-background p-4">
+        <div className="border-t bg-background p-3">
           {/* Recording indicator */}
           {isRecording && (
-            <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-destructive/5 rounded-xl">
+            <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-destructive/5 rounded-xl max-w-3xl mx-auto">
               <Mic className="w-4 h-4 text-destructive animate-pulse" />
               <span className="text-sm font-medium">{formatDuration(recordingDuration)}</span>
               <div className="flex-1" />
@@ -634,64 +634,72 @@ export default function ChatPage() {
           )}
 
           {isProcessingVoice && (
-            <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-muted rounded-xl">
+            <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-muted rounded-xl max-w-3xl mx-auto">
               <Loader2 className="w-4 h-4 animate-spin text-[#f5bf23]" />
               <span className="text-sm text-muted-foreground">جاري تحويل الصوت لنص...</span>
             </div>
           )}
 
-          <div className="max-w-3xl mx-auto flex gap-2 items-center">
-            {/* File upload */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full text-muted-foreground hover:text-[#f5bf23] h-10 w-10 shrink-0"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading || isLoading}
-              title="إرفاق ملف"
-            >
-              {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-            </Button>
-
-            {/* Voice record button */}
-            {!isRecording && !isProcessingVoice && (
+          <div className="max-w-3xl mx-auto">
+            {/* Main input row */}
+            <div className="flex gap-2 items-center">
+              {/* Send button - prominent on the right in RTL */}
               <Button
-                variant="ghost"
+                onClick={() => sendMessage()}
+                disabled={!input.trim() || isLoading}
                 size="icon"
-                className="rounded-full text-muted-foreground hover:text-[#f5bf23] h-10 w-10 shrink-0"
-                onClick={startRecording}
-                disabled={isLoading}
-                title="تسجيل صوتي"
+                className="rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#111] h-10 w-10 shrink-0 shadow-sm"
               >
-                <Mic className="h-4 w-4" />
+                <Send className="h-4 w-4" />
               </Button>
-            )}
 
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="اكتب رسالتك..."
-              className="flex-1 rounded-full border-muted-foreground/20 bg-muted/30"
-              disabled={isLoading || isRecording}
-            />
+              {/* Text input */}
+              <Input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="اكتب رسالتك..."
+                className="flex-1 rounded-full border-muted-foreground/20 bg-muted/30 h-10"
+                disabled={isLoading || isRecording}
+              />
 
-            <Button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#111] h-10 w-10 shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+              {/* Tool buttons group - left side in RTL */}
+              <div className="flex items-center gap-0.5 shrink-0">
+                {/* File upload */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-muted-foreground hover:text-[#f5bf23] hover:bg-[#f5bf23]/10 h-9 w-9"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isLoading}
+                  title="إرفاق ملف"
+                >
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                </Button>
+
+                {/* Voice record button */}
+                {!isRecording && !isProcessingVoice && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full text-muted-foreground hover:text-[#f5bf23] hover:bg-[#f5bf23]/10 h-9 w-9"
+                    onClick={startRecording}
+                    disabled={isLoading}
+                    title="تسجيل صوتي"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground text-center mt-2">مدعوم بالذكاء الاصطناعي - قد يخطئ أحياناً</p>
         </div>
