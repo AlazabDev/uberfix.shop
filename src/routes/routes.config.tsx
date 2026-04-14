@@ -158,7 +158,7 @@ export const protectedRoutes = [
   { path: "/requests/:id", element: <RequestDetails />, withLayout: true },
   { path: "/all-requests", element: <AllRequests />, withLayout: true },
   { path: "/request-lifecycle", element: <RequestLifecycleJourney />, withLayout: true },
-  { path: "/service-request", element: <ServiceRequest />, withLayout: true },
+  { path: "/internal-service-request", element: <ServiceRequest />, withLayout: true },
   { path: "/maintenance/overview", element: <MaintenanceOverview />, withLayout: true },
   { path: "/maintenance/create", element: <CreateMaintenanceRequest />, withLayout: true },
   { path: "/maintenance/:id", element: <RequestDetails />, withLayout: true },
