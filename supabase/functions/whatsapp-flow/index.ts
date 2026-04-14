@@ -113,7 +113,7 @@ async function decryptRequest(
   const decryptedData = await subtle.decrypt(
     { name: "AES-GCM", iv: initialVectorBuffer },
     aesKey,
-    flowDataBuffer.buffer
+    new Uint8Array(flowDataBuffer).buffer as ArrayBuffer
   );
 
   const decryptedJSONString = new TextDecoder().decode(decryptedData);

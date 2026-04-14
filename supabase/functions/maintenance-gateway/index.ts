@@ -267,7 +267,7 @@ async function resolveCompanyBranch(
 }
 
 async function uploadImages(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: any,
   requestId: string,
   images: string[]
 ): Promise<number> {
@@ -290,7 +290,7 @@ async function uploadImages(
 }
 
 async function sendNotifications(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: any,
   requestId: string,
   _requestNumber: string,
   _clientPhone: string,
