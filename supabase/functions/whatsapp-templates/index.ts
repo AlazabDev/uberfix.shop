@@ -975,20 +975,26 @@ serve(async (req) => {
         // Add components with parameters if provided
         const componentParams: any[] = [];
 
-        // Header parameters
+        // Header parameters - only add non-empty ones
         if (parameters?.header && parameters.header.length > 0) {
-          componentParams.push({
-            type: "header",
-            parameters: parameters.header.map((p: string) => ({ type: "text", text: p })),
-          });
+          const validHeaderParams = parameters.header.filter((p: string) => p && p.trim() !== '');
+          if (validHeaderParams.length > 0) {
+            componentParams.push({
+              type: "header",
+              parameters: validHeaderParams.map((p: string) => ({ type: "text", text: p.trim() })),
+            });
+          }
         }
 
-        // Body parameters
+        // Body parameters - only add non-empty ones
         if (parameters?.body && parameters.body.length > 0) {
-          componentParams.push({
-            type: "body",
-            parameters: parameters.body.map((p: string) => ({ type: "text", text: p })),
-          });
+          const validBodyParams = parameters.body.filter((p: string) => p && p.trim() !== '');
+          if (validBodyParams.length > 0) {
+            componentParams.push({
+              type: "body",
+              parameters: validBodyParams.map((p: string) => ({ type: "text", text: p.trim() })),
+            });
+          }
         }
 
         if (componentParams.length > 0) {

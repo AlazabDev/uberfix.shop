@@ -59,9 +59,22 @@ export function SendTestDialog({ open, onOpenChange, template, onSend, isSending
 
   const handleSend = async () => {
     if (!phone.trim()) return;
+    
+    // التحقق من أن جميع المتغيرات المطلوبة مملوءة
+    if (bodyPlaceholderCount > 0 && bodyParams.some(p => !p.trim())) {
+      return; // لا ترسل إذا هناك متغيرات فارغة
+    }
+    if (headerPlaceholderCount > 0 && headerParams.some(p => !p.trim())) {
+      return;
+    }
+
     const params: { header?: string[]; body?: string[] } = {};
-    if (headerParams.some(p => p)) params.header = headerParams;
-    if (bodyParams.some(p => p)) params.body = bodyParams;
+    if (headerParams.length > 0 && headerParams.some(p => p.trim())) {
+      params.header = headerParams.map(p => p.trim());
+    }
+    if (bodyParams.length > 0 && bodyParams.some(p => p.trim())) {
+      params.body = bodyParams.map(p => p.trim());
+    }
     await onSend(template.id, phone, Object.keys(params).length ? params : undefined);
   };
 
@@ -159,7 +172,7 @@ export function SendTestDialog({ open, onOpenChange, template, onSend, isSending
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             إلغاء
           </Button>
-          <Button onClick={handleSend} disabled={isSending || !phone.trim()}>
+          <Button onClick={handleSend} disabled={isSending || !phone.trim() || (bodyPlaceholderCount > 0 && bodyParams.some(p => !p.trim())) || (headerPlaceholderCount > 0 && headerParams.some(p => !p.trim()))}>
             {isSending ? (
               <Loader2 className="h-4 w-4 ml-2 animate-spin" />
             ) : (
