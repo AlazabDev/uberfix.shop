@@ -36,16 +36,17 @@ interface WhatsAppMessageRequest {
 
 // تنسيق رقم الهاتف للصيغة الدولية
 function formatPhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/\D/g, '');
+  // إزالة المسافات والشرطات والأقواس
+  let cleaned = phone.replace(/[\s\-\(\)]/g, '');
   
-  // إزالة الأصفار البادئة
-  if (cleaned.startsWith('0')) {
-    cleaned = '2' + cleaned; // مصر
+  // إزالة + البادئة (Meta API لا تحتاجها)
+  if (cleaned.startsWith('+')) {
+    cleaned = cleaned.slice(1);
   }
   
-  // التأكد من وجود رمز الدولة
-  if (!cleaned.startsWith('2') && cleaned.length === 10) {
-    cleaned = '20' + cleaned; // إضافة رمز مصر
+  // رقم مصري محلي يبدأ بـ 0 → إضافة 20
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '20' + cleaned.slice(1);
   }
   
   return cleaned;
@@ -157,15 +158,25 @@ serve(async (req) => {
 
     if (type === 'template' && templateName) {
       // رسالة قالب
+      const templateObj: Record<string, unknown> = {
+        name: templateName,
+        language: { code: templateLanguage },
+      };
+      // إضافة المكونات فقط إذا كانت موجودة وغير فارغة
+      if (templateComponents && templateComponents.length > 0) {
+        // تصفية المكونات التي تحتوي على معاملات فارغة
+        const validComponents = templateComponents.filter(
+          (c: any) => c.parameters && c.parameters.length > 0 && c.parameters.every((p: any) => p.text && p.text.trim() !== '')
+        );
+        if (validComponents.length > 0) {
+          templateObj.components = validComponents;
+        }
+      }
       requestBody = {
         messaging_product: 'whatsapp',
         to: formattedTo,
         type: 'template',
-        template: {
-          name: templateName,
-          language: { code: templateLanguage },
-          components: templateComponents || []
-        }
+        template: templateObj
       };
     } else if (mediaUrl && mediaType) {
       // رسالة وسائط
@@ -217,7 +228,7 @@ serve(async (req) => {
 
     // إرسال الطلب إلى Meta Graph API
     const metaResponse = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
+      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: {
