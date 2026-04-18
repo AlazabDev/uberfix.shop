@@ -341,61 +341,49 @@ interface MetaTemplateMapping {
 
 const buildTemplateForStatus = (
   status: NotificationStatus,
-  vars: { customer_name: string; order_id: string; technician_name?: string; date?: string; time?: string; track_url: string }
+  vars: { customer_name: string; order_id: string; technician_name?: string; date?: string; time?: string; track_url: string; address?: string }
 ): MetaTemplateMapping | null => {
+  const addr = vars.address || 'موقعك';
   switch (status) {
     case 'received':
-      // قالب: تم استلام الطلب — uberfix (ar)
-      // مرحبًا {{1}}، تم استلام طلب الصيانة الخاص بك بنجاح ✅ رقم الطلب: {{2}} ...
-      return {
-        name: 'uberfix',
-        language: 'ar',
-        bodyParams: [vars.customer_name, vars.order_id, vars.track_url],
-      };
+      // requests (ar): مرحبًا {{1}}، تم تسليم طلبك {{2}} بنجاح. — نستخدمه كإيصال استلام طلب
+      return { name: 'requests', language: 'ar', bodyParams: [vars.customer_name, vars.order_id] };
     case 'reviewed':
-      // قالب: تعيين فني — requests (ar)
-      return {
-        name: 'requests',
-        language: 'ar',
-        bodyParams: [vars.customer_name, vars.technician_name || 'الفني المختص', vars.order_id],
-      };
-    case 'scheduled':
-      // قالب: تحديد موعد زيارة — appointment_scheduling (ar)
-      // {{1}} {{2}} {{3}} {{4}} {{5}} = name, address, date, from, to
+      // appointment_scheduling (ar): {{1}} name, {{2}} address, {{3}} date, {{4}} from, {{5}} to
       return {
         name: 'appointment_scheduling',
         language: 'ar',
         bodyParams: [
           vars.customer_name,
-          vars.order_id,
+          addr,
           vars.date || 'قريباً',
-          vars.time || '10:00 صباحًا',
-          vars.time || '2:00 مساءً',
+          vars.time || '10:00 ص',
+          '2:00 م',
+        ],
+      };
+    case 'scheduled':
+      return {
+        name: 'appointment_scheduling',
+        language: 'ar',
+        bodyParams: [
+          vars.customer_name,
+          addr,
+          vars.date || 'قريباً',
+          vars.time || '10:00 ص',
+          '2:00 م',
         ],
       };
     case 'on_the_way':
-      // قالب: الفني في الطريق — technician_arrival (ar)
-      return {
-        name: 'technician_arrival',
-        language: 'ar',
-        bodyParams: [vars.customer_name, '15 دقيقة'],
-      };
+      // technician_arrival (ar): {{1}} name, {{2}} ETA
+      return { name: 'technician_arrival', language: 'ar', bodyParams: [vars.customer_name, '15 دقيقة'] };
     case 'in_progress':
-      // قالب: بدأ التنفيذ — technician_visit (ar)
-      return {
-        name: 'technician_visit',
-        language: 'ar',
-        bodyParams: [vars.customer_name, vars.order_id, vars.track_url],
-      };
+      // إعادة استخدام requests كإشعار تقدم
+      return { name: 'requests', language: 'ar', bodyParams: [vars.customer_name, vars.order_id] };
     case 'completed':
-      // قالب: الانتهاء — support (ar)
-      return {
-        name: 'support',
-        language: 'ar',
-        bodyParams: [vars.customer_name, vars.order_id],
-      };
+      // azord (ar): {{1}} name, {{2}} order
+      return { name: 'azord', language: 'ar', bodyParams: [vars.customer_name, vars.order_id] };
     case 'closed':
-      // قالب: التقييم/الإغلاق — azfed (ar) feedback flow
+      // azfed (ar) feedback: {{1}}..{{4}}
       return {
         name: 'azfed',
         language: 'ar',
