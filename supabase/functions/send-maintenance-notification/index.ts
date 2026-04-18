@@ -189,8 +189,10 @@ const stageToNotificationStatus = (stage: string): NotificationStatus | null => 
     'acknowledged': 'reviewed',
     'assigned': 'reviewed',
     'scheduled': 'scheduled',
+    'on_site': 'on_the_way',
     'in_progress': 'in_progress',
     'inspection': 'in_progress',
+    'work_started': 'in_progress',
     'completed': 'completed',
     'closed': 'closed',
     'paid': 'closed',
@@ -199,7 +201,7 @@ const stageToNotificationStatus = (stage: string): NotificationStatus | null => 
 };
 
 // Stages that don't trigger notifications
-const SILENT_STAGES = ['draft', 'waiting_parts', 'on_hold', 'cancelled', 'billed'];
+const SILENT_STAGES = ['draft', 'waiting_parts', 'on_hold', 'cancelled', 'billed', 'rejected'];
 
 // ==========================================
 // Helper Functions

@@ -1,18 +1,17 @@
 import * as React from "https://esm.sh/react@18.3.1";
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
   Hr,
   Html,
-  Img,
   Preview,
   Section,
   Text,
   Row,
   Column,
+  Link,
 } from "https://esm.sh/@react-email/components@0.0.22";
 
 interface MaintenanceStatusEmailProps {
@@ -130,11 +129,11 @@ export const MaintenanceStatusEmail = ({
             ))}
           </Section>
 
-          {/* CTA Button */}
+          {/* CTA Button (Link styled as button to avoid Slot child render error) */}
           <Section style={buttonSection}>
-            <Button style={button} href={trackUrl}>
+            <Link href={trackUrl} style={button}>
               {buttonText}
-            </Button>
+            </Link>
           </Section>
         </Section>
 
