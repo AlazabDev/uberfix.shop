@@ -330,14 +330,92 @@ const sendEmail = async (
 };
 
 // ==========================================
-// Send WhatsApp via Meta Graph API (NOT Twilio)
+// Approved Meta Template Mapping per Lifecycle Stage
+// خريطة كل مرحلة من 15 مرحلة → قالب معتمد من Meta
+// ==========================================
+interface MetaTemplateMapping {
+  name: string;
+  language: string;
+  bodyParams: string[]; // ordered values for {{1}}, {{2}}, ...
+}
+
+const buildTemplateForStatus = (
+  status: NotificationStatus,
+  vars: { customer_name: string; order_id: string; technician_name?: string; date?: string; time?: string; track_url: string }
+): MetaTemplateMapping | null => {
+  switch (status) {
+    case 'received':
+      // قالب: تم استلام الطلب — uberfix (ar)
+      // مرحبًا {{1}}، تم استلام طلب الصيانة الخاص بك بنجاح ✅ رقم الطلب: {{2}} ...
+      return {
+        name: 'uberfix',
+        language: 'ar',
+        bodyParams: [vars.customer_name, vars.order_id, vars.track_url],
+      };
+    case 'reviewed':
+      // قالب: تعيين فني — requests (ar)
+      return {
+        name: 'requests',
+        language: 'ar',
+        bodyParams: [vars.customer_name, vars.technician_name || 'الفني المختص', vars.order_id],
+      };
+    case 'scheduled':
+      // قالب: تحديد موعد زيارة — appointment_scheduling (ar)
+      // {{1}} {{2}} {{3}} {{4}} {{5}} = name, address, date, from, to
+      return {
+        name: 'appointment_scheduling',
+        language: 'ar',
+        bodyParams: [
+          vars.customer_name,
+          vars.order_id,
+          vars.date || 'قريباً',
+          vars.time || '10:00 صباحًا',
+          vars.time || '2:00 مساءً',
+        ],
+      };
+    case 'on_the_way':
+      // قالب: الفني في الطريق — technician_arrival (ar)
+      return {
+        name: 'technician_arrival',
+        language: 'ar',
+        bodyParams: [vars.customer_name, '15 دقيقة'],
+      };
+    case 'in_progress':
+      // قالب: بدأ التنفيذ — technician_visit (ar)
+      return {
+        name: 'technician_visit',
+        language: 'ar',
+        bodyParams: [vars.customer_name, vars.order_id, vars.track_url],
+      };
+    case 'completed':
+      // قالب: الانتهاء — support (ar)
+      return {
+        name: 'support',
+        language: 'ar',
+        bodyParams: [vars.customer_name, vars.order_id],
+      };
+    case 'closed':
+      // قالب: التقييم/الإغلاق — azfed (ar) feedback flow
+      return {
+        name: 'azfed',
+        language: 'ar',
+        bodyParams: ['UberFix', 'خدماتنا', 'استبيان', 'الزيارة'],
+      };
+    default:
+      return null;
+  }
+};
+
+// ==========================================
+// Send WhatsApp via Meta Graph API using APPROVED TEMPLATES
 // ==========================================
 const sendWhatsApp = async (
   supabase: any,
   to: string,
   message: string,
   requestId: string,
-  notificationStage?: string
+  notificationStage?: string,
+  templateMapping?: MetaTemplateMapping | null
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const accessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
@@ -349,13 +427,35 @@ const sendWhatsApp = async (
     }
 
     const formattedTo = formatPhoneNumber(to);
-    
-    const body = {
-      messaging_product: 'whatsapp',
-      to: formattedTo,
-      type: 'text',
-      text: { body: message }
-    };
+
+    // Build payload — prefer approved template; fallback to text only inside 24h window
+    let body: Record<string, any>;
+    if (templateMapping) {
+      const components: any[] = [];
+      if (templateMapping.bodyParams.length > 0) {
+        components.push({
+          type: 'body',
+          parameters: templateMapping.bodyParams.map((p) => ({ type: 'text', text: String(p) })),
+        });
+      }
+      body = {
+        messaging_product: 'whatsapp',
+        to: formattedTo,
+        type: 'template',
+        template: {
+          name: templateMapping.name,
+          language: { code: templateMapping.language },
+          components,
+        },
+      };
+    } else {
+      body = {
+        messaging_product: 'whatsapp',
+        to: formattedTo,
+        type: 'text',
+        text: { body: message },
+      };
+    }
 
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
@@ -373,9 +473,8 @@ const sendWhatsApp = async (
 
     if (response.ok) {
       const messageId = result.messages?.[0]?.id;
-      console.log('✅ WhatsApp sent successfully via Meta:', messageId);
-      
-      // Log the message
+      console.log(`✅ WhatsApp ${templateMapping ? `template[${templateMapping.name}]` : 'text'} sent:`, messageId);
+
       await supabase.from('message_logs').insert({
         request_id: requestId,
         recipient: formattedTo,
@@ -386,12 +485,33 @@ const sendWhatsApp = async (
         external_id: messageId,
         sent_at: new Date().toISOString(),
         notification_stage: notificationStage || null,
-        metadata: { type: 'notification', trigger: 'status_change', stage: notificationStage }
+        metadata: {
+          type: 'notification',
+          trigger: 'status_change',
+          stage: notificationStage,
+          template: templateMapping?.name || null,
+          params: templateMapping?.bodyParams || null,
+        },
       });
 
       return { success: true };
     } else {
-      console.error('❌ WhatsApp send failed via Meta:', result);
+      console.error('❌ WhatsApp send failed via Meta:', JSON.stringify(result));
+      // Log failure for diagnostics
+      await supabase.from('message_logs').insert({
+        request_id: requestId,
+        recipient: formattedTo,
+        message_content: message,
+        message_type: 'whatsapp',
+        provider: 'meta',
+        status: 'failed',
+        sent_at: new Date().toISOString(),
+        notification_stage: notificationStage || null,
+        metadata: {
+          error: result.error || result,
+          template: templateMapping?.name || null,
+        },
+      });
       return { success: false, error: result.error?.message || 'Failed to send' };
     }
   } catch (error: unknown) {
