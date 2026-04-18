@@ -436,6 +436,30 @@ const sendWhatsApp = async (
           parameters: templateMapping.bodyParams.map((p) => ({ type: 'text', text: String(p) })),
         });
       }
+      // URL button with dynamic param
+      if (templateMapping.buttonUrlParam) {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: templateMapping.buttonUrlParam }],
+        });
+      }
+      // FLOW button
+      if (templateMapping.flowToken) {
+        components.push({
+          type: 'button',
+          sub_type: 'flow',
+          index: '0',
+          parameters: [{
+            type: 'action',
+            action: {
+              flow_token: templateMapping.flowToken,
+              flow_action_data: templateMapping.flowActionData || {},
+            },
+          }],
+        });
+      }
       body = {
         messaging_product: 'whatsapp',
         to: formattedTo,
