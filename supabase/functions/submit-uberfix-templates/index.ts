@@ -145,7 +145,6 @@ serve(async (req) => {
         const data = await res.json();
 
         if (res.ok) {
-          // Save to wa_templates
           await supabase.from('wa_templates').upsert({
             name: tpl.name,
             language: tpl.language,
@@ -157,14 +156,18 @@ serve(async (req) => {
 
           results.push({ name: tpl.name, success: true, id: data.id, status: data.status });
         } else {
-          // If already exists, mark as already-submitted
-          const errMsg = data.error?.message || 'Unknown error';
-          const alreadyExists = errMsg.includes('already exists') || data.error?.code === 100;
+          const errMsg = data.error?.message || data.error?.error_user_msg || 'Unknown error';
+          const errSubcode = data.error?.error_subcode;
+          const errDetails = data.error?.error_user_title || data.error?.message;
+          const alreadyExists = errSubcode === 2388023 || /already exists|duplicate/i.test(errMsg);
           results.push({
             name: tpl.name,
             success: alreadyExists,
             already_exists: alreadyExists,
-            error: errMsg
+            error: errMsg,
+            error_subcode: errSubcode,
+            error_details: errDetails,
+            full_error: data.error
           });
         }
       } catch (err) {
