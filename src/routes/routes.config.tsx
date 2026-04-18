@@ -137,6 +137,9 @@ const UsersPage = lazy(() => import("@/pages/UsersPage"));
 // Module Settings (Owner only)
 const ModuleSettings = lazy(() => import("@/pages/admin/ModuleSettings"));
 
+// Internal Audit Report (pre-production audit findings)
+const AuditReport = lazy(() => import("@/pages/admin/AuditReport"));
+
 // Gateway
 const MaintenanceGateway = lazy(() => import("@/pages/gateway/MaintenanceGateway"));
 
@@ -204,6 +207,7 @@ export const protectedRoutes = [
   { path: "/admin/malls", element: <MallsDirectory />, withLayout: true },
   { path: "/admin/technician-approval", element: <TechnicianApprovalQueue />, withLayout: true },
   { path: "/admin/module-settings", element: <ModuleSettings />, withLayout: true },
+  { path: "/admin/audit-report", element: <AuditReport />, withLayout: true },
   { path: "/users", element: <UsersPage />, withLayout: true },
   { path: "/admin-control-center", element: <AdminControlCenter />, withLayout: true },
 
