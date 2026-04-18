@@ -167,7 +167,7 @@ export const HeroSection = () => {
           <Button
             variant="outline"
             size="lg"
-            className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm px-8 py-5 text-base transition-all duration-200 hover:-translate-y-0.5"
+            className="!bg-transparent border-2 border-white/40 !text-white hover:!bg-white/10 hover:border-white/70 backdrop-blur-sm px-8 py-5 text-base font-semibold transition-all duration-200 hover:-translate-y-0.5"
             onClick={() => (window.location.href = "/book-consultation")}
           >
             <Calendar className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
