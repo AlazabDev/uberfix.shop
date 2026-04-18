@@ -23,7 +23,7 @@ export const LandingHeader = () => {
   ];
 
   return (
-    <header className="bg-card/80 backdrop-blur-lg border-b border-border/40 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50 safe-area-inset standalone-header tap-highlight-none">
+    <header className="bg-primary-dark/95 backdrop-blur-lg border-b border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50 safe-area-inset standalone-header tap-highlight-none">
       {/* Logo */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <BrandLogo size="md" showSubtitle subtitle={t('footer.smartSystem')} animated glow />
@@ -35,7 +35,7 @@ export const LandingHeader = () => {
           <Link
             key={item.to}
             to={item.to}
-            className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            className="text-[13px] font-medium text-white/70 hover:text-secondary transition-colors whitespace-nowrap"
           >
             {item.label}
           </Link>
@@ -46,12 +46,19 @@ export const LandingHeader = () => {
       <div className="flex items-center gap-2 sm:gap-3">
         <LanguageSwitcher />
         <Link to="/role-selection" className="hidden xs:block">
-          <Button variant="ghost" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 font-medium">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs sm:text-sm h-9 font-medium text-white/80 hover:text-white hover:bg-white/10"
+          >
             {t('nav.login')}
           </Button>
         </Link>
         <Link to="/role-selection">
-          <Button size="sm" className="text-xs sm:text-sm h-8 sm:h-9 font-semibold bg-primary hover:bg-primary-light">
+          <Button
+            size="sm"
+            className="text-xs sm:text-sm h-9 px-4 font-bold bg-secondary text-secondary-foreground hover:bg-secondary-light shadow-md hover:shadow-lg transition-all"
+          >
             {t('nav.register')}
           </Button>
         </Link>
