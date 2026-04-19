@@ -19,8 +19,24 @@ import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useDirection } from "@/hooks/useDirection";
 
-// Lazy load the Mapbox globe map for promotional display
-const GlobalMap = lazy(() => import("@/components/GlobalMap"));
+// Lazy load the Mapbox globe map for promotional display.
+// Retry once on transient chunk-load failures (stale HMR hash, flaky network).
+const lazyWithRetry = <T,>(factory: () => Promise<T>) =>
+  lazy(() =>
+    (factory() as Promise<any>).catch(async (err) => {
+      console.warn("[LandingPage] Dynamic import failed, retrying once...", err);
+      await new Promise((r) => setTimeout(r, 600));
+      try {
+        return await factory();
+      } catch (err2) {
+        console.error("[LandingPage] Retry failed, hiding GlobalMap.", err2);
+        // Return a stub component so the rest of the page still renders.
+        return { default: () => null } as any;
+      }
+    })
+  );
+
+const GlobalMap = lazyWithRetry(() => import("@/components/GlobalMap"));
 
 // Loading fallback for map
 const MapLoadingFallback = () => {
