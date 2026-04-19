@@ -44,28 +44,34 @@ const GlobalMap = () => {
   const showLoadingOverlay = !isReady && !runtimeError;
 
   useEffect(() => {
-    if (!mapContainer.current || branches.length === 0 || !mapboxToken || !tokenLoaded) return;
+    if (!mapContainer.current || !mapboxToken || !tokenLoaded) return;
     if (map.current) return; // prevent re-init
+
+    const customStyle = import.meta.env.VITE_MAPBOX_STYLE_URL as string | undefined;
 
     try {
       mapboxgl.accessToken = mapboxToken;
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        style: customStyle || 'mapbox://styles/mapbox/satellite-streets-v12',
         projection: { name: 'globe' },
-        zoom: 1.5,
-        center: [30, 20],
+        zoom: 1.8,
+        center: [30, 26],
         pitch: 0,
+        attributionControl: false,
       });
     } catch (err) {
-      console.error('Mapbox init failed:', err);
+      console.error('[GlobalMap] Mapbox init failed:', err);
       setRuntimeError('تعذر تهيئة الخريطة.');
       return;
     }
 
-    map.current.on('error', () => {
-      setRuntimeError('حدث خطأ أثناء تحميل الخريطة. يرجى المحاولة لاحقًا.');
+    map.current.on('error', (e) => {
+      console.error('[GlobalMap] Mapbox runtime error:', e?.error || e);
+      if (!map.current?.isStyleLoaded()) {
+        setRuntimeError('حدث خطأ أثناء تحميل الخريطة. يرجى المحاولة لاحقًا.');
+      }
     });
 
     map.current.addControl(
@@ -76,13 +82,18 @@ const GlobalMap = () => {
     map.current.scrollZoom.disable();
 
     map.current.on('style.load', () => {
-      map.current?.setFog({
-        color: 'rgb(30, 30, 40)',
-        'high-color': 'rgb(50, 50, 70)',
-        'horizon-blend': 0.4,
-        'space-color': 'rgb(10, 10, 20)',
-        'star-intensity': 0.6,
-      });
+      try {
+        map.current?.setFog({
+          color: 'rgb(30, 30, 40)',
+          'high-color': 'rgb(50, 50, 70)',
+          'horizon-blend': 0.4,
+          'space-color': 'rgb(10, 10, 20)',
+          'star-intensity': 0.6,
+        });
+      } catch (err) {
+        console.warn('[GlobalMap] setFog failed (non-fatal):', err);
+      }
+      setTimeout(() => map.current?.resize(), 100);
     });
 
     const secondsPerRevolution = 180;
