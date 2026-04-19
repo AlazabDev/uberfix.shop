@@ -214,6 +214,7 @@ export const LandingHeader = () => {
           </Sheet>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 };
