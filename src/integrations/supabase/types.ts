@@ -1629,7 +1629,6 @@ export type Database = {
       }
       facebook_users: {
         Row: {
-          access_token: string | null
           created_at: string | null
           email: string | null
           facebook_id: string
@@ -1641,7 +1640,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          access_token?: string | null
           created_at?: string | null
           email?: string | null
           facebook_id: string
@@ -1653,7 +1651,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          access_token?: string | null
           created_at?: string | null
           email?: string | null
           facebook_id?: string
@@ -8521,9 +8518,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
-      is_authorized_owner:
-        | { Args: { _user_id: string }; Returns: boolean }
-        | { Args: { user_email: string }; Returns: boolean }
+      is_authorized_owner: { Args: { _user_id: string }; Returns: boolean }
       is_chat_participant: {
         Args: { _conversation_id: string }
         Returns: boolean
