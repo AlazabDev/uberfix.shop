@@ -8279,6 +8279,10 @@ export type Database = {
         Args: { request_id: string }
         Returns: boolean
       }
+      can_subscribe_realtime_topic: {
+        Args: { _topic: string }
+        Returns: boolean
+      }
       can_transition_stage: {
         Args: { current_stage: string; next_stage: string; user_role: string }
         Returns: boolean
@@ -8503,6 +8507,10 @@ export type Database = {
       is_authorized_owner:
         | { Args: { _user_id: string }; Returns: boolean }
         | { Args: { user_email: string }; Returns: boolean }
+      is_chat_participant: {
+        Args: { _conversation_id: string }
+        Returns: boolean
+      }
       is_email_confirmed: { Args: never; Returns: boolean }
       is_owner_email: { Args: never; Returns: boolean }
       is_staff:
