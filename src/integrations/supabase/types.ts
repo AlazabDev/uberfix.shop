@@ -6936,6 +6936,54 @@ export type Database = {
       }
     }
     Views: {
+      api_gateway_logs_masked: {
+        Row: {
+          client_ip_masked: string | null
+          consumer_id: string | null
+          consumer_type: string | null
+          created_at: string | null
+          duration_ms: number | null
+          id: string | null
+          method: string | null
+          request_body_safe: string | null
+          request_id: string | null
+          response_size: number | null
+          route: string | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          client_ip_masked?: never
+          consumer_id?: string | null
+          consumer_type?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string | null
+          method?: string | null
+          request_body_safe?: never
+          request_id?: string | null
+          response_size?: number | null
+          route?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          client_ip_masked?: never
+          consumer_id?: string | null
+          consumer_type?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string | null
+          method?: string | null
+          request_body_safe?: never
+          request_id?: string | null
+          response_size?: number | null
+          route?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       app_settings_admin_safe: {
         Row: {
           allow_edit_after_start: boolean | null
@@ -8284,6 +8332,7 @@ export type Database = {
         Args: { current_stage: string; next_stage: string; user_role: string }
         Returns: boolean
       }
+      cleanup_old_gateway_logs: { Args: never; Returns: undefined }
       complete_technician_registration: {
         Args: { p_email: string }
         Returns: Json
@@ -8529,6 +8578,7 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
+      mask_pii_text: { Args: { input: string }; Returns: string }
       public_track_request: {
         Args: { query_text: string }
         Returns: {
