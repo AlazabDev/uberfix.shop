@@ -14,8 +14,43 @@ interface FacebookAuthRequest {
   accessToken: string;
 }
 
+/**
+ * يتحقق من التوكن مع Graph API ويعيد facebookId الحقيقي.
+ * هذا يمنع هجمات انتحال الهوية (account takeover).
+ */
+async function verifyFacebookToken(accessToken: string): Promise<{ id: string; email?: string } | null> {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me?fields=id,email&access_token=${encodeURIComponent(accessToken)}`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.id) return null;
+    return { id: String(data.id), email: data.email };
+  } catch (err) {
+    console.error('Facebook token verification failed:', err);
+    return null;
+  }
+}
+
+/**
+ * البحث عن مستخدم Supabase ببريد إلكتروني عبر pagination كامل.
+ */
+async function findUserByEmail(supabaseAdmin: ReturnType<typeof createClient>, email: string) {
+  let page = 1;
+  const perPage = 200;
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error || !data?.users?.length) return null;
+    const found = data.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (found) return found;
+    if (data.users.length < perPage) return null;
+    page++;
+    if (page > 50) return null; // حد أمان
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,15 +63,33 @@ serve(async (req) => {
 
     const { facebookId, email, name, pictureUrl, accessToken }: FacebookAuthRequest = await req.json();
 
-    if (!facebookId || !name) {
+    if (!facebookId || !name || !accessToken) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: facebookId and name' }),
+        JSON.stringify({ error: 'Missing required fields: facebookId, name, accessToken' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if Facebook user already exists
-    const { data: existingFbUser, error: fetchError } = await supabaseAdmin
+    // ✅ التحقق من التوكن مع Facebook قبل أي عملية كتابة
+    const verified = await verifyFacebookToken(accessToken);
+    if (!verified) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired Facebook access token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (verified.id !== facebookId) {
+      console.warn('Facebook ID mismatch attempt:', { claimed: facebookId, actual: verified.id });
+      return new Response(
+        JSON.stringify({ error: 'Token does not belong to the provided facebookId' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // استخدم البريد الموثَّق من Facebook إن وُجد
+    const safeEmail = verified.email || email;
+
+    const { data: existingFbUser } = await supabaseAdmin
       .from('facebook_users')
       .select('*')
       .eq('facebook_id', facebookId)
@@ -46,36 +99,27 @@ serve(async (req) => {
     let isNewUser = false;
 
     if (existingFbUser) {
-      // Update existing Facebook user
       supabaseUserId = existingFbUser.supabase_user_id;
-
+      // ❌ لا نخزن access_token في قاعدة البيانات (حماية الخصوصية)
       await supabaseAdmin
         .from('facebook_users')
         .update({
           name,
-          email,
+          email: safeEmail,
           picture_url: pictureUrl,
-          access_token: accessToken,
           last_login_at: new Date().toISOString(),
         })
         .eq('facebook_id', facebookId);
-
     } else {
       isNewUser = true;
-
-      // Create Supabase auth user if email is provided
-      if (email) {
-        // Check if email already exists in auth.users
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(u => u.email === email);
-
+      if (safeEmail) {
+        const existingUser = await findUserByEmail(supabaseAdmin, safeEmail);
         if (existingUser) {
           supabaseUserId = existingUser.id;
         } else {
-          // Create new Supabase user with random password (Facebook handles auth)
           const randomPassword = crypto.randomUUID() + crypto.randomUUID();
           const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
+            email: safeEmail,
             password: randomPassword,
             email_confirm: true,
             user_metadata: {
@@ -85,42 +129,35 @@ serve(async (req) => {
               facebook_id: facebookId,
             }
           });
-
           if (!createError && newUser.user) {
             supabaseUserId = newUser.user.id;
           }
         }
       }
 
-      // Create Facebook user record
       const { error: insertError } = await supabaseAdmin
         .from('facebook_users')
         .insert({
           facebook_id: facebookId,
-          email,
+          email: safeEmail,
           name,
           picture_url: pictureUrl,
-          access_token: accessToken,
+          // access_token: غير مخزَّن عمداً
           supabase_user_id: supabaseUserId,
         });
-
       if (insertError) {
         console.error('Error inserting Facebook user:', insertError);
         throw insertError;
       }
     }
 
-    // Generate a session token for the user if they have a Supabase user
     let sessionToken: string | null = null;
-    if (supabaseUserId) {
-      // Create a custom session using signInWithPassword alternative
-      // Since we can't directly create session, we'll use a workaround
-      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+    if (supabaseUserId && safeEmail) {
+      const { data: sessionData } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
-        email: email!,
+        email: safeEmail,
       });
-
-      if (sessionData && !sessionError) {
+      if (sessionData) {
         sessionToken = sessionData.properties?.hashed_token || null;
       }
     }
@@ -132,19 +169,16 @@ serve(async (req) => {
         supabaseUserId,
         facebookId,
         name,
-        email,
+        email: safeEmail,
         pictureUrl,
+        sessionToken,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Facebook auth sync error:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: (error as Error).message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
