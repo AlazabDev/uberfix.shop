@@ -1,2 +1,33 @@
-export { createMaintenanceRequest, checkRequestStatus, listServices, getBranches, requestQuote } from './client';
-export type { BotGatewayRequest, BotGatewayResponse, MaintenanceRequestPayload, StatusCheckPayload, QuoteRequestPayload } from './client';
+export {
+  createMaintenanceRequest,
+  checkRequestStatus,
+  getRequestDetails,
+  updateRequest,
+  cancelRequest,
+  addNote,
+  assignTechnician,
+  listTechnicians,
+  listCategories,
+  listServices,
+  getBranches,
+  findNearestBranch,
+  collectCustomerInfo,
+  requestQuote,
+} from './client';
+
+export type {
+  BotAction,
+  BotGatewayRequest,
+  BotGatewayResponse,
+  MaintenanceRequestPayload,
+  StatusCheckPayload,
+  GetRequestDetailsPayload,
+  UpdateRequestPayload,
+  CancelRequestPayload,
+  AddNotePayload,
+  AssignTechnicianPayload,
+  ListTechniciansPayload,
+  FindNearestBranchPayload,
+  CollectCustomerInfoPayload,
+  QuoteRequestPayload,
+} from './client';
