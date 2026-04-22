@@ -133,6 +133,13 @@ export type Database = {
             referencedRelation: "_legacy_messages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       _legacy_notification: {
@@ -2855,6 +2862,13 @@ export type Database = {
             columns: ["message_log_id"]
             isOneToOne: false
             referencedRelation: "_legacy_message_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_message_log_id_fkey"
+            columns: ["message_log_id"]
+            isOneToOne: false
+            referencedRelation: "message_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -7714,6 +7728,170 @@ export type Database = {
           },
         ]
       }
+      message_logs: {
+        Row: {
+          channel: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string | null
+          message_content: string | null
+          message_type: string | null
+          metadata: Json | null
+          notification_stage: string | null
+          provider: string | null
+          read_at: string | null
+          recipient: string | null
+          request_id: string | null
+          retry_count: number | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string | null
+          message_content?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string | null
+          message_content?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string | null
+          is_archived: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          parent_message_id: string | null
+          recipient_id: string | null
+          sender_id: string | null
+          subject: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "_legacy_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification: {
+        Row: {
+          build_id: string | null
+          created_at: string | null
+          id: string | null
+          link: string | null
+          message: string | null
+          platform: string | null
+          read: boolean | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       notification_stats_daily: {
         Row: {
           count: number | null
@@ -8144,6 +8322,48 @@ export type Database = {
           rating?: number | null
           specialization?: string[] | null
           status?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_messages: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          customer_name: string | null
+          direction: string | null
+          id: string | null
+          media_url: string | null
+          message_type: string | null
+          phone_number: string | null
+          status: string | null
+          updated_at: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          direction?: string | null
+          id?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          phone_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          direction?: string | null
+          id?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          phone_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          wa_message_id?: string | null
         }
         Relationships: []
       }
