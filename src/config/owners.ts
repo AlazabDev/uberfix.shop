@@ -18,7 +18,21 @@ export const AUTHORIZED_OWNER_EMAILS: readonly string[] = [
   'admin@alazab.com',
   'mohamed@alazab.com',
   'magdy@alazab.com',
-  'azab68320@gmail.com'
+  'azab68320@gmail.com',
+  'ceo@alazab.com',
+  'uf@alazab.com',
+  'devops@alazab.com',
+  'manager@alazab.com',
+  'api@alazab.com',
+  'erp@alazab.com',
+  'db@alazab.com'
+] as const;
+
+// ============================================
+// أنماط النطاقات المعتمدة (wildcard) — أي بريد ينتهي بهذه النطاقات يُعتبر مالك
+// ============================================
+export const AUTHORIZED_OWNER_DOMAINS: readonly string[] = [
+  '@uberfix.shop'
 ] as const;
 
 // ============================================
