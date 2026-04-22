@@ -8480,6 +8480,18 @@ export type Database = {
           vendor_name: string
         }[]
       }
+      fn_create_api_consumer: {
+        Args: {
+          p_allowed_origins?: string[]
+          p_branch_id?: string
+          p_channel?: string
+          p_company_id?: string
+          p_metadata?: Json
+          p_name: string
+          p_rate_limit?: number
+        }
+        Returns: Json
+      }
       fn_derived_request_status: {
         Args: { p_stage: Database["public"]["Enums"]["workflow_stage_t"] }
         Returns: Database["public"]["Enums"]["request_status_canonical"]
@@ -8493,6 +8505,13 @@ export type Database = {
         }
         Returns: string
       }
+      fn_generate_api_key: { Args: never; Returns: string }
+      fn_revoke_api_consumer: { Args: { p_id: string }; Returns: undefined }
+      fn_rotate_api_consumer: { Args: { p_id: string }; Returns: Json }
+      fn_toggle_api_consumer: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
       fn_transition_request_stage: {
         Args: {
           p_actor?: string
@@ -8502,6 +8521,17 @@ export type Database = {
           p_to_stage: Database["public"]["Enums"]["workflow_stage_t"]
         }
         Returns: Database["public"]["Enums"]["workflow_stage_t"]
+      }
+      fn_update_api_consumer: {
+        Args: {
+          p_allowed_origins?: string[]
+          p_channel?: string
+          p_id: string
+          p_metadata?: Json
+          p_name?: string
+          p_rate_limit?: number
+        }
+        Returns: undefined
       }
       generate_unified_serial: {
         Args: { prefix: string; seq_name: string }
