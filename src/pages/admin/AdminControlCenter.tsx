@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { RoleGuard } from '@/components/admin/RoleGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Users, Lock, Settings, FileText, AlertTriangle } from 'lucide-react';
+import { Shield, Users, Lock, Settings, FileText, AlertTriangle, KeyRound } from 'lucide-react';
 import { UserRolesManagement } from '@/components/admin/UserRolesManagement';
 import { PermissionsManagement } from '@/components/admin/PermissionsManagement';
 import { RouteAccessControl } from '@/components/admin/RouteAccessControl';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { AuditLogsViewer } from '@/components/admin/AuditLogsViewer';
 import { MaintenanceLockControl } from '@/components/admin/MaintenanceLockControl';
+import { ApiKeysManagement } from '@/components/admin/ApiKeysManagement';
 
 /**
  * مركز التحكم الإداري الشامل
@@ -48,7 +49,7 @@ export default function AdminControlCenter() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 gap-2">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2">
             <TabsTrigger value="roles" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">أدوار المستخدمين</span>
@@ -64,6 +65,10 @@ export default function AdminControlCenter() {
             <TabsTrigger value="maintenance" className="gap-2">
               <Lock className="h-4 w-4" />
               <span className="hidden sm:inline">قفل الصيانة</span>
+            </TabsTrigger>
+            <TabsTrigger value="apikeys" className="gap-2">
+              <KeyRound className="h-4 w-4" />
+              <span className="hidden sm:inline">مفاتيح API</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
               <Settings className="h-4 w-4" />
@@ -145,6 +150,11 @@ export default function AdminControlCenter() {
                 <MaintenanceLockControl />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* API Keys */}
+          <TabsContent value="apikeys" className="mt-6">
+            <ApiKeysManagement />
           </TabsContent>
 
           {/* System Settings */}
