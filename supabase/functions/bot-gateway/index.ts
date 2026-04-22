@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
@@ -12,6 +13,20 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   appliance: "أجهزة منزلية", pest_control: "مكافحة حشرات", landscaping: "حدائق وتنسيق",
   finishing: "تشطيبات", renovation: "ترميم",
 };
+
+// المراحل المسموح للبوت تعديلها (لا يستطيع البوت الإغلاق المالي/الفوترة)
+const BOT_ALLOWED_STAGES = new Set([
+  'submitted', 'acknowledged', 'on_hold', 'cancelled', 'scheduled',
+]);
+
+// الحالات النهائية - لا يجوز التعديل عليها
+const TERMINAL_STAGES = new Set(['closed', 'paid', 'cancelled']);
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,9 +39,7 @@ serve(async (req) => {
 
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), {
-        status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
     }
 
     // Support both API key auth and Supabase JWT auth
