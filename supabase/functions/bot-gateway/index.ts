@@ -88,9 +88,7 @@ serve(async (req) => {
     const { action, payload, session_id, metadata } = await req.json();
 
     if (!action || !payload) {
-      return new Response(JSON.stringify({ success: false, error: 'action and payload are required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ success: false, error: 'action and payload are required' }, 400);
     }
 
     // Log the gateway request
@@ -116,11 +114,38 @@ serve(async (req) => {
       case 'check_status':
         result = await handleCheckStatus(supabase, payload);
         break;
+      case 'get_request_details':
+        result = await handleGetRequestDetails(supabase, payload);
+        break;
+      case 'update_request':
+        result = await handleUpdateRequest(supabase, payload, consumerId);
+        break;
+      case 'cancel_request':
+        result = await handleCancelRequest(supabase, payload, consumerId);
+        break;
+      case 'add_note':
+        result = await handleAddNote(supabase, payload, consumerId);
+        break;
+      case 'assign_technician':
+        result = await handleAssignTechnician(supabase, supabaseUrl, supabaseServiceKey, payload);
+        break;
+      case 'list_technicians':
+        result = await handleListTechnicians(supabase, payload);
+        break;
+      case 'list_categories':
+        result = await handleListCategories(supabase);
+        break;
       case 'list_services':
         result = handleListServices();
         break;
       case 'get_branches':
         result = await handleGetBranches(supabase);
+        break;
+      case 'find_nearest_branch':
+        result = await handleFindNearestBranch(supabase, payload);
+        break;
+      case 'collect_customer_info':
+        result = await handleCollectCustomerInfo(supabase, payload, session_id);
         break;
       case 'get_quote':
         result = await handleGetQuote(supabase, payload, metadata);
@@ -129,16 +154,11 @@ serve(async (req) => {
         result = { success: false, error: `Unknown action: ${action}` };
     }
 
-    return new Response(JSON.stringify(result), {
-      status: result.success ? 200 : 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return jsonResponse(result, result.success ? 200 : 400);
 
   } catch (error) {
     console.error('Bot Gateway error:', error);
-    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ success: false, error: 'Internal server error' }, 500);
   }
 });
 
