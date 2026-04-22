@@ -752,6 +752,50 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_sessions: {
+        Row: {
+          bot_source: string | null
+          client_phone: string | null
+          context: Json
+          created_at: string
+          expires_at: string
+          id: string
+          last_request_id: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          bot_source?: string | null
+          client_phone?: string | null
+          context?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_request_id?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          bot_source?: string | null
+          client_phone?: string | null
+          context?: Json
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_request_id?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_locations: {
         Row: {
           address: string | null
