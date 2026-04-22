@@ -14,6 +14,212 @@ export type Database = {
   }
   public: {
     Tables: {
+      _legacy_message_logs: {
+        Row: {
+          channel: string | null
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          message_content: string
+          message_type: string
+          metadata: Json | null
+          notification_stage: string | null
+          provider: string
+          read_at: string | null
+          recipient: string
+          request_id: string | null
+          retry_count: number | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content: string
+          message_type: string
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string
+          read_at?: string | null
+          recipient: string
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content?: string
+          message_type?: string
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string
+          read_at?: string | null
+          recipient?: string
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      _legacy_messages: {
+        Row: {
+          body: string
+          created_at: string | null
+          id: string
+          is_archived: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          parent_message_id: string | null
+          recipient_id: string
+          sender_id: string
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id: string
+          sender_id: string
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          id?: string
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id?: string
+          sender_id?: string
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "_legacy_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      _legacy_notification: {
+        Row: {
+          build_id: string | null
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string | null
+          platform: string | null
+          read: boolean | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      _legacy_whatsapp_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          customer_name: string | null
+          direction: string
+          id: string
+          media_url: string | null
+          message_type: string
+          phone_number: string
+          status: string | null
+          updated_at: string
+          wa_message_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          customer_name?: string | null
+          direction: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          phone_number: string
+          status?: string | null
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          customer_name?: string | null
+          direction?: string
+          id?: string
+          media_url?: string | null
+          message_type?: string
+          phone_number?: string
+          status?: string | null
+          updated_at?: string
+          wa_message_id?: string | null
+        }
+        Relationships: []
+      }
       annual_grand_winners: {
         Row: {
           award_year: number
@@ -77,6 +283,8 @@ export type Database = {
         Row: {
           allowed_origins: string[] | null
           api_key: string
+          api_key_hash: string | null
+          api_key_prefix: string | null
           branch_id: string | null
           channel: string
           company_id: string | null
@@ -84,6 +292,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          last_rotated_at: string | null
           last_used_at: string | null
           metadata: Json | null
           name: string
@@ -94,6 +303,8 @@ export type Database = {
         Insert: {
           allowed_origins?: string[] | null
           api_key?: string
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
           branch_id?: string | null
           channel?: string
           company_id?: string | null
@@ -101,6 +312,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          last_rotated_at?: string | null
           last_used_at?: string | null
           metadata?: Json | null
           name: string
@@ -111,6 +323,8 @@ export type Database = {
         Update: {
           allowed_origins?: string[] | null
           api_key?: string
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
           branch_id?: string | null
           channel?: string
           company_id?: string | null
@@ -118,6 +332,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          last_rotated_at?: string | null
           last_used_at?: string | null
           metadata?: Json | null
           name?: string
@@ -270,7 +485,6 @@ export type Database = {
           max_execution_time: number | null
           notification_templates: Json | null
           notification_types: Json | null
-          order_stages: Json | null
           primary_color: string | null
           require_manager_approval: boolean | null
           secondary_color: string | null
@@ -282,7 +496,6 @@ export type Database = {
           smtp_password: string | null
           smtp_port: number | null
           smtp_username: string | null
-          technician_statuses: Json | null
           theme_mode: string | null
           timezone: string | null
           updated_at: string
@@ -319,7 +532,6 @@ export type Database = {
           max_execution_time?: number | null
           notification_templates?: Json | null
           notification_types?: Json | null
-          order_stages?: Json | null
           primary_color?: string | null
           require_manager_approval?: boolean | null
           secondary_color?: string | null
@@ -331,7 +543,6 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
-          technician_statuses?: Json | null
           theme_mode?: string | null
           timezone?: string | null
           updated_at?: string
@@ -368,7 +579,6 @@ export type Database = {
           max_execution_time?: number | null
           notification_templates?: Json | null
           notification_types?: Json | null
-          order_stages?: Json | null
           primary_color?: string | null
           require_manager_approval?: boolean | null
           secondary_color?: string | null
@@ -380,7 +590,6 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
-          technician_statuses?: Json | null
           theme_mode?: string | null
           timezone?: string | null
           updated_at?: string
@@ -747,20 +956,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "chat_conversations_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_conversations_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "chat_conversations_technician_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -1059,20 +1254,6 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "daftra_sync_logs_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "daftra_sync_logs_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1648,20 +1829,6 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "facebook_leads_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "facebook_leads_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2548,141 +2715,6 @@ export type Database = {
         }
         Relationships: []
       }
-      message_logs: {
-        Row: {
-          channel: string | null
-          created_at: string
-          delivered_at: string | null
-          error_message: string | null
-          external_id: string | null
-          id: string
-          message_content: string
-          message_type: string
-          metadata: Json | null
-          notification_stage: string | null
-          provider: string
-          read_at: string | null
-          recipient: string
-          request_id: string | null
-          retry_count: number | null
-          sent_at: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          channel?: string | null
-          created_at?: string
-          delivered_at?: string | null
-          error_message?: string | null
-          external_id?: string | null
-          id?: string
-          message_content: string
-          message_type: string
-          metadata?: Json | null
-          notification_stage?: string | null
-          provider?: string
-          read_at?: string | null
-          recipient: string
-          request_id?: string | null
-          retry_count?: number | null
-          sent_at?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          channel?: string | null
-          created_at?: string
-          delivered_at?: string | null
-          error_message?: string | null
-          external_id?: string | null
-          id?: string
-          message_content?: string
-          message_type?: string
-          metadata?: Json | null
-          notification_stage?: string | null
-          provider?: string
-          read_at?: string | null
-          recipient?: string
-          request_id?: string | null
-          retry_count?: number | null
-          sent_at?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_logs_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_logs_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_logs_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          body: string
-          created_at: string | null
-          id: string
-          is_archived: boolean | null
-          is_read: boolean | null
-          is_starred: boolean | null
-          parent_message_id: string | null
-          recipient_id: string
-          sender_id: string
-          subject: string
-          updated_at: string | null
-        }
-        Insert: {
-          body: string
-          created_at?: string | null
-          id?: string
-          is_archived?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          parent_message_id?: string | null
-          recipient_id: string
-          sender_id: string
-          subject: string
-          updated_at?: string | null
-        }
-        Update: {
-          body?: string
-          created_at?: string | null
-          id?: string
-          is_archived?: boolean | null
-          is_read?: boolean | null
-          is_starred?: boolean | null
-          parent_message_id?: string | null
-          recipient_id?: string
-          sender_id?: string
-          subject?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_parent_message_id_fkey"
-            columns: ["parent_message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       module_permissions: {
         Row: {
           created_at: string | null
@@ -2778,42 +2810,6 @@ export type Database = {
           },
         ]
       }
-      notification: {
-        Row: {
-          build_id: string | null
-          created_at: string | null
-          id: string
-          link: string | null
-          message: string | null
-          platform: string | null
-          read: boolean | null
-          title: string | null
-          type: string | null
-        }
-        Insert: {
-          build_id?: string | null
-          created_at?: string | null
-          id?: string
-          link?: string | null
-          message?: string | null
-          platform?: string | null
-          read?: boolean | null
-          title?: string | null
-          type?: string | null
-        }
-        Update: {
-          build_id?: string | null
-          created_at?: string | null
-          id?: string
-          link?: string | null
-          message?: string | null
-          platform?: string | null
-          read?: boolean | null
-          title?: string | null
-          type?: string | null
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string
@@ -2864,6 +2860,13 @@ export type Database = {
           whatsapp_sent?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_message_log_id_fkey"
+            columns: ["message_log_id"]
+            isOneToOne: false
+            referencedRelation: "_legacy_message_logs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_message_log_id_fkey"
             columns: ["message_log_id"]
@@ -3652,20 +3655,6 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_review_request"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_review_request"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
             referencedColumns: ["id"]
           },
           {
@@ -5346,20 +5335,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_task_request"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_task_request"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_task_technician"
             columns: ["technician_id"]
             isOneToOne: false
@@ -5392,20 +5367,6 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "technician_tasks_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "technician_tasks_maintenance_request_id_fkey"
-            columns: ["maintenance_request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
             referencedColumns: ["id"]
           },
           {
@@ -5641,20 +5602,6 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "maintenance_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "technician_transactions_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "technician_transactions_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
             referencedColumns: ["id"]
           },
           {
@@ -6536,20 +6483,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "wa_conversations_current_request_id_fkey"
-            columns: ["current_request_id"]
-            isOneToOne: false
-            referencedRelation: "technician_assigned_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wa_conversations_current_request_id_fkey"
-            columns: ["current_request_id"]
-            isOneToOne: false
-            referencedRelation: "vw_maintenance_requests_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "wa_conversations_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -7114,48 +7047,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_messages: {
-        Row: {
-          content: string | null
-          created_at: string
-          customer_name: string | null
-          direction: string
-          id: string
-          media_url: string | null
-          message_type: string
-          phone_number: string
-          status: string | null
-          updated_at: string
-          wa_message_id: string | null
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          customer_name?: string | null
-          direction: string
-          id?: string
-          media_url?: string | null
-          message_type?: string
-          phone_number: string
-          status?: string | null
-          updated_at?: string
-          wa_message_id?: string | null
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          customer_name?: string | null
-          direction?: string
-          id?: string
-          media_url?: string | null
-          message_type?: string
-          phone_number?: string
-          status?: string | null
-          updated_at?: string
-          wa_message_id?: string | null
-        }
-        Relationships: []
-      }
       workflow_transitions: {
         Row: {
           created_at: string
@@ -7268,18 +7159,12 @@ export type Database = {
           max_execution_time: number | null
           notification_templates: Json | null
           notification_types: Json | null
-          order_stages: Json | null
           primary_color: string | null
           require_manager_approval: boolean | null
           secondary_color: string | null
           session_timeout: number | null
           show_footer: boolean | null
           show_technicians_on_map: boolean | null
-          smtp_from_email: string | null
-          smtp_host: string | null
-          smtp_port: number | null
-          smtp_username: string | null
-          technician_statuses: Json | null
           theme_mode: string | null
           timezone: string | null
           updated_at: string | null
@@ -7316,18 +7201,12 @@ export type Database = {
           max_execution_time?: number | null
           notification_templates?: Json | null
           notification_types?: Json | null
-          order_stages?: Json | null
           primary_color?: string | null
           require_manager_approval?: boolean | null
           secondary_color?: string | null
           session_timeout?: number | null
           show_footer?: boolean | null
           show_technicians_on_map?: boolean | null
-          smtp_from_email?: string | null
-          smtp_host?: string | null
-          smtp_port?: number | null
-          smtp_username?: string | null
-          technician_statuses?: Json | null
           theme_mode?: string | null
           timezone?: string | null
           updated_at?: string | null
@@ -7364,18 +7243,12 @@ export type Database = {
           max_execution_time?: number | null
           notification_templates?: Json | null
           notification_types?: Json | null
-          order_stages?: Json | null
           primary_color?: string | null
           require_manager_approval?: boolean | null
           secondary_color?: string | null
           session_timeout?: number | null
           show_footer?: boolean | null
           show_technicians_on_map?: boolean | null
-          smtp_from_email?: string | null
-          smtp_host?: string | null
-          smtp_port?: number | null
-          smtp_username?: string | null
-          technician_statuses?: Json | null
           theme_mode?: string | null
           timezone?: string | null
           updated_at?: string | null
@@ -7858,6 +7731,170 @@ export type Database = {
           },
         ]
       }
+      message_logs: {
+        Row: {
+          channel: string | null
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string | null
+          message_content: string | null
+          message_type: string | null
+          metadata: Json | null
+          notification_stage: string | null
+          provider: string | null
+          read_at: string | null
+          recipient: string | null
+          request_id: string | null
+          retry_count: number | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string | null
+          message_content?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string | null
+          message_content?: string | null
+          message_type?: string | null
+          metadata?: Json | null
+          notification_stage?: string | null
+          provider?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          request_id?: string | null
+          retry_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string | null
+          is_archived: boolean | null
+          is_read: boolean | null
+          is_starred: boolean | null
+          parent_message_id: string | null
+          recipient_id: string | null
+          sender_id: string | null
+          subject: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_archived?: boolean | null
+          is_read?: boolean | null
+          is_starred?: boolean | null
+          parent_message_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "_legacy_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification: {
+        Row: {
+          build_id: string | null
+          created_at: string | null
+          id: string | null
+          link: string | null
+          message: string | null
+          platform: string | null
+          read: boolean | null
+          title: string | null
+          type: string | null
+        }
+        Insert: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Update: {
+          build_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          link?: string | null
+          message?: string | null
+          platform?: string | null
+          read?: boolean | null
+          title?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       notification_stats_daily: {
         Row: {
           count: number | null
@@ -8027,56 +8064,6 @@ export type Database = {
             columns: ["district_id"]
             isOneToOne: false
             referencedRelation: "districts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      technician_assigned_requests: {
-        Row: {
-          assigned_technician_id: string | null
-          client_name: string | null
-          client_phone: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          latitude: number | null
-          location: string | null
-          longitude: number | null
-          priority: string | null
-          sla_complete_due: string | null
-          status: Database["public"]["Enums"]["mr_status"] | null
-          technician_name: string | null
-          technician_phone: string | null
-          title: string | null
-          workflow_stage: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
-            columns: ["assigned_technician_id"]
-            isOneToOne: false
-            referencedRelation: "technicians"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
-            columns: ["assigned_technician_id"]
-            isOneToOne: false
-            referencedRelation: "technicians_map_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
-            columns: ["assigned_technician_id"]
-            isOneToOne: false
-            referencedRelation: "technicians_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
-            columns: ["assigned_technician_id"]
-            isOneToOne: false
-            referencedRelation: "technicians_public_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8341,206 +8328,47 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_maintenance_requests_public: {
+      whatsapp_messages: {
         Row: {
-          actual_cost: number | null
-          archived_at: string | null
-          asset_id: string | null
-          assigned_vendor_id: string | null
-          branch_id: string | null
-          category_id: string | null
-          channel: string | null
-          client_email: string | null
-          client_name: string | null
-          client_phone: string | null
-          company_id: string | null
+          content: string | null
           created_at: string | null
-          created_by: string | null
-          customer_notes: string | null
-          description: string | null
-          estimated_cost: number | null
+          customer_name: string | null
+          direction: string | null
           id: string | null
-          last_modified_by: string | null
-          latitude: number | null
-          location: string | null
-          longitude: number | null
-          opened_by_role: string | null
-          priority: string | null
-          property_id: string | null
-          rating: number | null
-          service_type: string | null
-          sla_accept_due: string | null
-          sla_arrive_due: string | null
-          sla_complete_due: string | null
-          sla_deadline: string | null
-          sla_due_date: string | null
-          status: Database["public"]["Enums"]["mr_status"] | null
-          subcategory_id: string | null
-          title: string | null
+          media_url: string | null
+          message_type: string | null
+          phone_number: string | null
+          status: string | null
           updated_at: string | null
-          vendor_notes: string | null
-          version: number | null
-          workflow_stage: string | null
+          wa_message_id: string | null
         }
         Insert: {
-          actual_cost?: number | null
-          archived_at?: string | null
-          asset_id?: string | null
-          assigned_vendor_id?: string | null
-          branch_id?: string | null
-          category_id?: string | null
-          channel?: string | null
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          company_id?: string | null
+          content?: string | null
           created_at?: string | null
-          created_by?: string | null
-          customer_notes?: string | null
-          description?: string | null
-          estimated_cost?: number | null
+          customer_name?: string | null
+          direction?: string | null
           id?: string | null
-          last_modified_by?: string | null
-          latitude?: number | null
-          location?: string | null
-          longitude?: number | null
-          opened_by_role?: string | null
-          priority?: string | null
-          property_id?: string | null
-          rating?: number | null
-          service_type?: string | null
-          sla_accept_due?: string | null
-          sla_arrive_due?: string | null
-          sla_complete_due?: string | null
-          sla_deadline?: string | null
-          sla_due_date?: string | null
-          status?: Database["public"]["Enums"]["mr_status"] | null
-          subcategory_id?: string | null
-          title?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          phone_number?: string | null
+          status?: string | null
           updated_at?: string | null
-          vendor_notes?: string | null
-          version?: number | null
-          workflow_stage?: string | null
+          wa_message_id?: string | null
         }
         Update: {
-          actual_cost?: number | null
-          archived_at?: string | null
-          asset_id?: string | null
-          assigned_vendor_id?: string | null
-          branch_id?: string | null
-          category_id?: string | null
-          channel?: string | null
-          client_email?: string | null
-          client_name?: string | null
-          client_phone?: string | null
-          company_id?: string | null
+          content?: string | null
           created_at?: string | null
-          created_by?: string | null
-          customer_notes?: string | null
-          description?: string | null
-          estimated_cost?: number | null
+          customer_name?: string | null
+          direction?: string | null
           id?: string | null
-          last_modified_by?: string | null
-          latitude?: number | null
-          location?: string | null
-          longitude?: number | null
-          opened_by_role?: string | null
-          priority?: string | null
-          property_id?: string | null
-          rating?: number | null
-          service_type?: string | null
-          sla_accept_due?: string | null
-          sla_arrive_due?: string | null
-          sla_complete_due?: string | null
-          sla_deadline?: string | null
-          sla_due_date?: string | null
-          status?: Database["public"]["Enums"]["mr_status"] | null
-          subcategory_id?: string | null
-          title?: string | null
+          media_url?: string | null
+          message_type?: string | null
+          phone_number?: string | null
+          status?: string | null
           updated_at?: string | null
-          vendor_notes?: string | null
-          version?: number | null
-          workflow_stage?: string | null
+          wa_message_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_maintenance_requests_assigned_vendor"
-            columns: ["assigned_vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_maintenance_requests_assigned_vendor"
-            columns: ["assigned_vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors_public_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_mr_branch"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_mr_category"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_mr_company"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_mr_property"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_mr_property"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties_qr_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "maintenance_requests_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties_qr_public"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
