@@ -18,7 +18,21 @@ export const AUTHORIZED_OWNER_EMAILS: readonly string[] = [
   'admin@alazab.com',
   'mohamed@alazab.com',
   'magdy@alazab.com',
-  'azab68320@gmail.com'
+  'azab68320@gmail.com',
+  'ceo@alazab.com',
+  'uf@alazab.com',
+  'devops@alazab.com',
+  'manager@alazab.com',
+  'api@alazab.com',
+  'erp@alazab.com',
+  'db@alazab.com'
+] as const;
+
+// ============================================
+// أنماط النطاقات المعتمدة (wildcard) — أي بريد ينتهي بهذه النطاقات يُعتبر مالك
+// ============================================
+export const AUTHORIZED_OWNER_DOMAINS: readonly string[] = [
+  '@uberfix.shop'
 ] as const;
 
 // ============================================
@@ -99,7 +113,9 @@ export const OPERATIONAL_ROLES: AppRole[] = ['staff', 'technician', 'dispatcher'
  */
 export function isAuthorizedOwner(email: string | null | undefined): boolean {
   if (!email) return false;
-  return AUTHORIZED_OWNER_EMAILS.includes(email.toLowerCase());
+  const normalized = email.toLowerCase().trim();
+  if (AUTHORIZED_OWNER_EMAILS.includes(normalized)) return true;
+  return AUTHORIZED_OWNER_DOMAINS.some(domain => normalized.endsWith(domain.toLowerCase()));
 }
 
 /**

@@ -734,21 +734,27 @@ export type Database = {
       authorized_owners: {
         Row: {
           created_at: string | null
-          email: string
+          email: string | null
+          email_pattern: string | null
           id: string
           is_active: boolean | null
+          is_pattern: boolean
         }
         Insert: {
           created_at?: string | null
-          email: string
+          email?: string | null
+          email_pattern?: string | null
           id?: string
           is_active?: boolean | null
+          is_pattern?: boolean
         }
         Update: {
           created_at?: string | null
-          email?: string
+          email?: string | null
+          email_pattern?: string | null
           id?: string
           is_active?: boolean | null
+          is_pattern?: boolean
         }
         Relationships: []
       }
@@ -8744,7 +8750,9 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
-      is_authorized_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_authorized_owner:
+        | { Args: { _user_id: string }; Returns: boolean }
+        | { Args: { user_email: string }; Returns: boolean }
       is_chat_participant: {
         Args: { _conversation_id: string }
         Returns: boolean
