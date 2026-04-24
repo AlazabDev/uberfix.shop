@@ -941,6 +941,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          code: string | null
           description: string | null
           icon_url: string | null
           id: string
@@ -949,6 +950,7 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
+          code?: string | null
           description?: string | null
           icon_url?: string | null
           id?: string
@@ -957,6 +959,7 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
+          code?: string | null
           description?: string | null
           icon_url?: string | null
           id?: string
