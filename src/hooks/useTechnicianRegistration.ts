@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TechnicianRegistrationData, ServicePrice, TechnicianTrade, CoverageArea, TechnicianDocument } from '@/types/technician-registration';
+import { sanitizeStorageFilename } from '@/utils/sanitizeFilename';
 
 const STORAGE_KEY = 'technician_registration_draft';
 
@@ -185,6 +186,7 @@ export function useTechnicianRegistration() {
       }
 
       const profileId = result.profile_id;
+      const authUserId = signUpData.user.id;
 
       // إدخال الخدمات والأسعار
       if (services && services.length > 0 && profileId) {
@@ -229,18 +231,66 @@ export function useTechnicianRegistration() {
         if (coverageError) console.warn('Error inserting coverage areas:', coverageError);
       }
 
-      // إدخال المستندات
+      // رفع المستندات ثم إدراجها في الجدول
       if (documents && documents.length > 0 && profileId) {
-        const { error: docsError } = await supabase.from('technician_documents').insert(
-          documents.map(d => ({ 
+        const uploadedDocs: Array<{
+          technician_id: string;
+          document_type: TechnicianDocument["document_type"];
+          file_url: string;
+          file_name: string;
+          file_size?: number;
+        }> = [];
+
+        for (const d of documents) {
+          // Skip entries without an actual File object (e.g., resumed draft).
+          if (!d.pending_file) {
+            // If the user previously uploaded a file_url before this refactor,
+            // keep the existing record.
+            if (d.file_url) {
+              uploadedDocs.push({
+                technician_id: profileId,
+                document_type: d.document_type,
+                file_url: d.file_url,
+                file_name: d.file_name,
+                file_size: d.file_size,
+              });
+            }
+            continue;
+          }
+
+          // Build an ASCII-safe storage key. The original Arabic file name is
+          // preserved in the database column `file_name` for display.
+          const { ascii } = sanitizeStorageFilename(d.pending_file.name);
+          const storageKey = `${authUserId}/${d.document_type}-${Date.now()}-${ascii}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('technician-registration-docs')
+            .upload(storageKey, d.pending_file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: d.pending_file.type || 'application/octet-stream',
+            });
+
+          if (uploadError) {
+            console.warn('Document upload failed:', uploadError);
+            continue;
+          }
+
+          uploadedDocs.push({
             technician_id: profileId,
             document_type: d.document_type,
-            file_url: d.file_url,
-            file_name: d.file_name,
-            file_size: d.file_size,
-          }))
-        );
-        if (docsError) console.warn('Error inserting documents:', docsError);
+            file_url: storageKey, // store the storage key, generate signed URLs at read time
+            file_name: d.pending_file.name, // keep the original Arabic name for display
+            file_size: d.pending_file.size,
+          });
+        }
+
+        if (uploadedDocs.length > 0) {
+          const { error: docsError } = await supabase
+            .from('technician_documents')
+            .insert(uploadedDocs);
+          if (docsError) console.warn('Error inserting document rows:', docsError);
+        }
       }
 
       // مسح البيانات المحفوظة محلياً

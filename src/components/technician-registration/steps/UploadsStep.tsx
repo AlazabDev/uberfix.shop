@@ -6,16 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Upload, FileText } from "lucide-react";
+import { Trash2, Upload, FileText, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const ALLOWED_MIME = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const uploadsSchema = z.object({
   documents: z.array(z.object({
     document_type: z.enum(['tax_card', 'commercial_registration', 'national_id', 'insurance_certificate', 'professional_license']),
-    file_url: z.string().min(1, "يجب رفع الملف"),
-    file_name: z.string(),
+    file_url: z.string().optional(),
+    file_name: z.string().min(1, "يجب اختيار ملف"),
     file_size: z.number().optional(),
   })).optional(),
 });
@@ -38,13 +40,25 @@ const DOCUMENT_TYPES = [
 ];
 
 export function UploadsStep({ data, onNext, onBack, onSaveAndExit }: UploadsStepProps) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({});
+  // Holds File objects keyed by field index — files cannot be JSON-serialized
+  // so we keep them in component state and forward them through onNext.
+  const [pendingFiles, setPendingFiles] = useState<{ [key: number]: File }>(() => {
+    const initial: { [key: number]: File } = {};
+    (data.documents || []).forEach((d, i) => {
+      if (d.pending_file) initial[i] = d.pending_file;
+    });
+    return initial;
+  });
 
   const form = useForm<UploadsFormData>({
     resolver: zodResolver(uploadsSchema),
     defaultValues: {
-      documents: data.documents || [],
+      documents: (data.documents || []).map(d => ({
+        document_type: d.document_type,
+        file_url: d.file_url,
+        file_name: d.file_name,
+        file_size: d.file_size,
+      })),
     },
   });
 
@@ -53,59 +67,50 @@ export function UploadsStep({ data, onNext, onBack, onSaveAndExit }: UploadsStep
     name: "documents",
   });
 
-  const handleFileUpload = async (file: File, index: number, documentType: string) => {
-    setUploading(true);
-    setUploadProgress({ ...uploadProgress, [index]: 0 });
-
-    try {
-      // Must be authenticated — RLS requires the file path to start with auth.uid()
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('يجب تسجيل الدخول أولاً قبل رفع المستندات');
-      }
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${documentType}-${Date.now()}.${fileExt}`;
-      // Path MUST begin with the user's id so storage RLS ownership check passes
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('technician-registration-docs')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('technician-registration-docs')
-        .getPublicUrl(filePath);
-
-      update(index, {
-        document_type: documentType as any,
-        file_url: urlData.publicUrl,
-        file_name: file.name,
-        file_size: file.size,
-      });
-
-      setUploadProgress({ ...uploadProgress, [index]: 100 });
-      toast.success("تم رفع الملف بنجاح");
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      toast.error("فشل رفع الملف: " + error.message);
-    } finally {
-      setUploading(false);
+  const handleFileSelect = (file: File, index: number, documentType: string) => {
+    // Validate type and size locally before storing in memory.
+    if (!ALLOWED_MIME.includes(file.type)) {
+      toast.error("نوع الملف غير مدعوم. المسموح: PDF أو صورة JPG/PNG");
+      return;
     }
+    if (file.size > MAX_SIZE_BYTES) {
+      toast.error("حجم الملف يتجاوز 10 ميجابايت");
+      return;
+    }
+
+    // Keep the File reference in component state.
+    setPendingFiles(prev => ({ ...prev, [index]: file }));
+
+    // Update the form-controlled metadata (the original Arabic name is preserved
+    // for display; the actual upload is deferred to after signup).
+    update(index, {
+      document_type: documentType as TechnicianDocument["document_type"],
+      file_url: "",
+      file_name: file.name,
+      file_size: file.size,
+    });
+
+    toast.success("تم اختيار الملف. سيتم رفعه عند إرسال التسجيل");
+  };
+
+  const buildDocumentsPayload = (formValues: UploadsFormData): TechnicianDocument[] => {
+    return (formValues.documents || []).map((d, i) => ({
+      document_type: d.document_type,
+      file_url: d.file_url || "",
+      file_name: d.file_name,
+      file_size: d.file_size,
+      pending_file: pendingFiles[i],
+    }));
   };
 
   const onSubmit = (formData: UploadsFormData) => {
-    onNext(formData);
+    onNext({ documents: buildDocumentsPayload(formData) });
   };
 
   const handleSaveAndExit = () => {
     const currentData = form.getValues();
-    onSaveAndExit(currentData);
+    // Note: pending_file is in-memory only — it won't survive page reload.
+    onSaveAndExit({ documents: buildDocumentsPayload(currentData) });
   };
 
   return (
@@ -119,7 +124,7 @@ export function UploadsStep({ data, onNext, onBack, onSaveAndExit }: UploadsStep
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              💡 <strong>ملحوظة:</strong> المستندات المرفوعة ستُراجع للتحقق من صحتها قبل قبول التسجيل
+              💡 <strong>ملحوظة:</strong> المستندات سيتم رفعها فعلياً عند الضغط على "إرسال الطلب" في الخطوة الأخيرة. يتم التحقق من النوع (PDF / JPG / PNG) والحجم (حتى 10 ميجابايت) محلياً.
             </p>
           </div>
 
@@ -196,23 +201,26 @@ export function UploadsStep({ data, onNext, onBack, onSaveAndExit }: UploadsStep
                               const file = e.target.files?.[0];
                               if (file) {
                                 const documentType = form.watch(`documents.${index}.document_type`);
-                                handleFileUpload(file, index, documentType);
+                                handleFileSelect(file, index, documentType);
                               }
                             }}
-                            disabled={uploading}
                           />
-                          {field.value && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <FileText className="h-4 w-4" />
-                              <span>{form.watch(`documents.${index}.file_name`)}</span>
+                          {pendingFiles[index] && (
+                            <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span dir="auto">{form.watch(`documents.${index}.file_name`)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({(pendingFiles[index].size / 1024).toFixed(0)} KB)
+                              </span>
                             </div>
                           )}
-                          {uploadProgress[index] !== undefined && uploadProgress[index] < 100 && (
-                            <div className="w-full bg-secondary rounded-full h-2">
-                              <div 
-                                className="bg-primary h-2 rounded-full transition-all" 
-                                style={{ width: `${uploadProgress[index]}%` }}
-                              />
+                          {!pendingFiles[index] && form.watch(`documents.${index}.file_name`) && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FileText className="h-4 w-4" />
+                              <span dir="auto">{form.watch(`documents.${index}.file_name`)}</span>
+                              <span className="text-xs text-amber-600">
+                                (يلزم إعادة الاختيار بعد إعادة تحميل الصفحة)
+                              </span>
                             </div>
                           )}
                         </div>
@@ -242,7 +250,7 @@ export function UploadsStep({ data, onNext, onBack, onSaveAndExit }: UploadsStep
                 حفظ والعودة لاحقاً
               </Button>
             </div>
-            <Button type="submit" disabled={uploading}>
+            <Button type="submit">
               حفظ واستمرار
             </Button>
           </div>

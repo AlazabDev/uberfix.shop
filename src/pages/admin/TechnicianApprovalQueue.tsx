@@ -351,16 +351,34 @@ export default function TechnicianApprovalQueue() {
                   {documents.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
                       {documents.map((doc) => (
-                        <a
+                        <button
                           key={doc.id}
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 border rounded hover:bg-accent transition-colors"
+                          type="button"
+                          onClick={async () => {
+                            // file_url may be a storage key (preferred) or a legacy
+                            // full URL. Generate a fresh signed URL on click.
+                            const isFullUrl = /^https?:\/\//i.test(doc.file_url);
+                            let url = doc.file_url;
+                            if (!isFullUrl) {
+                              const { data, error } = await supabase.storage
+                                .from('technician-registration-docs')
+                                .createSignedUrl(doc.file_url, 60 * 10);
+                              if (error || !data) {
+                                toast({ title: 'تعذر فتح الملف', description: error?.message, variant: 'destructive' });
+                                return;
+                              }
+                              url = data.signedUrl;
+                            }
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }}
+                          className="flex items-center gap-2 p-2 border rounded hover:bg-accent transition-colors text-right"
                         >
-                          <FileText className="h-4 w-4 text-primary" />
-                          <span className="text-sm">{getDocumentTypeLabel(doc.document_type)}</span>
-                        </a>
+                          <FileText className="h-4 w-4 text-primary shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium">{getDocumentTypeLabel(doc.document_type)}</span>
+                            <span className="text-xs text-muted-foreground truncate" dir="auto">{doc.file_name}</span>
+                          </div>
+                        </button>
                       ))}
                     </div>
                   ) : (
