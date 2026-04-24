@@ -227,7 +227,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       generateHtmlResponse(
         "خطأ",
-        `❌ حدث خطأ أثناء معالجة الطلب: ${error.message}`,
+        `❌ حدث خطأ أثناء معالجة الطلب: ${escapeHtml(error?.message)}`,
         "error"
       ),
       {
