@@ -298,8 +298,8 @@ export default function PrivacyPolicyEnglish() {
             <div className="bg-muted p-4 rounded-lg mt-4 space-y-2">
               <p><strong>Data Protection Officer:</strong> privacy@uberfix.shop</p>
               <p><strong>General Inquiries:</strong> support@uberfix.shop</p>
-              <p><strong>Phone:</strong> +966 12 345 6789</p>
-              <p><strong>Address:</strong> UberFix Technologies, Riyadh, Kingdom of Saudi Arabia</p>
+              <p><strong>Phone:</strong> +20 100 400 6620</p>
+              <p><strong>Address:</strong> UberFix Technologies, Maadi St 500, Cairo, Arab Republic of Egypt</p>
             </div>
           </section>
         </div>

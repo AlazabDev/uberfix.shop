@@ -135,7 +135,7 @@ export function ContractForm({ contract, onSuccess }: ContractFormProps) {
             </Select>
           </div>
           <div>
-            <Label>قيمة العقد (ر.س)</Label>
+            <Label>قيمة العقد (ج.م)</Label>
             <Input {...register("contract_value", { valueAsNumber: true })} type="number" min={0} />
           </div>
           <div>

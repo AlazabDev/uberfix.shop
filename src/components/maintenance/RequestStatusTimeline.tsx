@@ -85,12 +85,12 @@ export function RequestStatusTimeline({
                     </p>
                     {isCurrent && updatedAt && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        آخر تحديث: {new Date(updatedAt).toLocaleString('ar-SA')}
+                        آخر تحديث: {new Date(updatedAt).toLocaleString('ar-EG')}
                       </p>
                     )}
                     {index === 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(createdAt).toLocaleString('ar-SA')}
+                        {new Date(createdAt).toLocaleString('ar-EG')}
                       </p>
                     )}
                   </div>

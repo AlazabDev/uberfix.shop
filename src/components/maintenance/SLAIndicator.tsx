@@ -75,7 +75,7 @@ export function SLAIndicator({ dueDate, createdAt, status, priority }: SLAIndica
         </div>
         
         <div className="flex justify-between text-xs text-muted-foreground mt-2">
-          <span>الموعد النهائي: {due.toLocaleDateString('ar-SA')}</span>
+          <span>الموعد النهائي: {due.toLocaleDateString('ar-EG')}</span>
           <span className="capitalize">{priority}</span>
         </div>
       </CardContent>

@@ -157,7 +157,7 @@ export default function ContractsList() {
                       </div>
                     </div>
                     <div className="text-left sm:text-right space-y-1">
-                      <div className="font-bold text-lg">{(contract.contract_value || 0).toLocaleString()} ر.س</div>
+                      <div className="font-bold text-lg">{(contract.contract_value || 0).toLocaleString()} ج.م</div>
                       <div className="text-xs text-muted-foreground">
                         {format(new Date(contract.start_date), "d MMM yyyy", { locale: ar })} → {format(new Date(contract.end_date), "d MMM yyyy", { locale: ar })}
                       </div>

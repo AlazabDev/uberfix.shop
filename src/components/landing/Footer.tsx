@@ -56,7 +56,7 @@ export const Footer = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2.5 text-background/50">
                 <Phone className="h-3.5 w-3.5" />
-                <span className="text-xs">+966 12 345 6789</span>
+                <span className="text-xs">+20 100 400 6620</span>
               </div>
               <div className="flex items-center gap-2.5 text-background/50">
                 <Mail className="h-3.5 w-3.5" />
@@ -64,7 +64,7 @@ export const Footer = () => {
               </div>
               <div className="flex items-center gap-2.5 text-background/50">
                 <MapPin className="h-3.5 w-3.5" />
-                <span className="text-xs">الرياض، المملكة العربية السعودية</span>
+                <span className="text-xs">القاهرة، جمهورية مصر العربية - المعادي ش 500</span>
               </div>
             </div>
 

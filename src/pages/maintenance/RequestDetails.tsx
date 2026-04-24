@@ -110,7 +110,7 @@ export default function RequestDetails() {
         <Alert>
           <Archive className="h-4 w-4" />
           <AlertDescription>
-            تم أرشفة هذا الطلب في {new Date(request.archived_at).toLocaleDateString('ar-SA')}
+            تم أرشفة هذا الطلب في {new Date(request.archived_at).toLocaleDateString('ar-EG')}
           </AlertDescription>
         </Alert>
       )}

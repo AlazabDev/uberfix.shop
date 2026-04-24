@@ -147,7 +147,7 @@ export default function TermsEnglish() {
 
             <h3 className="text-xl font-medium mt-6 mb-3">5.1 Subscription Plans</h3>
             <ul className="space-y-2">
-              <li>Prices are displayed in the applicable currency (SAR, USD, EUR)</li>
+              <li>Prices are displayed in the applicable currency (EGP, USD, EUR)</li>
               <li>All prices include applicable taxes unless otherwise stated</li>
               <li>Plans are billed monthly or annually in advance</li>
             </ul>
@@ -290,7 +290,7 @@ export default function TermsEnglish() {
               <h2 className="text-2xl font-semibold m-0">12. Governing Law</h2>
             </div>
             
-            <p>These Terms are governed by the laws of the Kingdom of Saudi Arabia. Any disputes shall be resolved in the competent courts of Riyadh, Saudi Arabia.</p>
+            <p>These Terms are governed by the laws of the Arab Republic of Egypt. Any disputes shall be resolved in the competent courts of Cairo, Egypt.</p>
           </section>
 
           {/* Section 13: Dispute Resolution */}
@@ -322,8 +322,8 @@ export default function TermsEnglish() {
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <p><strong>Legal Inquiries:</strong> legal@uberfix.shop</p>
               <p><strong>General Support:</strong> support@uberfix.shop</p>
-              <p><strong>Phone:</strong> +966 12 345 6789</p>
-              <p><strong>Address:</strong> UberFix Technologies, Riyadh, Kingdom of Saudi Arabia</p>
+              <p><strong>Phone:</strong> +20 100 400 6620</p>
+              <p><strong>Address:</strong> UberFix Technologies, Maadi St 500, Cairo, Arab Republic of Egypt</p>
             </div>
           </section>
 

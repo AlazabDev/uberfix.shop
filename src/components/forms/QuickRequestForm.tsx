@@ -438,7 +438,6 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="جمهورية مصر العربية">جمهورية مصر العربية</SelectItem>
-                      <SelectItem value="المملكة العربية السعودية">المملكة العربية السعودية</SelectItem>
                       <SelectItem value="الإمارات العربية المتحدة">الإمارات العربية المتحدة</SelectItem>
                     </SelectContent>
                   </Select>
@@ -717,7 +716,7 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
                       </div>
                       <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/30">
                         <span className="font-mono">{request.id.slice(0, 8)}</span>
-                        <span>{new Date(request.created_at).toLocaleDateString(isArabic ? 'ar-SA' : 'en-US')}</span>
+                        <span>{new Date(request.created_at).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US')}</span>
                       </div>
                     </div>
                   ))}

@@ -284,7 +284,7 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
                           <div className="flex items-center gap-1 text-sm">
                             <Calendar className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs">
-                              {new Date(request.created_at).toLocaleDateString('ar-SA')}
+                              {new Date(request.created_at).toLocaleDateString('ar-EG')}
                             </span>
                           </div>
                           {(request.estimated_cost || request.actual_cost) && (

@@ -116,7 +116,7 @@ export function WorkflowDiagram({ currentStage, requestData }: WorkflowDiagramPr
                   <div>
                     <span className="text-muted-foreground">آخر تحديث:</span>
                     <span className="font-medium mr-2">
-                      {new Date(requestData.updated_at).toLocaleDateString('ar-SA')}
+                      {new Date(requestData.updated_at).toLocaleDateString('ar-EG')}
                     </span>
                   </div>
                 )}

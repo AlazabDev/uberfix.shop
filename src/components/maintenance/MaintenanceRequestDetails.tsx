@@ -115,7 +115,7 @@ export function MaintenanceRequestDetails({ request }: MaintenanceRequestDetails
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            يتطلب متابعة في {new Date(request.follow_up_date).toLocaleDateString('ar-SA')}
+            يتطلب متابعة في {new Date(request.follow_up_date).toLocaleDateString('ar-EG')}
           </AlertDescription>
         </Alert>
       )}
@@ -181,12 +181,12 @@ export function MaintenanceRequestDetails({ request }: MaintenanceRequestDetails
           <CardContent className="space-y-3">
             <div className="flex justify-between">
               <span className="text-muted-foreground">تاريخ الإنشاء:</span>
-              <span>{new Date(request.created_at).toLocaleDateString('ar-SA')}</span>
+              <span>{new Date(request.created_at).toLocaleDateString('ar-EG')}</span>
             </div>
             {request.preferred_date && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">التاريخ المفضل:</span>
-                <span>{new Date(request.preferred_date).toLocaleDateString('ar-SA')}</span>
+                <span>{new Date(request.preferred_date).toLocaleDateString('ar-EG')}</span>
               </div>
             )}
             {request.preferred_time && (
@@ -198,7 +198,7 @@ export function MaintenanceRequestDetails({ request }: MaintenanceRequestDetails
             {request.estimated_completion && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">الانتهاء المتوقع:</span>
-                <span>{new Date(request.estimated_completion).toLocaleDateString('ar-SA')}</span>
+                <span>{new Date(request.estimated_completion).toLocaleDateString('ar-EG')}</span>
               </div>
             )}
           </CardContent>

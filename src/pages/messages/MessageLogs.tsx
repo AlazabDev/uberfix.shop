@@ -217,7 +217,7 @@ export default function MessageLogs() {
                         {log.recipient}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(log.sent_at).toLocaleString('ar-SA')}
+                        {new Date(log.sent_at).toLocaleString('ar-EG')}
                       </p>
                     </div>
                   </div>

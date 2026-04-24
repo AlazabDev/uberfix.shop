@@ -94,7 +94,7 @@ export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExp
                value === "medium" ? "متوسطة" : "عالية";
       case "created_at":
       case "preferred_date":
-        return typeof value === 'string' ? new Date(value).toLocaleDateString('ar-SA') : "";
+        return typeof value === 'string' ? new Date(value).toLocaleDateString('ar-EG') : "";
       case "estimated_cost":
       case "actual_cost":
         return typeof value === 'number' ? `${value} ج.م` : "";

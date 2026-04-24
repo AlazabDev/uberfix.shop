@@ -134,7 +134,7 @@ export function ApprovalManager({ requestId, approvalType }: ApprovalManagerProp
                 <div className="flex items-center justify-between">
                   {getStatusBadge(approval.status)}
                   <span className="text-xs text-muted-foreground">
-                    {new Date(approval.created_at).toLocaleDateString('ar-SA')}
+                    {new Date(approval.created_at).toLocaleDateString('ar-EG')}
                   </span>
                 </div>
                 {approval.comments && (

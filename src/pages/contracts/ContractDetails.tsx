@@ -241,7 +241,7 @@ export default function ContractDetails() {
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold">{(contract.contract_value || 0).toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">قيمة العقد (ر.س)</div>
+                <div className="text-sm text-muted-foreground">قيمة العقد (ج.م)</div>
               </CardContent>
             </Card>
             <Card>
