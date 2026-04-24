@@ -67,7 +67,7 @@ const vendors: Vendor[] = [
     reviews: 98,
     distance: 102.3,
     hourlyRate: 140,
-    phone: "+966511112222",
+    phone: "+201004006620",
     available: true,
     lat: 30.0131,
     lng: 31.2089

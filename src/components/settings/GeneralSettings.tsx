@@ -122,7 +122,6 @@ export function GeneralSettings() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="EGP">جنيه مصري (EGP)</SelectItem>
-                <SelectItem value="SAR">ريال سعودي (SAR)</SelectItem>
                 <SelectItem value="AED">درهم إماراتي (AED)</SelectItem>
                 <SelectItem value="USD">دولار أمريكي (USD)</SelectItem>
               </SelectContent>
@@ -143,7 +142,6 @@ export function GeneralSettings() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Africa/Cairo">القاهرة (EET)</SelectItem>
-                <SelectItem value="Asia/Riyadh">الرياض (AST)</SelectItem>
                 <SelectItem value="Asia/Dubai">دبي (GST)</SelectItem>
               </SelectContent>
             </Select>

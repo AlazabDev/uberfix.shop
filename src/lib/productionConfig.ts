@@ -54,21 +54,21 @@ export const PRODUCTION_CONFIG = {
     defaultZoom: 15,
     maxZoom: 20,
     minZoom: 10,
-    defaultCenter: { lat: 24.7136, lng: 46.6753 }, // الرياض
+    defaultCenter: { lat: 30.0131, lng: 31.2089 }, // القاهرة - المعادي
   },
 
   // إعدادات العملة
   currency: {
-    default: 'SAR',
-    symbol: 'ر.س',
+    default: 'EGP',
+    symbol: 'ج.م',
     precision: 2,
   },
 
   // إعدادات التاريخ والوقت
   datetime: {
-    timezone: 'Asia/Riyadh',
+    timezone: 'Africa/Cairo',
     dateFormat: 'YYYY-MM-DD',
     timeFormat: 'HH:mm',
-    locale: 'ar-SA',
+    locale: 'ar-EG',
   },
 } as const;

@@ -103,7 +103,7 @@ export default function TermsOfService() {
             <div className="space-y-3">
               <h3 className="text-xl font-medium text-foreground">5.1 الرسوم:</h3>
               <p className="leading-relaxed">
-                تختلف رسوم الخدمة حسب نوع الاشتراك والخدمات المطلوبة. جميع الأسعار المعروضة بالريال السعودي وشاملة ضريبة القيمة المضافة.
+                تختلف رسوم الخدمة حسب نوع الاشتراك والخدمات المطلوبة. جميع الأسعار المعروضة بالجنيه المصري وشاملة ضريبة القيمة المضافة.
               </p>
 
               <h3 className="text-xl font-medium text-foreground mt-4">5.2 الدفع:</h3>
@@ -192,7 +192,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-foreground mb-4">12. القانون الواجب التطبيق</h2>
             <p className="leading-relaxed">
-              تخضع هذه الشروط لقوانين المملكة العربية السعودية. أي نزاع ينشأ عن هذه الشروط يتم حله عبر المحاكم المختصة في الرياض.
+              تخضع هذه الشروط لقوانين جمهورية مصر العربية. أي نزاع ينشأ عن هذه الشروط يتم حله عبر المحاكم المختصة في القاهرة.
             </p>
           </section>
 
@@ -203,8 +203,8 @@ export default function TermsOfService() {
             </p>
             <ul className="space-y-2">
               <li><strong>البريد الإلكتروني:</strong> legal@uberfix.shop</li>
-              <li><strong>الهاتف:</strong> +966 12 345 6789</li>
-              <li><strong>العنوان:</strong> الرياض، المملكة العربية السعودية</li>
+              <li><strong>الهاتف:</strong> +20 100 400 6620</li>
+              <li><strong>العنوان:</strong> القاهرة، جمهورية مصر العربية - المعادي ش 500</li>
             </ul>
           </section>
 

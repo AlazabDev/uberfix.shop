@@ -438,7 +438,6 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="جمهورية مصر العربية">جمهورية مصر العربية</SelectItem>
-                      <SelectItem value="المملكة العربية السعودية">المملكة العربية السعودية</SelectItem>
                       <SelectItem value="الإمارات العربية المتحدة">الإمارات العربية المتحدة</SelectItem>
                     </SelectContent>
                   </Select>
