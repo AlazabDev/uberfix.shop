@@ -202,8 +202,8 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", approval.request_id);
 
     const successMessage = action === "approve"
-      ? `✅ تمت الموافقة بنجاح على طلب الصيانة: ${approval.maintenance_requests.title}`
-      : `❌ تم رفض طلب الصيانة: ${approval.maintenance_requests.title}`;
+      ? `✅ تمت الموافقة بنجاح على طلب الصيانة: ${escapeHtml(approval.maintenance_requests?.title)}`
+      : `❌ تم رفض طلب الصيانة: ${escapeHtml(approval.maintenance_requests?.title)}`;
 
     const nextStepMessage = action === "approve"
       ? allApprovals?.every((a) => a.status === "approved")
