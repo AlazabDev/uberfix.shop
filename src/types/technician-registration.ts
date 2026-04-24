@@ -87,6 +87,8 @@ export interface TechnicianDocument {
   file_url: string;
   file_name: string;
   file_size?: number;
+  /** Holds the in-memory File before signup; cleared after upload. Not persisted. */
+  pending_file?: File;
 }
 
 export interface RegistrationStep {
