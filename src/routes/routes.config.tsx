@@ -140,6 +140,9 @@ const ModuleSettings = lazy(() => import("@/pages/admin/ModuleSettings"));
 // Internal Audit Report (pre-production audit findings)
 const AuditReport = lazy(() => import("@/pages/admin/AuditReport"));
 
+// API Gateway Developer Portal
+const ApiGatewayPortal = lazy(() => import("@/pages/admin/ApiGatewayPortal"));
+
 // Gateway
 const MaintenanceGateway = lazy(() => import("@/pages/gateway/MaintenanceGateway"));
 
@@ -208,6 +211,7 @@ export const protectedRoutes = [
   { path: "/admin/technician-approval", element: <TechnicianApprovalQueue />, withLayout: true },
   { path: "/admin/module-settings", element: <ModuleSettings />, withLayout: true },
   { path: "/admin/audit-report", element: <AuditReport />, withLayout: true },
+  { path: "/admin/api-gateway", element: <ApiGatewayPortal />, withLayout: true },
   { path: "/users", element: <UsersPage />, withLayout: true },
   { path: "/admin-control-center", element: <AdminControlCenter />, withLayout: true },
 

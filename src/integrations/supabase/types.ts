@@ -8723,6 +8723,19 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_create_webhook_subscription: {
+        Args: {
+          p_consumer_id: string
+          p_description?: string
+          p_endpoint_url: string
+          p_event_types: string[]
+        }
+        Returns: Json
+      }
+      fn_delete_webhook_subscription: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       fn_derived_request_status: {
         Args: { p_stage: Database["public"]["Enums"]["workflow_stage_t"] }
         Returns: Database["public"]["Enums"]["request_status_canonical"]
@@ -8737,9 +8750,14 @@ export type Database = {
         Returns: string
       }
       fn_generate_api_key: { Args: never; Returns: string }
+      fn_issue_client_secret: { Args: { p_id: string }; Returns: Json }
       fn_revoke_api_consumer: { Args: { p_id: string }; Returns: undefined }
       fn_rotate_api_consumer: { Args: { p_id: string }; Returns: Json }
       fn_toggle_api_consumer: {
+        Args: { p_active: boolean; p_id: string }
+        Returns: undefined
+      }
+      fn_toggle_webhook_subscription: {
         Args: { p_active: boolean; p_id: string }
         Returns: undefined
       }
@@ -8761,6 +8779,15 @@ export type Database = {
           p_metadata?: Json
           p_name?: string
           p_rate_limit?: number
+        }
+        Returns: undefined
+      }
+      fn_update_api_consumer_extended: {
+        Args: {
+          p_auth_type?: string
+          p_id: string
+          p_scopes?: string[]
+          p_storage_target?: string
         }
         Returns: undefined
       }
