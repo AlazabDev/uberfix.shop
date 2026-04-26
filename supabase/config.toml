@@ -227,3 +227,15 @@ verify_jwt = false
 # Unified API Gateway for all maintenance request channels
 # Security: called internally by other edge functions + externally with rate limiting
 
+# ========================================
+# UBERFIX API GATEWAY (api.uberfix.alazab.com)
+# ========================================
+
+[functions.api-oauth-token]
+verify_jwt = false
+# OAuth2 client_credentials endpoint — public per RFC 6749, validates client_id/secret in code
+
+[functions.api-webhook-dispatcher]
+verify_jwt = false
+# Internal dispatcher — requires service-role bearer in code (never called by browsers)
+

@@ -1,6 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from '../_shared/cors.ts';
 import { rateLimit, createRateLimitResponse } from '../_shared/rateLimiter.ts';
+import { verifyGatewayToken, hasScope, type GatewayTokenPayload } from '../_shared/jwt-gateway.ts';
+import { hashRequest, checkIdempotency, reserveIdempotency, storeIdempotentResponse } from '../_shared/idempotency.ts';
+import { cacheIncr } from '../_shared/redis.ts';
 
 /**
  * 🌐 Unified Maintenance Gateway (API Gateway)
@@ -68,6 +71,8 @@ interface ApiConsumer {
   allowed_origins: string[];
   company_id: string | null;
   branch_id: string | null;
+  scopes?: string[];
+  storage_target?: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -99,6 +104,9 @@ const VALID_PRIORITIES = ['high', 'medium', 'low'];
 
 // Channels that require API key authentication
 const API_KEY_CHANNELS: Channel[] = ['api'];
+
+// OAuth2 Bearer token is acceptable for these channels
+const OAUTH_CHANNELS: Channel[] = ['api', 'bot_gateway'];
 
 // Channels called internally by other edge functions (trusted)
 const INTERNAL_CHANNELS: Channel[] = [
@@ -161,7 +169,7 @@ async function authenticateApiKey(
 
   const { data: consumer, error } = await supabaseAdmin
     .from('api_consumers')
-    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target')
     .eq('api_key', apiKey)
     .eq('is_active', true)
     .maybeSingle();
@@ -196,6 +204,46 @@ async function authenticateApiKey(
   }
 
   return { consumer: consumer as ApiConsumer, error: null };
+}
+
+// ─── OAuth2 Bearer Authentication ────────────────────────────────────
+
+async function authenticateOAuthBearer(
+  req: Request,
+  supabaseAdmin: any
+): Promise<{ consumer: ApiConsumer | null; payload: GatewayTokenPayload | null; error: Response | null }> {
+  const auth = req.headers.get('authorization') ?? '';
+  if (!auth.toLowerCase().startsWith('bearer ')) {
+    return { consumer: null, payload: null, error: null };
+  }
+  const token = auth.slice(7).trim();
+  // Heuristic: gateway tokens are JWTs (3 segments). Plain api keys go through authenticateApiKey.
+  if (token.split('.').length !== 3) {
+    return { consumer: null, payload: null, error: null };
+  }
+  const payload = await verifyGatewayToken(token);
+  if (!payload) {
+    return {
+      consumer: null,
+      payload: null,
+      error: errorResponse('Invalid or expired token', 'توكن غير صالح أو منتهي', 401),
+    };
+  }
+  const { data: consumer } = await supabaseAdmin
+    .from('api_consumers')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target')
+    .eq('id', payload.sub)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (!consumer) {
+    return {
+      consumer: null,
+      payload: null,
+      error: errorResponse('Client disabled', 'تم تعطيل العميل', 403),
+    };
+  }
+  return { consumer: consumer as ApiConsumer, payload, error: null };
 }
 
 // ─── Request Processing ─────────────────────────────────────────────
@@ -323,9 +371,11 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
   const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                    req.headers.get('cf-connecting-ip') || 'unknown';
+  const idempotencyKey = req.headers.get('idempotency-key') || req.headers.get('x-idempotency-key');
+  const rawBodyText = await req.clone().text();
 
   try {
-    const body: GatewayRequest = await req.json();
+    const body: GatewayRequest = JSON.parse(rawBodyText || '{}');
 
     // ─── Validate Channel ────────────────────────────────────────
     if (!body.channel || !VALID_CHANNELS.includes(body.channel)) {
@@ -338,22 +388,79 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // ─── API Key Auth for external channels ──────────────────────
+    // ─── Auth: OAuth2 Bearer (preferred) → API Key (fallback) ────
     let consumer: ApiConsumer | null = null;
+    let oauthPayload: GatewayTokenPayload | null = null;
 
-    if (API_KEY_CHANNELS.includes(body.channel)) {
-      const authResult = await authenticateApiKey(req, supabaseAdmin);
-      if (authResult.error) return authResult.error;
-      consumer = authResult.consumer;
+    if (OAUTH_CHANNELS.includes(body.channel) || API_KEY_CHANNELS.includes(body.channel)) {
+      const oauthRes = await authenticateOAuthBearer(req, supabaseAdmin);
+      if (oauthRes.error) return oauthRes.error;
+      consumer = oauthRes.consumer;
+      oauthPayload = oauthRes.payload;
 
-      // Consumer-specific rate limiting
-      const consumerLimit = consumer!.rate_limit_per_minute || 30;
-      const isAllowed = rateLimit(`consumer_${consumer!.id}`, { windowMs: 60_000, maxRequests: consumerLimit });
-      if (!isAllowed) return createRateLimitResponse();
-    } else {
-      // Default IP-based rate limiting for non-API channels
+      if (!consumer && API_KEY_CHANNELS.includes(body.channel)) {
+        const keyRes = await authenticateApiKey(req, supabaseAdmin);
+        if (keyRes.error) return keyRes.error;
+        consumer = keyRes.consumer;
+      }
+
+      if (consumer) {
+        // Scope check (only enforced for OAuth2 — API key clients are legacy/unscoped).
+        if (oauthPayload && !hasScope(oauthPayload, ['requests:write', '*'])) {
+          return errorResponse(
+            'Insufficient scope',
+            'الصلاحيات غير كافية. مطلوب requests:write',
+            403,
+            { required_scope: 'requests:write' }
+          );
+        }
+
+        // Distributed (Redis) rate limiting per consumer
+        const consumerLimit = consumer.rate_limit_per_minute || 30;
+        const count = await cacheIncr(`gw:rl:consumer:${consumer.id}`, 60);
+        if (count > consumerLimit) return createRateLimitResponse();
+      } else {
+        // No credentials presented for an API channel
+        if (API_KEY_CHANNELS.includes(body.channel)) {
+          return errorResponse(
+            'Authentication required',
+            'مطلوب توثيق: أرسل x-api-key أو Bearer JWT',
+            401
+          );
+        }
+      }
+    }
+
+    if (!consumer) {
+      // Default IP-based rate limiting for internal/non-authenticated channels
       const isAllowed = rateLimit(`gateway_${clientIP}`, { windowMs: 60_000, maxRequests: 10 });
       if (!isAllowed) return createRateLimitResponse();
+    }
+
+    // ─── Idempotency (only for authenticated consumers) ──────────
+    let requestHash = '';
+    if (consumer && idempotencyKey) {
+      requestHash = await hashRequest('POST', '/maintenance-gateway', rawBodyText);
+      const hit = await checkIdempotency({
+        consumerId: consumer.id,
+        idempotencyKey,
+        requestHash,
+      });
+      if (hit) {
+        return new Response(JSON.stringify(hit.body), {
+          status: hit.status,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Idempotent-Replay': 'true',
+          },
+        });
+      }
+      await reserveIdempotency({
+        consumerId: consumer.id,
+        idempotencyKey,
+        requestHash,
+      });
     }
 
     // ─── Validate Client Name ────────────────────────────────────
@@ -465,6 +572,41 @@ Deno.serve(async (req) => {
       channel: body.channel,
       created_at: created.created_at,
     };
+
+    // Persist idempotent response so retries replay it
+    if (consumer && idempotencyKey) {
+      try {
+        await storeIdempotentResponse({
+          consumerId: consumer.id,
+          idempotencyKey,
+          requestHash,
+          status: 201,
+          body: response,
+        });
+      } catch (e) {
+        console.warn('storeIdempotentResponse failed:', e);
+      }
+    }
+
+    // Fan-out webhook event (best-effort, fire-and-forget)
+    try {
+      supabaseAdmin.functions.invoke('api-webhook-dispatcher', {
+        body: {
+          event_type: 'maintenance_request.created',
+          event_id: created.id,
+          consumer_id: consumer?.id ?? null,
+          payload: {
+            request_id: created.id,
+            request_number: created.request_number,
+            channel: body.channel,
+            service_type: serviceType,
+            priority,
+            client_name: clientName,
+            created_at: created.created_at,
+          },
+        },
+      }).catch(() => null);
+    } catch (_) { /* ignore */ }
 
     return new Response(JSON.stringify(response), {
       status: 201,
