@@ -2476,6 +2476,7 @@ export type Database = {
           contract_id: string | null
           created_at: string
           created_by: string | null
+          created_via_consumer_id: string | null
           customer_notes: string | null
           daftra_invoice_id: string | null
           daftra_sync_status: string | null
@@ -2526,6 +2527,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          created_via_consumer_id?: string | null
           customer_notes?: string | null
           daftra_invoice_id?: string | null
           daftra_sync_status?: string | null
@@ -2576,6 +2578,7 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          created_via_consumer_id?: string | null
           customer_notes?: string | null
           daftra_invoice_id?: string | null
           daftra_sync_status?: string | null
@@ -2714,6 +2717,20 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "maintenance_contracts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_created_via_consumer_id_fkey"
+            columns: ["created_via_consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_created_via_consumer_id_fkey"
+            columns: ["created_via_consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers_safe"
             referencedColumns: ["id"]
           },
           {
