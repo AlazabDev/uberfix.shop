@@ -535,6 +535,14 @@ export default function TrackOrder() {
               </a>
             </div>
 
+            {/* View Invoice Button */}
+            <Link to={`/track/${request.id}/invoice`} className="block mt-3">
+              <Button variant="outline" className="w-full h-12 border-primary/30 hover:bg-primary/5">
+                <FileText className="ml-2 h-5 w-5 text-primary" />
+                <span className="font-semibold">عرض الفاتورة</span>
+              </Button>
+            </Link>
+
             {(request.workflow_stage === 'completed' || request.workflow_stage === 'closed') && !request.rating && (
               <Button className="w-full mt-3 h-12 bg-amber-500 hover:bg-amber-600 text-white font-semibold">
                 <Star className="ml-2 h-5 w-5" />
