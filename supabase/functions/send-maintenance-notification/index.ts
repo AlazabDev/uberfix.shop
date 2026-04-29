@@ -62,22 +62,40 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     channels: ['whatsapp', 'email'],
     whatsapp: {
       template: `مرحباً {{customer_name}} 👋
+أهلاً بك في عائلة *UberFix* 🌟
 
-تم استلام طلبك في نظام *UberFix* بنجاح ✅
-سيتم الرد عليك في أقرب وقت إذا كان لديك أي أسئلة أو استفسارات.
+✅ تم استلام طلبك بنجاح وسجّلناه باسمك.
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 رابط المتابعة: {{track_url}}
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+🛠 *نوع الخدمة:* {{title}}
+📅 *تاريخ التسجيل:* {{created_date}}
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+سيتم التواصل معك خلال *15 دقيقة* لمراجعة التفاصيل وتعيين فني متخصص.
+
+🔗 *تتبّع الطلب لحظة بلحظة:*
+{{track_url}}
+
+📞 للاستفسار: +1-555-728-5727
+
+فريق UberFix معك دائماً 💙`,
       buttonText: 'تتبّع الطلب',
     },
     email: {
       subject: 'تم استلام طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
-تم استلام طلب الصيانة الخاص بك بنجاح.
-رقم الطلب: {{order_id}}
-سنقوم بمراجعته والعودة إليك بالتحديثات.`,
+
+أهلاً بك في عائلة UberFix 🌟
+
+تم استلام طلب الصيانة الخاص بك بنجاح. سيقوم فريقنا بمراجعته وتعيين فني متخصص خلال 15 دقيقة.
+
+تفاصيل الطلب:
+• رقم الطلب: {{order_id}}
+• نوع الخدمة: {{title}}
+• تاريخ التسجيل: {{created_date}}
+
+يمكنك متابعة حالة طلبك من خلال الرابط أدناه.`,
       buttonText: 'تتبّع طلب الصيانة',
     },
   },
@@ -88,19 +106,34 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     whatsapp: {
       template: `مرحباً {{customer_name}} 👋
 
-تمت مراجعة طلبك في *UberFix* 📝
-جارٍ تجهيز التفاصيل اللازمة وسيتم التواصل معك قريباً لتحديد الفني المناسب.
+📝 *تحديث على طلبك:*
+تمت مراجعة الطلب وتم تعيين الفني المختص.
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 رابط المتابعة: {{track_url}}
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+👨‍🔧 *الفني المُعيَّن:* {{technician_name}}
+📞 *للتواصل المباشر:* {{technician_phone}}
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+سيتواصل معك الفني قريباً لتحديد موعد مناسب للزيارة.
+
+🔗 *عرض تفاصيل الطلب:*
+{{track_url}}
+
+شكراً لثقتك في UberFix 💙`,
       buttonText: 'عرض الحالة',
     },
     email: {
       subject: 'تمت مراجعة طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
-تمت مراجعة طلب الصيانة وجارٍ تجهيز التفاصيل اللازمة.`,
+
+تمت مراجعة طلب الصيانة الخاص بك وتم تعيين الفني المتخصص.
+
+• رقم الطلب: {{order_id}}
+• الفني: {{technician_name}}
+• هاتف الفني: {{technician_phone}}
+
+سيتواصل معك الفني قريباً لتحديد موعد الزيارة.`,
       buttonText: 'عرض حالة الطلب',
     },
   },
@@ -111,21 +144,39 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     whatsapp: {
       template: `مرحباً {{customer_name}} 👋
 
-تم تحديد موعد زيارة الفني لطلبك 🗓
-📅 التاريخ: *{{date}}*
-⏰ الوقت: *{{time}}*
+🗓 *تأكيد موعد الزيارة*
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 لمراجعة التفاصيل أو تغيير الموعد: {{track_url}}
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+👨‍🔧 *الفني:* {{technician_name}}
+📅 *التاريخ:* {{date}}
+⏰ *الوقت:* {{time}}
+📍 *العنوان:* {{address}}
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+✨ سيصلك إشعار قبل وصول الفني بـ 30 دقيقة.
+
+🔗 *إدارة الموعد أو التغيير:*
+{{track_url}}
+
+📞 لتعديل الموعد: +1-555-728-5727
+
+UberFix - في خدمتك 💙`,
       buttonText: 'إدارة الموعد',
     },
     email: {
       subject: 'تم تحديد موعد الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
-تم تحديد موعد الزيارة كما يلي:
-📅 {{date}} — ⏰ {{time}}`,
+
+تم تحديد موعد زيارة الفني لطلبك:
+
+• رقم الطلب: {{order_id}}
+• الفني: {{technician_name}}
+• التاريخ: {{date}}
+• الوقت: {{time}}
+• العنوان: {{address}}
+
+سيصلك تنبيه قبل وصول الفني بـ 30 دقيقة.`,
       buttonText: 'عرض / تغيير الموعد',
     },
   },
@@ -136,13 +187,24 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     whatsapp: {
       template: `مرحباً {{customer_name}} 👋
 
-الفني في الطريق إليك الآن 🚚
-يمكنك متابعة الحالة لحظة بلحظة من خلال الرابط أدناه.
+🚚 *الفني في الطريق إليك الآن!*
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 رابط المتابعة: {{track_url}}
+━━━━━━━━━━━━━
+👨‍🔧 *الفني:* {{technician_name}}
+📞 *هاتف الفني:* {{technician_phone}}
+⏱ *الوصول المتوقع:* خلال 15-30 دقيقة
+📌 *رقم الطلب:* {{order_id}}
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+💡 *تذكير:*
+• تأكد من تواجدك في الموقع
+• جهّز وصولاً سهلاً للفني
+• احتفظ بهاتفك قريباً
+
+🔗 *تتبّع الفني مباشرة:*
+{{track_url}}
+
+UberFix معك في كل خطوة 💙`,
       buttonText: 'تتبّع الفني',
     },
   },
@@ -153,13 +215,22 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     whatsapp: {
       template: `مرحباً {{customer_name}} 👋
 
-بدأ تنفيذ أعمال الصيانة الخاصة بطلبك 🛠
-الفني يعمل الآن على حل المشكلة. في حال احتجت التواصل في أي وقت، استخدم الرابط أدناه.
+🛠 *بدأ تنفيذ أعمال الصيانة*
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 رابط المتابعة: {{track_url}}
+الفني *{{technician_name}}* يعمل الآن على حل المشكلة بإذن الله.
 
-يسرّني مساعدتك دائماً 🌟`,
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+🛠 *الخدمة:* {{title}}
+👨‍🔧 *الفني:* {{technician_name}}
+━━━━━━━━━━━━━
+
+سنبقيك على اطلاع بكل تحديث ونرسل لك الفاتورة فور الانتهاء.
+
+🔗 *متابعة التنفيذ:*
+{{track_url}}
+
+UberFix - الجودة أولاً 💙`,
       buttonText: 'التواصل مع الفني',
     },
   },
@@ -168,22 +239,47 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     status: 'completed',
     channels: ['whatsapp', 'email'],
     whatsapp: {
-      template: `مرحباً {{customer_name}} 👋
+      template: `مرحباً {{customer_name}} 🎉
 
-تم الانتهاء من أعمال الصيانة بنجاح ✅
-يرجى مراجعة الأعمال واعتماد الإغلاق من خلال الرابط أدناه ⭐
+✅ *تم الانتهاء من أعمال الصيانة بنجاح*
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 رابط المتابعة: {{track_url}}
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+👨‍🔧 *تم بواسطة:* {{technician_name}}
+💰 *التكلفة:* {{cost}} ج.م
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+يرجى:
+1️⃣ مراجعة الأعمال المُنفّذة
+2️⃣ عرض وتحميل الفاتورة
+3️⃣ تقييم تجربتك معنا ⭐
+
+📄 *عرض/تحميل الفاتورة:*
+{{invoice_url}}
+
+🔗 *تفاصيل الطلب والتقييم:*
+{{track_url}}
+
+شكراً لثقتك الغالية في UberFix 💙`,
       buttonText: 'اعتماد الإغلاق',
     },
     email: {
       subject: 'تم الانتهاء من أعمال الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
+
 تم الانتهاء من أعمال الصيانة بنجاح.
-يرجى مراجعة الأعمال واعتماد الإغلاق.`,
+
+تفاصيل التنفيذ:
+• رقم الطلب: {{order_id}}
+• الفني: {{technician_name}}
+• التكلفة الإجمالية: {{cost}} ج.م
+
+يمكنك:
+• عرض وتحميل الفاتورة الإلكترونية
+• تقييم تجربتك مع الفني
+• مشاركة ملاحظاتك معنا
+
+شكراً لاختيارك UberFix.`,
       buttonText: 'اعتماد الإغلاق',
     },
   },
@@ -192,22 +288,44 @@ const NOTIFICATION_TEMPLATES: Record<NotificationStatus, NotificationTemplate> =
     status: 'closed',
     channels: ['whatsapp', 'email'],
     whatsapp: {
-      template: `مرحباً {{customer_name}} 👋
+      template: `{{customer_name}} العزيز 🌟
 
-تم إغلاق طلب الصيانة بنجاح 🏁
-نشكرك على ثقتك في *UberFix* 🙏 ونتطلع لخدمتك دائماً.
+🏁 *تم إغلاق طلبك بنجاح*
+شكراً لك من القلب على ثقتك الغالية في *UberFix* 🙏
 
-📌 رقم الطلب: *{{order_id}}*
-🔗 لتقييم الخدمة: {{track_url}}
+━━━━━━━━━━━━━
+📌 *رقم الطلب:* {{order_id}}
+✅ *الحالة:* مكتمل ومُغلق
+━━━━━━━━━━━━━
 
-يسرّني مساعدتك دائماً 🌟`,
+⭐ *رأيك يهمنا!*
+قيّم تجربتك في 30 ثانية وساعدنا على تحسين خدماتنا:
+{{track_url}}
+
+📄 *تحميل الفاتورة:*
+{{invoice_url}}
+
+🎁 *عرض خاص لك:*
+خصم 10% على طلبك القادم - استخدم الكود: *THANKS10*
+
+نتطلّع لخدمتك دائماً 💙
+UberFix - عائلة واحدة`,
       buttonText: 'تقييم الخدمة',
     },
     email: {
       subject: 'تم إغلاق طلب الصيانة - {{order_id}}',
       bodyTemplate: `مرحبًا {{customer_name}}،
-تم إغلاق طلب الصيانة بنجاح.
-نشكرك على ثقتك في UberFix.`,
+
+تم إغلاق طلبك بنجاح. شكراً لك على ثقتك في UberFix.
+
+• رقم الطلب: {{order_id}}
+• الحالة: مكتمل ومُغلق
+
+رأيك يهمنا - قيّم تجربتك في 30 ثانية وساعدنا على تحسين خدماتنا.
+
+🎁 عرض خاص: خصم 10% على طلبك القادم - استخدم الكود THANKS10
+
+نتطلّع لخدمتك دائماً.`,
       buttonText: 'تقييم الخدمة',
     },
   },
@@ -243,6 +361,13 @@ const buildTrackUrl = (orderId: string): string => {
   const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://uberfix.shop';
   return `${baseUrl}/track/${orderId}`;
 };
+
+const buildInvoiceUrl = (orderId: string): string => {
+  const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://uberfix.shop';
+  return `${baseUrl}/track/${orderId}/invoice`;
+};
+
+const buildCallLink = (): string => 'tel:+15557285727';
 
 const replaceVariables = (template: string, vars: Record<string, string>): string => {
   let result = template;
@@ -751,15 +876,43 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Build variables
     const trackUrl = buildTrackUrl(request_id);
+    const invoiceUrl = buildInvoiceUrl(request_id);
     const shortOrderId = request.request_number || request_id.substring(0, 8).toUpperCase();
     const customerName = request.client_name || 'عميلنا العزيز';
+
+    // Resolve technician info if assigned
+    let technicianName = body.technician_name || 'سيتم التعيين قريباً';
+    let technicianPhone = '+1-555-728-5727';
+    if (request.assigned_technician_id) {
+      const { data: tech } = await supabase
+        .from('technician_profiles')
+        .select('full_name, phone')
+        .eq('id', request.assigned_technician_id)
+        .maybeSingle();
+      if (tech) {
+        technicianName = tech.full_name || technicianName;
+        technicianPhone = tech.phone || technicianPhone;
+      }
+    }
+
+    const cost = request.actual_cost || request.estimated_cost || 0;
+    const createdDate = new Date(request.created_at).toLocaleDateString('ar-EG', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     const variables: Record<string, string> = {
       customer_name: customerName,
       order_id: shortOrderId,
       track_url: trackUrl,
+      invoice_url: invoiceUrl,
       date: scheduled_date || '',
       time: scheduled_time || '',
       title: request.title || 'طلب صيانة',
+      technician_name: technicianName,
+      technician_phone: technicianPhone,
+      cost: String(cost),
+      created_date: createdDate,
+      address: request.location || 'موقعك المسجل',
     };
 
     // Status labels for messages
