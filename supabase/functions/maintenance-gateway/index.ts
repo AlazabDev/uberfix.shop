@@ -446,6 +446,22 @@ Deno.serve(async (req) => {
       if (!isAllowed) return createRateLimitResponse();
     }
 
+    // ─── Action Routing ──────────────────────────────────────────
+    // Default action = 'create_request' for backward compatibility
+    const action = body.action || 'create_request';
+
+    if (action !== 'create_request') {
+      // All non-create actions require an authenticated consumer (API key or OAuth).
+      if (!consumer) {
+        return errorResponse(
+          'Authentication required for this action',
+          'مطلوب توثيق x-api-key لهذا الإجراء',
+          401
+        );
+      }
+      return await handleConsumerAction(supabaseAdmin, consumer, action, body, clientIP, req, startTime);
+    }
+
     // ─── Idempotency (only for authenticated consumers) ──────────
     let requestHash = '';
     if (consumer && idempotencyKey) {
@@ -513,6 +529,8 @@ Deno.serve(async (req) => {
     };
 
     if (body.property_id) requestData.property_id = body.property_id;
+    // Track which API consumer created this request for scope-limited operations later.
+    if (consumer) requestData.created_via_consumer_id = consumer.id;
 
     const { data: created, error: createError } = await supabaseAdmin
       .from('maintenance_requests')
