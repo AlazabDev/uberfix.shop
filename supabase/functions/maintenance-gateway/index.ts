@@ -366,6 +366,193 @@ async function sendNotifications(
   }
 }
 
+// ─── Consumer-scoped Actions (transition / get_status / cancel / add_note) ─
+
+async function resolveTargetRequest(
+  supabaseAdmin: any,
+  consumer: ApiConsumer,
+  body: GatewayRequest
+): Promise<{ row: any | null; error: Response | null }> {
+  if (!body.request_id && !body.request_number) {
+    return {
+      row: null,
+      error: errorResponse(
+        'request_id or request_number is required',
+        'مطلوب request_id أو request_number',
+        400
+      ),
+    };
+  }
+
+  let q = supabaseAdmin
+    .from('maintenance_requests')
+    .select('id, request_number, status, workflow_stage, workflow_stage_v2, client_phone, client_email, client_name, created_via_consumer_id, created_at, updated_at')
+    .limit(1);
+
+  if (body.request_id) q = q.eq('id', body.request_id);
+  else q = q.eq('request_number', body.request_number);
+
+  const { data, error } = await q.maybeSingle();
+  if (error || !data) {
+    return {
+      row: null,
+      error: errorResponse('Request not found', 'الطلب غير موجود', 404),
+    };
+  }
+
+  // Scope: this API key may only act on requests it created itself.
+  if (data.created_via_consumer_id !== consumer.id) {
+    return {
+      row: null,
+      error: errorResponse(
+        'This API key cannot operate on requests it did not create',
+        'هذا المفتاح لا يملك صلاحية على طلب لم ينشئه',
+        403
+      ),
+    };
+  }
+
+  return { row: data, error: null };
+}
+
+async function handleConsumerAction(
+  supabaseAdmin: any,
+  consumer: ApiConsumer,
+  action: string,
+  body: GatewayRequest,
+  clientIP: string,
+  req: Request,
+  startTime: number
+): Promise<Response> {
+  const { row, error } = await resolveTargetRequest(supabaseAdmin, consumer, body);
+  if (error) return error;
+
+  const logAction = async (status: number, extra: Record<string, unknown>) => {
+    try {
+      await supabaseAdmin.from('api_gateway_logs').insert({
+        route: `/gateway/${action}`,
+        method: 'POST',
+        status_code: status,
+        duration_ms: Date.now() - startTime,
+        client_ip: clientIP,
+        consumer_type: `api:${consumer.name}`,
+        consumer_id: consumer.id,
+        request_id: row.id,
+        user_agent: req.headers.get('user-agent') || null,
+        response_size: null,
+      });
+      await supabaseAdmin.from('audit_logs').insert({
+        action: `GATEWAY_${action.toUpperCase()}`,
+        table_name: 'maintenance_requests',
+        record_id: row.id,
+        new_values: { consumer_id: consumer.id, consumer_name: consumer.name, ip: clientIP, ...extra },
+      });
+    } catch (_) { /* ignore */ }
+  };
+
+  // ── get_status ────────────────────────────────────────────────
+  if (action === 'get_status') {
+    await logAction(200, {});
+    return new Response(
+      JSON.stringify({
+        success: true,
+        request_id: row.id,
+        request_number: row.request_number,
+        status: row.status,
+        workflow_stage: row.workflow_stage,
+        workflow_stage_v2: row.workflow_stage_v2,
+        track_url: `https://uberfix.shop/track/${row.id}`,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // ── transition_stage ──────────────────────────────────────────
+  if (action === 'transition_stage') {
+    if (!body.to_stage) {
+      return errorResponse('to_stage is required', 'مطلوب to_stage', 400);
+    }
+    const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('fn_transition_request_stage', {
+      p_request_id: row.id,
+      p_to_stage: body.to_stage,
+      p_actor: null,
+      p_reason: body.reason || `api:${consumer.name}`,
+      p_metadata: { source: 'maintenance-gateway', consumer_id: consumer.id, consumer_name: consumer.name, ip: clientIP },
+    });
+    if (rpcErr) {
+      await logAction(400, { error: rpcErr.message, to_stage: body.to_stage });
+      return errorResponse(rpcErr.message, `تعذر نقل المرحلة: ${rpcErr.message}`, 400, {
+        from_stage: row.workflow_stage_v2,
+        to_stage: body.to_stage,
+      });
+    }
+    await logAction(200, { from_stage: row.workflow_stage_v2, to_stage: rpcData });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        request_id: row.id,
+        request_number: row.request_number,
+        from_stage: row.workflow_stage_v2,
+        to_stage: rpcData,
+        track_url: `https://uberfix.shop/track/${row.id}`,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // ── cancel ────────────────────────────────────────────────────
+  if (action === 'cancel') {
+    const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('fn_transition_request_stage', {
+      p_request_id: row.id,
+      p_to_stage: 'cancelled',
+      p_actor: null,
+      p_reason: body.reason || 'cancelled_via_api',
+      p_metadata: { source: 'maintenance-gateway', consumer_id: consumer.id, action: 'cancel', ip: clientIP },
+    });
+    if (rpcErr) {
+      await logAction(400, { error: rpcErr.message });
+      return errorResponse(rpcErr.message, `تعذر إلغاء الطلب: ${rpcErr.message}`, 400);
+    }
+    await logAction(200, { from_stage: row.workflow_stage_v2, to_stage: rpcData });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        request_id: row.id,
+        request_number: row.request_number,
+        cancelled: true,
+        from_stage: row.workflow_stage_v2,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // ── add_note ──────────────────────────────────────────────────
+  if (action === 'add_note') {
+    const note = sanitize(body.note, 1000);
+    if (!note) return errorResponse('note is required', 'الملاحظة مطلوبة', 400);
+    try {
+      await supabaseAdmin.from('request_lifecycle').insert({
+        request_id: row.id,
+        status: row.workflow_stage || 'submitted',
+        update_type: 'note',
+        update_notes: note,
+        metadata: { source: 'api', consumer_id: consumer.id, consumer_name: consumer.name },
+      });
+    } catch (e: any) {
+      return errorResponse(e.message || 'Failed to add note', 'فشل إضافة الملاحظة', 500);
+    }
+    await logAction(200, { note_length: note.length });
+    return new Response(
+      JSON.stringify({ success: true, request_id: row.id, note_added: true }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return errorResponse(`Unknown action: ${action}`, `إجراء غير معروف: ${action}`, 400);
+}
+
 // ─── Main Handler ────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
