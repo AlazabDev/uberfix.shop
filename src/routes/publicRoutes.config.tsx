@@ -41,6 +41,7 @@ const PublicQuickRequest = lazy(() => import("@/pages/PublicQuickRequest"));
 const QuickRequestFromMap = lazy(() => import("@/pages/QuickRequestFromMap"));
 const TrackOrders = lazy(() => import("@/pages/TrackOrders"));
 const TrackOrder = lazy(() => import("@/pages/track/TrackOrder"));
+const PublicInvoice = lazy(() => import("@/pages/track/PublicInvoice"));
 const CompletedServices = lazy(() => import("@/pages/CompletedServices"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const WhatsAppStatusPage = lazy(() => import("@/pages/messages/WhatsAppStatusPage"));
@@ -100,6 +101,7 @@ export const publicRoutes = [
   { path: "/track-orders", element: <TrackOrders /> },
   { path: "/track", element: <TrackOrder /> },
   { path: "/track/:orderId", element: <TrackOrder /> },
+  { path: "/track/:orderId/invoice", element: <PublicInvoice /> },
   { path: "/completed-services", element: <CompletedServices /> },
   { path: "/whatsapp-status", element: <WhatsAppStatusPage /> },
   { path: "/service-map", element: <ServiceMap /> },
