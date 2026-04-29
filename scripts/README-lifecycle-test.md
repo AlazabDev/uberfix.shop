@@ -7,7 +7,7 @@
 1. ينشئ (أو يستخدم) شركة **أبو عوف للصيانة** وفرع **المعادي 50**
 2. يحمّل كل الخدمات النشطة من جدول `categories` ويربطها بأسعار `public/data/rate_items_rows.csv`
 3. ينشئ طلب صيانة باسم `test@alazab.com` ورقم `+201004006620`
-4. يمرّر الطلب عبر كل مراحل `workflow_stage`: `submitted → assigned → scheduled → in_progress → inspection → waiting_parts → completed → billed → paid`
+4. يمرّر الطلب عبر كل مراحل `workflow_stage` القانونية عبر `fn_transition_request_stage`: `submitted → triaged → assigned → scheduled → in_progress → inspection → waiting_parts → completed → billed → paid → closed`
 5. يتحقق من سجل `request_lifecycle` و`audit_logs` ويذكّرك بفحص WhatsApp/Email يدوياً
 
 ## التشغيل
