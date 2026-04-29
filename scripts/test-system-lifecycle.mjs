@@ -37,6 +37,7 @@ const TEST_BRANCH = {
 
 const WORKFLOW_STAGES = [
   'submitted',
+  'triaged',
   'assigned',
   'scheduled',
   'in_progress',
@@ -45,6 +46,7 @@ const WORKFLOW_STAGES = [
   'completed',
   'billed',
   'paid',
+  'closed',
 ];
 
 // ====== أدوات مساعدة ======
@@ -204,28 +206,21 @@ async function runLifecycle(supabase, requestId) {
   log.step(4, 'تشغيل دورة الحياة الكاملة (جميع المراحل)');
 
   for (const stage of WORKFLOW_STAGES) {
-    const stageMap = {
-      submitted: 'Open',
-      assigned: 'Assigned',
-      scheduled: 'Assigned',
-      in_progress: 'In Progress',
-      inspection: 'In Progress',
-      waiting_parts: 'In Progress',
-      completed: 'Completed',
-      billed: 'Completed',
-      paid: 'Closed',
-    };
-
-    const { error } = await supabase
-      .from('maintenance_requests')
-      .update({ workflow_stage: stage, status: stageMap[stage] })
-      .eq('id', requestId);
+    const { data, error } = await supabase.rpc('fn_transition_request_stage', {
+      p_request_id: requestId,
+      p_to_stage: stage,
+      p_reason: `system_lifecycle_test:${stage}`,
+      p_metadata: {
+        source: 'scripts/test-system-lifecycle.mjs',
+        stage,
+      },
+    });
 
     if (error) {
       log.err(`مرحلة ${stage} فشلت: ${error.message}`);
       continue;
     }
-    log.ok(`المرحلة → ${stage} (${stageMap[stage]})`);
+    log.ok(`المرحلة → ${data}`);
     await sleep(800); // إعطاء وقت للـ triggers والإشعارات
   }
 }
