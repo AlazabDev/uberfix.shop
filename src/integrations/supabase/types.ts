@@ -3317,6 +3317,91 @@ export type Database = {
           },
         ]
       }
+      payment_transactions: {
+        Row: {
+          amount: number
+          callback_payload: Json | null
+          cart_id: string
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          invoice_id: string | null
+          paid_at: string | null
+          payment_url: string | null
+          provider: string
+          raw_response: Json | null
+          request_id: string | null
+          status: string
+          tran_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          callback_payload?: Json | null
+          cart_id: string
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          invoice_id?: string | null
+          paid_at?: string | null
+          payment_url?: string | null
+          provider?: string
+          raw_response?: Json | null
+          request_id?: string | null
+          status?: string
+          tran_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          callback_payload?: Json | null
+          cart_id?: string
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          invoice_id?: string | null
+          paid_at?: string | null
+          payment_url?: string | null
+          provider?: string
+          raw_response?: Json | null
+          request_id?: string | null
+          status?: string
+          tran_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_technician_registrations: {
         Row: {
           company_name: string
@@ -9069,6 +9154,10 @@ export type Database = {
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
       public_get_invoice_by_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      public_get_payment_status: {
         Args: { p_request_id: string }
         Returns: Json
       }

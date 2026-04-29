@@ -239,3 +239,16 @@ verify_jwt = false
 verify_jwt = false
 # Internal dispatcher — requires service-role bearer in code (never called by browsers)
 
+# ========================================
+# PAYTABS PAYMENT GATEWAY
+# ========================================
+
+[functions.paytabs-create-payment]
+verify_jwt = false
+# Public — called from PublicInvoice page (no auth required for customer payment)
+# Validates request_id ownership via invoice lookup
+
+[functions.paytabs-callback]
+verify_jwt = false
+# Server-to-server IPN from PayTabs — validates signature internally
+

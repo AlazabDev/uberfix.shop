@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertCircle, Download, FileImage, FileSpreadsheet, FileText, Share2, Printer, ArrowRight, CheckCircle2, Phone, MapPin, Calendar } from 'lucide-react';
+import { Loader2, AlertCircle, Download, FileImage, FileSpreadsheet, FileText, Share2, Printer, ArrowRight, CheckCircle2, Phone, MapPin, Calendar, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { QRCodeSVG } from 'qrcode.react';
@@ -66,13 +66,16 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function PublicInvoice() {
   const { orderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [request, setRequest] = useState<RequestData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const paymentReturn = searchParams.get('payment'); // 'success' | 'cancel' | null
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -97,6 +100,46 @@ export default function PublicInvoice() {
     };
     fetchInvoice();
   }, [orderId]);
+
+  // Auto-refresh after returning from PayTabs (callback might still be processing)
+  useEffect(() => {
+    if (paymentReturn !== 'success' || !orderId) return;
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      const { data } = await supabase.rpc('public_get_invoice_by_request' as any, { p_request_id: orderId });
+      const result = data as any;
+      if (result?.invoice?.status === 'paid') {
+        setInvoice(result.invoice);
+        toast({ title: '✅ تم استلام الدفع بنجاح', description: 'شكراً لك!' });
+        clearInterval(interval);
+      }
+      if (attempts >= 10) clearInterval(interval);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [paymentReturn, orderId, toast]);
+
+  const handlePayNow = async () => {
+    if (!orderId) return;
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('paytabs-create-payment', {
+        body: { request_id: orderId },
+      });
+      if (error) throw error;
+      if ((data as any)?.already_paid) {
+        toast({ title: 'الفاتورة مدفوعة بالفعل ✓' });
+        return;
+      }
+      const url = (data as any)?.redirect_url;
+      if (!url) throw new Error('لم يتم إنشاء جلسة الدفع');
+      window.location.href = url;
+    } catch (err: any) {
+      toast({ title: 'خطأ في بدء الدفع', description: err.message, variant: 'destructive' });
+    } finally {
+      setPaying(false);
+    }
+  };
 
   const captureCanvas = async () => {
     if (!invoiceRef.current) return null;
@@ -263,6 +306,17 @@ export default function PublicInvoice() {
               </Button>
             </Link>
             <div className="flex flex-wrap gap-2">
+              {invoice.status !== 'paid' && (
+                <Button
+                  size="sm"
+                  onClick={handlePayNow}
+                  disabled={paying}
+                  className="bg-gradient-to-r from-[#FFB900] to-[#FFA500] text-[#030957] font-bold hover:opacity-90 shadow-md"
+                >
+                  {paying ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <CreditCard className="h-4 w-4 ml-1" />}
+                  ادفع الآن
+                </Button>
+              )}
               <Button size="sm" onClick={handleDownloadPDF} disabled={downloading === 'pdf'}>
                 {downloading === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 ml-1" />}
                 PDF
@@ -290,7 +344,29 @@ export default function PublicInvoice() {
 
       {/* Invoice Document */}
       <div className="max-w-3xl mx-auto">
-        <div ref={invoiceRef} className="bg-white text-gray-900 p-8 rounded-lg shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+        <div ref={invoiceRef} className="bg-white text-gray-900 p-8 rounded-lg shadow-lg relative overflow-hidden" style={{ fontFamily: 'Cairo, sans-serif' }}>
+          {/* Paid stamp overlay */}
+          {invoice.status === 'paid' && (
+            <div
+              className="absolute pointer-events-none select-none"
+              style={{
+                top: '38%',
+                right: '50%',
+                transform: 'translate(50%,-50%) rotate(-22deg)',
+                border: '6px solid #16a34a',
+                color: '#16a34a',
+                padding: '12px 36px',
+                fontSize: '54px',
+                fontWeight: 900,
+                letterSpacing: '4px',
+                opacity: 0.18,
+                borderRadius: '12px',
+                zIndex: 10,
+              }}
+            >
+              مدفوعة ✓ PAID
+            </div>
+          )}
           {/* Header */}
           <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: '#030957' }}>
             <div>
