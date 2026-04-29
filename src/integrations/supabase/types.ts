@@ -2268,6 +2268,10 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          company_address: string | null
+          company_name: string | null
+          company_phone: string | null
+          company_tax_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -2279,16 +2283,25 @@ export type Database = {
           invoice_number: string
           is_locked: boolean
           issue_date: string
+          items: Json | null
           last_modified_by: string | null
           notes: string | null
           payment_method: string | null
           payment_reference: string | null
+          request_id: string | null
           status: string
+          subtotal: number | null
+          tax_amount: number | null
+          tax_rate: number | null
           updated_at: string
           version: number
         }
         Insert: {
           amount: number
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tax_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2300,16 +2313,25 @@ export type Database = {
           invoice_number: string
           is_locked?: boolean
           issue_date?: string
+          items?: Json | null
           last_modified_by?: string | null
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          request_id?: string | null
           status?: string
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           updated_at?: string
           version?: number
         }
         Update: {
           amount?: number
+          company_address?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tax_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2321,15 +2343,28 @@ export type Database = {
           invoice_number?: string
           is_locked?: boolean
           issue_date?: string
+          items?: Json | null
           last_modified_by?: string | null
           notes?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          request_id?: string | null
           status?: string
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           updated_at?: string
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maintenance_contracts: {
         Row: {
@@ -9033,6 +9068,10 @@ export type Database = {
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
+      public_get_invoice_by_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       public_track_request: {
         Args: { query_text: string }
         Returns: {
