@@ -306,6 +306,17 @@ export default function PublicInvoice() {
               </Button>
             </Link>
             <div className="flex flex-wrap gap-2">
+              {invoice.status !== 'paid' && (
+                <Button
+                  size="sm"
+                  onClick={handlePayNow}
+                  disabled={paying}
+                  className="bg-gradient-to-r from-[#FFB900] to-[#FFA500] text-[#030957] font-bold hover:opacity-90 shadow-md"
+                >
+                  {paying ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <CreditCard className="h-4 w-4 ml-1" />}
+                  ادفع الآن
+                </Button>
+              )}
               <Button size="sm" onClick={handleDownloadPDF} disabled={downloading === 'pdf'}>
                 {downloading === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 ml-1" />}
                 PDF
