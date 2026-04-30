@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 import { useDirection } from "@/hooks/useDirection";
 import { RotatingText } from "./RotatingText";
 
-// Subtle animated dots — reduced from 80 to 40 particles
+// Interactive starfield — twinkling stars that react to mouse movement
 const ParticleCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -9999, y: -9999 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,41 +23,105 @@ const ParticleCanvas = () => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    const particles: Array<{
-      x: number; y: number; radius: number; vx: number; vy: number; opacity: number;
-    }> = [];
+    type Star = {
+      x: number; y: number; radius: number;
+      baseOpacity: number; opacity: number;
+      twinkleSpeed: number; twinklePhase: number;
+      vx: number; vy: number;
+      color: string;
+    };
 
-    for (let i = 0; i < 35; i++) {
-      particles.push({
+    const STAR_COUNT = Math.min(160, Math.floor((canvas.width * canvas.height) / 12000));
+    const stars: Star[] = [];
+    const colors = ["255, 255, 255", "255, 220, 180", "255, 185, 0", "180, 210, 255"];
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const baseOpacity = Math.random() * 0.6 + 0.2;
+      stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        radius: Math.random() * 2 + 0.5,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        opacity: Math.random() * 0.4 + 0.1,
+        radius: Math.random() * 1.4 + 0.3,
+        baseOpacity,
+        opacity: baseOpacity,
+        twinkleSpeed: Math.random() * 0.02 + 0.005,
+        twinklePhase: Math.random() * Math.PI * 2,
+        vx: (Math.random() - 0.5) * 0.05,
+        vy: (Math.random() - 0.5) * 0.05,
+        color: colors[Math.floor(Math.random() * colors.length)],
       });
     }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const handleMouseLeave = () => {
+      mouseRef.current = { x: -9999, y: -9999 };
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseleave", handleMouseLeave);
 
     let animationId: number;
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      const { x: mx, y: my } = mouseRef.current;
+      const influenceRadius = 140;
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 185, 0, ${p.opacity})`;
-        ctx.fill();
+      stars.forEach((s) => {
+        // twinkle
+        s.twinklePhase += s.twinkleSpeed;
+        s.opacity = s.baseOpacity + Math.sin(s.twinklePhase) * 0.3;
+
+        // drift
+        s.x += s.vx;
+        s.y += s.vy;
+        if (s.x < 0) s.x = canvas.width;
+        if (s.x > canvas.width) s.x = 0;
+        if (s.y < 0) s.y = canvas.height;
+        if (s.y > canvas.height) s.y = 0;
+
+        // mouse interaction — stars push away gently and brighten
+        const dx = s.x - mx;
+        const dy = s.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        let radius = s.radius;
+        let opacity = s.opacity;
+        if (dist < influenceRadius) {
+          const force = (1 - dist / influenceRadius);
+          const angle = Math.atan2(dy, dx);
+          const pushX = Math.cos(angle) * force * 8;
+          const pushY = Math.sin(angle) * force * 8;
+          radius = s.radius + force * 1.5;
+          opacity = Math.min(1, s.opacity + force * 0.6);
+
+          // glow halo
+          const grad = ctx.createRadialGradient(s.x + pushX, s.y + pushY, 0, s.x + pushX, s.y + pushY, radius * 6);
+          grad.addColorStop(0, `rgba(${s.color}, ${force * 0.4})`);
+          grad.addColorStop(1, `rgba(${s.color}, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(s.x + pushX, s.y + pushY, radius * 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(s.x + pushX, s.y + pushY, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${s.color}, ${opacity})`;
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${s.color}, ${Math.max(0, opacity)})`;
+          ctx.fill();
+        }
       });
+
       animationId = requestAnimationFrame(animate);
     };
     animate();
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animationId);
     };
   }, []);
@@ -128,14 +193,15 @@ export const HeroSection = () => {
   const ArrowIcon = isRTL ? ArrowLeft : ArrowRight;
 
   return (
-    <section className="relative min-h-[100dvh] bg-primary-dark overflow-hidden flex flex-col items-center justify-center">
+    <section className="relative min-h-[100dvh] bg-primary-dark overflow-hidden flex flex-col items-center justify-center pt-24 sm:pt-28 md:pt-32">
       <ParticleCanvas />
 
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary-dark/80 z-[2]" />
+      {/* Night sky gradient overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(30,30,80,0.5),_transparent_60%)] z-[2] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary-dark/80 z-[2] pointer-events-none" />
 
       {/* Content */}
-      <div className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 relative z-10 text-center">
+      <div className="container mx-auto px-4 sm:px-6 pt-8 pb-12 sm:pt-12 sm:pb-20 relative z-10 text-center">
         {/* Main Title */}
         <div className="max-w-4xl mx-auto mb-6 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight animate-[fadeInUp_0.5s_ease-out_both]">
