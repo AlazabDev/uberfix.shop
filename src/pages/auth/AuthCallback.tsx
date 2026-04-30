@@ -2,10 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { resolveUserRedirectAfterAuth } from '@/lib/roleRedirect';
 
 /**
  * OAuth Callback Handler
@@ -20,7 +18,6 @@ import { resolveUserRedirectAfterAuth } from '@/lib/roleRedirect';
  */
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
   const [message, setMessage] = useState('جاري معالجة طلب المصادقة...');
   const [error, setError] = useState<string | null>(null);
@@ -115,27 +112,14 @@ const AuthCallback = () => {
     });
   }, [navigate]);
 
-  // ✅ Step 2: When AuthContext has a user, redirect by role
+  // ✅ Step 2: عند توفر user → توجيه إلى شاشة تأكيد الدور
+  // (نقوم بالتوجيه لشاشة وسيطة بدل اتخاذ قرار الدور هنا، لمنع الانهيار)
   useEffect(() => {
     if (handledRef.current || authLoading || !user) return;
     handledRef.current = true;
-
-    setMessage('جاري تحديد صلاحياتك...');
-
-    resolveUserRedirectAfterAuth(user.id, user.email)
-      .then((roleInfo) => {
-        toast({
-          title: 'تم تسجيل الدخول بنجاح',
-          description: roleInfo.isNewUser
-            ? 'مرحباً بك! يرجى اختيار نوع حسابك'
-            : 'مرحباً بك في UberFix',
-        });
-        navigate(roleInfo.redirectPath, { replace: true });
-      })
-      .catch(() => {
-        navigate('/dashboard', { replace: true });
-      });
-  }, [authLoading, user, navigate, toast]);
+    setMessage('جاري تحديد نوع حسابك...');
+    navigate('/auth/confirm-role', { replace: true });
+  }, [authLoading, user, navigate]);
 
   // ✅ Step 3: Timeout - if no user after 15 seconds, show error
   useEffect(() => {

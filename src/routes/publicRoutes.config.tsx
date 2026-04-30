@@ -12,6 +12,7 @@ const UpdatePassword = lazy(() => import("@/pages/auth/UpdatePassword"));
 const VerifyEmailChange = lazy(() => import("@/pages/auth/VerifyEmailChange"));
 const Reauth = lazy(() => import("@/pages/auth/Reauth"));
 const MagicLink = lazy(() => import("@/pages/auth/MagicLink"));
+const ConfirmRole = lazy(() => import("@/pages/auth/ConfirmRole"));
 
 // Public pages
 const About = lazy(() => import("@/pages/public/About"));
@@ -68,6 +69,7 @@ export const publicRoutes = [
   { path: "/register", element: <Register /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/auth/callback", element: <AuthCallback /> },
+  { path: "/auth/confirm-role", element: <ConfirmRole /> },
   { path: "/auth/update-password", element: <UpdatePassword /> },
   { path: "/auth/verify-email-change", element: <VerifyEmailChange /> },
   { path: "/auth/reauth", element: <Reauth /> },
