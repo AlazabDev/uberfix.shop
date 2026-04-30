@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, Users, Wrench, Cog, ArrowRight } from "lucide-react";
@@ -8,26 +8,47 @@ import { secureGoogleSignIn, secureFacebookSignIn } from "@/lib/secureOAuth";
 import { toast } from "sonner";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
 import { clearPendingOAuthContext, savePendingOAuthContext } from "@/lib/roleRedirect";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 /**
  * صفحة اختيار نوع الحساب للمستخدمين الجدد
+ *
+ * كل بطاقة تحتوي على أزرار OAuth خاصة بها تحفظ الدور المطلوب
+ * قبل التحويل إلى Google/Facebook، لمنع loop العودة لصفحة الدخول
+ * عند المستخدمين الجدد بدون دور.
  */
 export default function RoleSelection() {
-  const handleGoogleLogin = async () => {
-    savePendingOAuthContext('signup');
-    const result = await secureGoogleSignIn();
-    if (!result.success) {
-      clearPendingOAuthContext();
-      toast.error(result.error?.message || "فشل تسجيل الدخول بـ Google");
-    }
-  };
+  const navigate = useNavigate();
+  const [loadingRole, setLoadingRole] = useState<string | null>(null);
 
-  const handleFacebookLogin = async () => {
-    savePendingOAuthContext('signup');
-    const result = await secureFacebookSignIn();
-    if (!result.success) {
+  const handleOAuth = async (
+    provider: "google" | "facebook",
+    role: "customer" | "technician" | "vendor",
+  ) => {
+    setLoadingRole(`${provider}-${role}`);
+    try {
+      // ✅ نحفظ الدور المطلوب + intent=signup قبل التحويل لـ OAuth
+      // عند العودة، resolveUserRedirectAfterAuth سيُنشئ profile بالدور الصحيح
+      savePendingOAuthContext("signup", role);
+      const result =
+        provider === "google"
+          ? await secureGoogleSignIn("/auth/callback")
+          : await secureFacebookSignIn("/auth/callback");
+
+      if (!result.success) {
+        clearPendingOAuthContext();
+        toast.error(
+          result.error?.message ||
+            `فشل التسجيل عبر ${provider === "google" ? "Google" : "Facebook"}`,
+        );
+        setLoadingRole(null);
+      }
+      // النجاح: المتصفح سيتحول إلى مزود OAuth → /auth/callback
+    } catch (e) {
       clearPendingOAuthContext();
-      toast.error(result.error?.message || "فشل تسجيل الدخول بـ Facebook");
+      toast.error("حدث خطأ، حاول مرة أخرى");
+      setLoadingRole(null);
     }
   };
 
@@ -42,51 +63,21 @@ export default function RoleSelection() {
             <span className="text-sm">اختر نوع حسابك</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground">مرحباً بك في UberFix</h2>
-          <p className="text-muted-foreground mt-2 text-sm sm:text-base">يرجى اختيار نوع الحساب المناسب لك</p>
-        </div>
-
-        {/* Login Section */}
-        <div className="container max-w-4xl mx-auto px-4 pb-6">
-          <Card className="p-6 bg-gradient-to-r from-muted/50 to-background border-2 border-dashed">
-            <div className="text-center space-y-4">
-              <p className="text-muted-foreground">
-                لديك حساب بالفعل؟{" "}
-                <Link to="/login" className="text-primary hover:underline font-medium">
-                  تسجيل الدخول
-                </Link>
-              </p>
-              
-              <div className="flex items-center gap-4 justify-center">
-                <div className="h-px bg-border flex-1 max-w-20" />
-                <span className="text-sm text-muted-foreground">أو سجل دخولك عبر</span>
-                <div className="h-px bg-border flex-1 max-w-20" />
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 h-11 border-[#4285F4] text-[#4285F4] hover:bg-[#4285F4] hover:text-white transition-colors"
-                  onClick={handleGoogleLogin}
-                >
-                  <FaGoogle className="h-5 w-5" />
-                  Google
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 h-11 border-[#1877F2] text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-colors"
-                  onClick={handleFacebookLogin}
-                >
-                  <FaFacebook className="h-5 w-5" />
-                  Facebook
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+            يرجى اختيار نوع الحساب المناسب لك — كل بوابة لها زر دخول خاص
+          </p>
+          <p className="text-sm mt-3">
+            لديك حساب بالفعل؟{" "}
+            <Link to="/login" className="text-primary hover:underline font-medium">
+              تسجيل الدخول
+            </Link>
+          </p>
         </div>
 
         {/* Role Cards */}
         <div className="container max-w-4xl mx-auto px-4 pb-16">
           <div className="grid md:grid-cols-3 gap-6">
+            {/* بطاقة العميل */}
             <Card className="relative overflow-hidden border-2 hover:border-primary/50 transition-all hover:shadow-xl bg-gradient-to-br from-blue-50/50 to-background dark:from-blue-950/20">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
@@ -105,13 +96,44 @@ export default function RoleSelection() {
                 </ul>
                 <Link to="/register?role=customer" className="block">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                    التسجيل كعميل
+                    التسجيل بالبريد الإلكتروني
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </Button>
                 </Link>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#4285F4]/40 hover:bg-[#4285F4]/10"
+                    onClick={() => handleOAuth("google", "customer")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "google-customer" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaGoogle className="h-4 w-4 text-[#4285F4]" />
+                    )}
+                    Google
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#1877F2]/40 hover:bg-[#1877F2]/10"
+                    onClick={() => handleOAuth("facebook", "customer")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "facebook-customer" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaFacebook className="h-4 w-4 text-[#1877F2]" />
+                    )}
+                    Facebook
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
+            {/* بطاقة الفني */}
             <Card className="relative overflow-hidden border-2 hover:border-primary/50 transition-all hover:shadow-xl bg-gradient-to-br from-green-50/50 to-background dark:from-green-950/20">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
@@ -130,13 +152,44 @@ export default function RoleSelection() {
                 </ul>
                 <Link to="/technicians/register" className="block">
                   <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-                    التسجيل كفني
+                    التسجيل كفني (نموذج كامل)
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </Button>
                 </Link>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#4285F4]/40 hover:bg-[#4285F4]/10"
+                    onClick={() => handleOAuth("google", "technician")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "google-technician" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaGoogle className="h-4 w-4 text-[#4285F4]" />
+                    )}
+                    Google
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#1877F2]/40 hover:bg-[#1877F2]/10"
+                    onClick={() => handleOAuth("facebook", "technician")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "facebook-technician" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaFacebook className="h-4 w-4 text-[#1877F2]" />
+                    )}
+                    Facebook
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
+            {/* بطاقة الشركة/المورد */}
             <Card className="relative overflow-hidden border-2 hover:border-primary/50 transition-all hover:shadow-xl bg-gradient-to-br from-purple-50/50 to-background dark:from-purple-950/20">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
@@ -155,10 +208,40 @@ export default function RoleSelection() {
                 </ul>
                 <Link to="/register?type=business" className="block">
                   <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                    التسجيل كشركة
+                    التسجيل بالبريد الإلكتروني
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </Button>
                 </Link>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#4285F4]/40 hover:bg-[#4285F4]/10"
+                    onClick={() => handleOAuth("google", "vendor")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "google-vendor" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaGoogle className="h-4 w-4 text-[#4285F4]" />
+                    )}
+                    Google
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-[#1877F2]/40 hover:bg-[#1877F2]/10"
+                    onClick={() => handleOAuth("facebook", "vendor")}
+                    disabled={!!loadingRole}
+                  >
+                    {loadingRole === "facebook-vendor" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FaFacebook className="h-4 w-4 text-[#1877F2]" />
+                    )}
+                    Facebook
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
