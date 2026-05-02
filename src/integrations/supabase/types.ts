@@ -90,6 +90,13 @@ export type Database = {
             referencedRelation: "v_completed_requests_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
         ]
       }
       _legacy_messages: {
@@ -993,6 +1000,13 @@ export type Database = {
             referencedRelation: "v_completed_requests_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
         ]
       }
       branch_locations: {
@@ -1206,6 +1220,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
           {
@@ -1514,6 +1535,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daftra_sync_logs_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
         ]
@@ -2098,6 +2126,13 @@ export type Database = {
             referencedRelation: "v_completed_requests_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "facebook_leads_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facebook_users: {
@@ -2406,6 +2441,13 @@ export type Database = {
             referencedRelation: "v_completed_requests_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maintenance_contracts: {
@@ -2569,6 +2611,9 @@ export type Database = {
           id: string
           last_modified_by: string | null
           latitude: number | null
+          legacy_created_by: string | null
+          legacy_source: string | null
+          legacy_store_id: string | null
           location: string | null
           longitude: number | null
           opened_by_role: string | null
@@ -2627,6 +2672,9 @@ export type Database = {
           id?: string
           last_modified_by?: string | null
           latitude?: number | null
+          legacy_created_by?: string | null
+          legacy_source?: string | null
+          legacy_store_id?: string | null
           location?: string | null
           longitude?: number | null
           opened_by_role?: string | null
@@ -2685,6 +2733,9 @@ export type Database = {
           id?: string
           last_modified_by?: string | null
           latitude?: number | null
+          legacy_created_by?: string | null
+          legacy_source?: string | null
+          legacy_store_id?: string | null
           location?: string | null
           longitude?: number | null
           opened_by_role?: string | null
@@ -2843,77 +2894,6 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      maintenance_requests_archive: {
-        Row: {
-          actual_cost: number | null
-          assigned_to: string | null
-          completion_date: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          estimated_cost: number | null
-          id: string
-          is_deleted: boolean | null
-          primary_service_id: string | null
-          priority: string | null
-          scheduled_date: string | null
-          service_type: string | null
-          status: string | null
-          store_id: string | null
-          title: string
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          actual_cost?: number | null
-          assigned_to?: string | null
-          completion_date?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          estimated_cost?: number | null
-          id?: string
-          is_deleted?: boolean | null
-          primary_service_id?: string | null
-          priority?: string | null
-          scheduled_date?: string | null
-          service_type?: string | null
-          status?: string | null
-          store_id?: string | null
-          title: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          actual_cost?: number | null
-          assigned_to?: string | null
-          completion_date?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          estimated_cost?: number | null
-          id?: string
-          is_deleted?: boolean | null
-          primary_service_id?: string | null
-          priority?: string | null
-          scheduled_date?: string | null
-          service_type?: string | null
-          status?: string | null
-          store_id?: string | null
-          title?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maintenance_requests_archive_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -3468,6 +3448,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
         ]
@@ -4101,6 +4088,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_review_request"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
           {
@@ -5788,6 +5782,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_task_request"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_task_technician"
             columns: ["technician_id"]
             isOneToOne: false
@@ -5827,6 +5828,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_tasks_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
           {
@@ -6069,6 +6077,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
           {
@@ -6954,6 +6969,13 @@ export type Database = {
             columns: ["current_request_id"]
             isOneToOne: false
             referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_current_request_id_fkey"
+            columns: ["current_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
           {
@@ -8323,6 +8345,13 @@ export type Database = {
             referencedRelation: "v_completed_requests_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
         ]
       }
       messages: {
@@ -9000,6 +9029,115 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_maintenance_mirror: {
+        Row: {
+          actual_cost: number | null
+          age_days: number | null
+          archived_at: string | null
+          assigned_technician_id: string | null
+          assigned_vendor_id: string | null
+          branch_id: string | null
+          branch_name: string | null
+          channel: string | null
+          client_email: string | null
+          client_name: string | null
+          client_phone: string | null
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          description: string | null
+          estimated_cost: number | null
+          id: string | null
+          is_archived: boolean | null
+          is_legacy: boolean | null
+          is_sla_breached: boolean | null
+          legacy_created_by: string | null
+          legacy_source: string | null
+          legacy_store_id: string | null
+          location: string | null
+          priority: string | null
+          rating: number | null
+          request_number: string | null
+          service_type: string | null
+          sla_due_date: string | null
+          status: Database["public"]["Enums"]["mr_status"] | null
+          title: string | null
+          updated_at: string | null
+          workflow_stage: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_maintenance_requests_assigned_vendor"
+            columns: ["assigned_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_maintenance_requests_assigned_vendor"
+            columns: ["assigned_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_public_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_mr_branch"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_mr_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians_map_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
+            columns: ["assigned_technician_id"]
+            isOneToOne: false
+            referencedRelation: "technicians_public_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

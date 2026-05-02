@@ -14,11 +14,11 @@ async function fetchAllArchive() {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await supabase
-      .from("maintenance_requests_archive")
+    const { data, error } = await (supabase as any)
+      .from("v_maintenance_mirror")
       .select("*")
-      .eq("is_deleted", false)
-      .order("scheduled_date", { ascending: false })
+      .eq("is_archived", true)
+      .order("archived_at", { ascending: false })
       .range(offset, offset + batchSize - 1);
 
     if (error) throw error;
@@ -40,7 +40,7 @@ export default function MaintenanceArchive() {
   });
 
   const totalCost = records.reduce((s: number, r: any) => s + (r.actual_cost || 0), 0);
-  const completed = records.filter((r: any) => r.status === "completed").length;
+  const completed = records.filter((r: any) => r.workflow_stage === "closed").length;
 
   const columns: ColumnDef<any>[] = [
     {
@@ -81,7 +81,7 @@ export default function MaintenanceArchive() {
       sortable: true,
       render: (row) => (
         <span className="text-xs whitespace-nowrap">
-          {row.scheduled_date ? format(new Date(row.scheduled_date), "dd MMM yyyy", { locale: ar }) : "-"}
+          {row.created_at ? format(new Date(row.created_at), "dd MMM yyyy", { locale: ar }) : "-"}
         </span>
       ),
     },
@@ -91,7 +91,7 @@ export default function MaintenanceArchive() {
       sortable: true,
       render: (row) => (
         <span className="text-xs whitespace-nowrap">
-          {row.completion_date ? format(new Date(row.completion_date), "dd MMM yyyy", { locale: ar }) : "-"}
+          {row.archived_at ? format(new Date(row.archived_at), "dd MMM yyyy", { locale: ar }) : "-"}
         </span>
       ),
     },
@@ -100,7 +100,7 @@ export default function MaintenanceArchive() {
       header: "الحالة",
       render: (row) => (
         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-          {row.status === "completed" ? "مكتمل" : row.status}
+          {row.workflow_stage === "closed" ? "مؤرشف" : row.workflow_stage}
         </span>
       ),
     },
@@ -116,12 +116,12 @@ export default function MaintenanceArchive() {
       placeholderTo: "الحد الأقصى",
     },
     {
-      key: "scheduled_date",
+      key: "created_at",
       label: "نطاق تاريخ الجدولة",
       type: "date",
     },
     {
-      key: "completion_date",
+      key: "archived_at",
       label: "نطاق تاريخ الإتمام",
       type: "date",
     },

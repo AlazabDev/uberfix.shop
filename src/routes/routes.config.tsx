@@ -52,6 +52,7 @@ const CompanyBranchImport = lazy(
 const DataImport = lazy(() => import("@/pages/admin/DataImport"));
 const StoresDirectory = lazy(() => import("@/pages/admin/StoresDirectory"));
 const MaintenanceArchive = lazy(() => import("@/pages/admin/MaintenanceArchive"));
+const MaintenanceMirror = lazy(() => import("@/pages/maintenance/MaintenanceMirror"));
 const RateCard = lazy(() => import("@/pages/admin/RateCard"));
 const MallsDirectory = lazy(() => import("@/pages/admin/MallsDirectory"));
 
@@ -168,6 +169,7 @@ export const protectedRoutes = [
   { path: "/maintenance/overview", element: <MaintenanceOverview />, withLayout: true },
   { path: "/maintenance/create", element: <CreateMaintenanceRequest />, withLayout: true },
   { path: "/maintenance/:id", element: <RequestDetails />, withLayout: true },
+  { path: "/maintenance/mirror", element: <MaintenanceMirror />, withLayout: true },
 
   // Contracts
   { path: "/contracts", element: <ContractsList />, withLayout: true },
