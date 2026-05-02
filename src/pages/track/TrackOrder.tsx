@@ -192,8 +192,8 @@ export default function TrackOrder() {
   // ─── Search-only mode (no orderId) ───
   if (!orderId && !request) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background" dir="rtl">
-        <div className="max-w-lg mx-auto px-4 pt-16 pb-8">
+      <PublicShell subtitle="تتبع الطلبات" maxWidth="lg">
+        <div className="pt-8">
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
               <Search className="h-8 w-8 text-primary" />
@@ -222,38 +222,31 @@ export default function TrackOrder() {
               </p>
             </CardContent>
           </Card>
-
-          <div className="text-center mt-8">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-              <Home className="h-4 w-4" />
-              العودة للرئيسية
-            </Link>
-          </div>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background flex items-center justify-center">
-        <div className="text-center">
+      <PublicShell subtitle="تتبع الطلبات" maxWidth="lg">
+        <div className="text-center py-20">
           <div className="relative">
             <div className="absolute inset-0 animate-ping opacity-20 bg-primary rounded-full w-16 h-16 mx-auto" />
             <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto relative" />
           </div>
           <p className="text-muted-foreground mt-6 text-lg">جاري تحميل بيانات الطلب...</p>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
   // ─── Error ───
   if (error || !request) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background flex items-center justify-center p-4" dir="rtl">
-        <Card className="max-w-md w-full border-destructive/20">
+      <PublicShell subtitle="تتبع الطلبات" maxWidth="md">
+        <Card className="border-destructive/20 mt-8">
           <CardContent className="pt-8 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10 mb-4">
               <AlertCircle className="h-8 w-8 text-destructive" />
@@ -274,16 +267,9 @@ export default function TrackOrder() {
                 {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
-
-            <Link to="/">
-              <Button variant="ghost" className="text-muted-foreground">
-                <Home className="ml-2 h-4 w-4" />
-                العودة للرئيسية
-              </Button>
-            </Link>
           </CardContent>
         </Card>
-      </div>
+      </PublicShell>
     );
   }
 
