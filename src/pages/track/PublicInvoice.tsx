@@ -572,6 +572,6 @@ export default function PublicInvoice() {
           </div>
         </div>
       </div>
-    </div>
+    </PublicShell>
   );
 }
