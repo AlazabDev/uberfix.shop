@@ -15,6 +15,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { openWhatsApp } from '@/config/whatsapp';
 import { useToast } from '@/hooks/use-toast';
+import { PublicShell } from '@/components/layout/PublicShell';
+import { RatingDialog } from '@/components/track/RatingDialog';
 
 interface RequestData {
   id: string;
@@ -81,6 +83,7 @@ export default function TrackOrder() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [phoneResults, setPhoneResults] = useState<RequestData[]>([]);
+  const [ratingOpen, setRatingOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchByQuery = async (query: string) => {
