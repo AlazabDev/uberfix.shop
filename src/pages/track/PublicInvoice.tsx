@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { openWhatsApp } from '@/config/whatsapp';
+import { PublicShell } from '@/components/layout/PublicShell';
 
 interface InvoiceItem {
   description: string;
@@ -237,46 +238,127 @@ export default function PublicInvoice() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
+      <PublicShell subtitle="الفاتورة" maxWidth="3xl">
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-12 w-12 animate-spin text-[#030957]" />
+        </div>
+      </PublicShell>
     );
   }
 
   if (error || !request) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
+      <PublicShell subtitle="الفاتورة" maxWidth="md">
+        <Card className="mt-8">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">{error || 'الطلب غير موجود'}</h2>
             <Link to="/"><Button className="mt-4">العودة للرئيسية</Button></Link>
           </CardContent>
         </Card>
-      </div>
+      </PublicShell>
     );
   }
 
   if (!invoice) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-        <Card className="max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">لا توجد فاتورة بعد</h2>
-            <p className="text-muted-foreground mb-4">
-              لم يتم إصدار فاتورة لهذا الطلب حتى الآن. سيتم إخطارك فور إصدارها.
-            </p>
-            <p className="text-sm text-muted-foreground">رقم الطلب: <strong>{request.request_number}</strong></p>
-            <Link to={`/track/${request.id}`}>
-              <Button variant="outline" className="mt-6">
+      <PublicShell subtitle="الفاتورة" maxWidth="3xl">
+        {/* بطاقة فاتورة بدون مبلغ — بنفس الهوية البصرية للفاتورة الكاملة */}
+        <div className="bg-white text-gray-900 p-8 rounded-lg shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
+          {/* Header */}
+          <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: '#030957' }}>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-3xl font-bold" style={{ color: '#030957' }}>Uber</span>
+                <span className="text-3xl font-bold" style={{ color: '#FFB900' }}>Fix</span>
+              </div>
+              <p className="text-sm text-gray-600">UberFix — خدمات الصيانة المتكاملة</p>
+              <p className="text-xs text-gray-500">uberfix.shop</p>
+            </div>
+            <div className="text-left">
+              <h1 className="text-2xl font-bold" style={{ color: '#030957' }}>إيصال طلب</h1>
+              <p className="text-sm text-gray-600 mt-1">SERVICE RECEIPT</p>
+              <div className="mt-3 inline-block px-3 py-1 rounded-full text-sm font-bold border bg-amber-50 text-amber-800 border-amber-300">
+                قيد التجهيز
+              </div>
+            </div>
+          </div>
+
+          {/* Status Banner */}
+          <div className="mb-6 rounded-lg p-5 text-center" style={{ background: 'linear-gradient(135deg, #030957 0%, #1a237e 100%)' }}>
+            <FileText className="h-12 w-12 text-white/80 mx-auto mb-2" />
+            <p className="text-white text-lg font-bold mb-1">الفاتورة قيد التجهيز</p>
+            <p className="text-white/80 text-sm">سيتم إصدار الفاتورة المالية فور انتهاء العمل وتسجيل التكلفة النهائية.</p>
+          </div>
+
+          {/* Request Info */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">رقم الطلب</h3>
+              <p className="text-lg font-bold font-mono" style={{ color: '#030957' }}>{request.request_number}</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">تاريخ الطلب</h3>
+              <p className="text-sm flex items-center gap-1">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                {format(new Date(request.created_at), 'dd MMMM yyyy', { locale: ar })}
+              </p>
+            </div>
+          </div>
+
+          {/* Customer */}
+          {(request.client_name || request.client_phone || request.location) && (
+            <div className="mb-6">
+              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">بيانات العميل</h3>
+              <div className="border rounded-lg p-4 space-y-1.5">
+                {request.client_name && <p className="font-bold text-base">{request.client_name}</p>}
+                {request.client_phone && (
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> {request.client_phone}
+                  </p>
+                )}
+                {request.location && (
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {request.location}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Service */}
+          <div className="mb-6">
+            <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">الخدمة المطلوبة</h3>
+            <div className="border-2 border-dashed rounded-lg p-4" style={{ borderColor: '#FFB900' }}>
+              <p className="font-semibold text-base mb-1">{request.title}</p>
+              <p className="text-xs text-gray-500">المبلغ: سيتم تحديده بعد إنهاء العمل</p>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex flex-col sm:flex-row gap-2 pt-6 border-t">
+            <Link to={`/track/${request.id}`} className="flex-1">
+              <Button variant="outline" className="w-full">
                 <ArrowRight className="h-4 w-4 ml-2" />
-                العودة لتتبع الطلب
+                تتبع الطلب
               </Button>
             </Link>
-          </CardContent>
-        </Card>
-      </div>
+            <Button
+              className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+              onClick={() => openWhatsApp(`استفسار عن فاتورة الطلب: ${request.request_number}`)}
+            >
+              <CheckCircle2 className="h-4 w-4 ml-2" />
+              تواصل لتفاصيل الفاتورة
+            </Button>
+          </div>
+
+          <div className="text-center text-xs text-gray-400 mt-6 pt-4 border-t">
+            <p style={{ color: '#030957', fontWeight: 600 }}>
+              UberFix © {new Date().getFullYear()} — جميع الحقوق محفوظة
+            </p>
+          </div>
+        </div>
+      </PublicShell>
     );
   }
 
@@ -294,9 +376,9 @@ export default function PublicInvoice() {
   const verifyUrl = `${window.location.origin}/track/${request.id}/invoice`;
 
   return (
-    <div className="min-h-screen bg-muted/30 py-6 px-3" dir="rtl">
+    <PublicShell subtitle="الفاتورة" maxWidth="3xl">
       {/* Action Bar - hidden on print */}
-      <div className="max-w-3xl mx-auto mb-4 print:hidden">
+      <div className="mb-4 print:hidden">
         <Card>
           <CardContent className="p-4 flex flex-wrap gap-2 justify-between items-center">
             <Link to={`/track/${request.id}`}>
