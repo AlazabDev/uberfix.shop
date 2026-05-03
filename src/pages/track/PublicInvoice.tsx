@@ -13,6 +13,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 import { openWhatsApp } from '@/config/whatsapp';
 import { PublicShell } from '@/components/layout/PublicShell';
+import { DocumentTemplate, DocTable, DocTableHead } from '@/components/documents/DocumentTemplate';
 
 interface InvoiceItem {
   description: string;
@@ -263,101 +264,54 @@ export default function PublicInvoice() {
   if (!invoice) {
     return (
       <PublicShell subtitle="الفاتورة" maxWidth="3xl">
-        {/* بطاقة فاتورة بدون مبلغ — بنفس الهوية البصرية للفاتورة الكاملة */}
-        <div className="bg-white text-gray-900 p-8 rounded-lg shadow-lg" style={{ fontFamily: 'Cairo, sans-serif' }}>
-          {/* Header */}
-          <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: '#030957' }}>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl font-bold" style={{ color: '#030957' }}>Uber</span>
-                <span className="text-3xl font-bold" style={{ color: '#FFB900' }}>Fix</span>
-              </div>
-              <p className="text-sm text-gray-600">UberFix — خدمات الصيانة المتكاملة</p>
-              <p className="text-xs text-gray-500">uberfix.shop</p>
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold" style={{ color: '#030957' }}>إيصال طلب</h1>
-              <p className="text-sm text-gray-600 mt-1">SERVICE RECEIPT</p>
-              <div className="mt-3 inline-block px-3 py-1 rounded-full text-sm font-bold border bg-amber-50 text-amber-800 border-amber-300">
-                قيد التجهيز
-              </div>
+        <DocumentTemplate
+          documentType="إيصال طلب"
+          documentTypeLatin="Service Receipt"
+          documentId={request.request_number}
+          documentDate={format(new Date(request.created_at), 'dd MMMM yyyy', { locale: ar })}
+          toBlock={{
+            title: 'العميل',
+            lines: [
+              request.client_name && <strong key="n">{request.client_name}</strong>,
+              request.client_phone,
+              request.location,
+            ].filter(Boolean) as ReactNode[],
+          }}
+          headerFields={[
+            { label: 'رقم الطلب', value: request.request_number },
+            { label: 'الحالة', value: 'قيد التجهيز' },
+          ]}
+          notes="سيتم إصدار الفاتورة المالية النهائية فور إنهاء العمل وتسجيل التكلفة. يمكنك تتبع طلبك في أي وقت عبر الرابط المرفق."
+          qrUrl={`${window.location.origin}/track/${request.id}`}
+          qrLabel="تتبّع الطلب"
+        >
+          <div className="rounded-md p-5 text-center" style={{ background: 'linear-gradient(135deg, #030957 0%, #1a237e 100%)' }}>
+            <FileText className="h-10 w-10 text-white/80 mx-auto mb-2" />
+            <p className="text-white text-lg font-bold">الفاتورة قيد التجهيز</p>
+            <p className="text-white/80 text-xs mt-1">المبلغ: سيتم تحديده بعد إنهاء العمل</p>
+          </div>
+
+          <div className="mt-5">
+            <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">الخدمة المطلوبة</h3>
+            <div className="border-2 border-dashed rounded p-4" style={{ borderColor: '#FFB900' }}>
+              <p className="font-semibold">{request.title}</p>
             </div>
           </div>
 
-          {/* Status Banner */}
-          <div className="mb-6 rounded-lg p-5 text-center" style={{ background: 'linear-gradient(135deg, #030957 0%, #1a237e 100%)' }}>
-            <FileText className="h-12 w-12 text-white/80 mx-auto mb-2" />
-            <p className="text-white text-lg font-bold mb-1">الفاتورة قيد التجهيز</p>
-            <p className="text-white/80 text-sm">سيتم إصدار الفاتورة المالية فور انتهاء العمل وتسجيل التكلفة النهائية.</p>
-          </div>
-
-          {/* Request Info */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">رقم الطلب</h3>
-              <p className="text-lg font-bold font-mono" style={{ color: '#030957' }}>{request.request_number}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">تاريخ الطلب</h3>
-              <p className="text-sm flex items-center gap-1">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                {format(new Date(request.created_at), 'dd MMMM yyyy', { locale: ar })}
-              </p>
-            </div>
-          </div>
-
-          {/* Customer */}
-          {(request.client_name || request.client_phone || request.location) && (
-            <div className="mb-6">
-              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">بيانات العميل</h3>
-              <div className="border rounded-lg p-4 space-y-1.5">
-                {request.client_name && <p className="font-bold text-base">{request.client_name}</p>}
-                {request.client_phone && (
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> {request.client_phone}
-                  </p>
-                )}
-                {request.location && (
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> {request.location}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Service */}
-          <div className="mb-6">
-            <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">الخدمة المطلوبة</h3>
-            <div className="border-2 border-dashed rounded-lg p-4" style={{ borderColor: '#FFB900' }}>
-              <p className="font-semibold text-base mb-1">{request.title}</p>
-              <p className="text-xs text-gray-500">المبلغ: سيتم تحديده بعد إنهاء العمل</p>
-            </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex flex-col sm:flex-row gap-2 pt-6 border-t">
+          <div className="flex flex-col sm:flex-row gap-2 mt-6 print:hidden">
             <Link to={`/track/${request.id}`} className="flex-1">
               <Button variant="outline" className="w-full">
-                <ArrowRight className="h-4 w-4 ml-2" />
-                تتبع الطلب
+                <ArrowRight className="h-4 w-4 ml-2" /> تتبع الطلب
               </Button>
             </Link>
             <Button
               className="flex-1 bg-success text-success-foreground hover:bg-success/90"
               onClick={() => openWhatsApp(`استفسار عن فاتورة الطلب: ${request.request_number}`)}
             >
-              <CheckCircle2 className="h-4 w-4 ml-2" />
-              تواصل لتفاصيل الفاتورة
+              <CheckCircle2 className="h-4 w-4 ml-2" /> تواصل لتفاصيل الفاتورة
             </Button>
           </div>
-
-          <div className="text-center text-xs text-gray-400 mt-6 pt-4 border-t">
-            <p style={{ color: '#030957', fontWeight: 600 }}>
-              UberFix © {new Date().getFullYear()} — جميع الحقوق محفوظة
-            </p>
-          </div>
-        </div>
+        </DocumentTemplate>
       </PublicShell>
     );
   }
@@ -426,150 +380,99 @@ export default function PublicInvoice() {
 
       {/* Invoice Document */}
       <div>
-        <div ref={invoiceRef} className="bg-white text-gray-900 p-8 rounded-lg shadow-lg relative overflow-hidden" style={{ fontFamily: 'Cairo, sans-serif' }}>
-          {/* Paid stamp overlay */}
+        <div ref={invoiceRef} className="relative">
           {invoice.status === 'paid' && (
             <div
               className="absolute pointer-events-none select-none"
               style={{
-                top: '38%',
-                right: '50%',
+                top: '40%', right: '50%',
                 transform: 'translate(50%,-50%) rotate(-22deg)',
-                border: '6px solid #16a34a',
-                color: '#16a34a',
-                padding: '12px 36px',
-                fontSize: '54px',
-                fontWeight: 900,
-                letterSpacing: '4px',
-                opacity: 0.18,
-                borderRadius: '12px',
-                zIndex: 10,
+                border: '6px solid #16a34a', color: '#16a34a',
+                padding: '12px 36px', fontSize: '54px', fontWeight: 900,
+                letterSpacing: '4px', opacity: 0.18, borderRadius: '12px', zIndex: 10,
               }}
             >
               مدفوعة ✓ PAID
             </div>
           )}
-          {/* Header */}
-          <div className="flex justify-between items-start border-b-2 pb-6 mb-6" style={{ borderColor: '#030957' }}>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl font-bold" style={{ color: '#030957' }}>Uber</span>
-                <span className="text-3xl font-bold" style={{ color: '#FFB900' }}>Fix</span>
-              </div>
-              <p className="text-sm text-gray-600">{invoice.company_name || 'UberFix - خدمات الصيانة المتكاملة'}</p>
-              {invoice.company_address && <p className="text-xs text-gray-500">{invoice.company_address}</p>}
-              {invoice.company_phone && <p className="text-xs text-gray-500">📞 {invoice.company_phone}</p>}
-              {invoice.company_tax_id && <p className="text-xs text-gray-500">الرقم الضريبي: {invoice.company_tax_id}</p>}
-            </div>
-            <div className="text-left">
-              <h1 className="text-2xl font-bold" style={{ color: '#030957' }}>فاتورة</h1>
-              <p className="text-sm text-gray-600 mt-1">INVOICE</p>
-              <div className="mt-3 inline-block px-3 py-1 rounded-full text-sm font-bold border" style={{ background: invoice.status === 'paid' ? '#dcfce7' : '#fef3c7', color: invoice.status === 'paid' ? '#166534' : '#92400e', borderColor: invoice.status === 'paid' ? '#86efac' : '#fcd34d' }}>
-                {STATUS_CONFIG[invoice.status]?.label || invoice.status}
-              </div>
-            </div>
-          </div>
 
-          {/* Invoice & Request Info */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">معلومات الفاتورة</h3>
-              <div className="space-y-1 text-sm">
-                <p><span className="text-gray-600">رقم الفاتورة:</span> <strong>{invoice.invoice_number}</strong></p>
-                <p><span className="text-gray-600">تاريخ الإصدار:</span> {format(new Date(invoice.issue_date), 'dd MMMM yyyy', { locale: ar })}</p>
-                {invoice.due_date && <p><span className="text-gray-600">تاريخ الاستحقاق:</span> {format(new Date(invoice.due_date), 'dd MMMM yyyy', { locale: ar })}</p>}
-                {invoice.payment_method && <p><span className="text-gray-600">طريقة الدفع:</span> {invoice.payment_method}</p>}
-              </div>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">الطلب المرتبط</h3>
-              <div className="space-y-1 text-sm">
-                <p><span className="text-gray-600">رقم الطلب:</span> <strong>{request.request_number}</strong></p>
-                <p><span className="text-gray-600">الخدمة:</span> {request.title}</p>
-                <p><span className="text-gray-600">تاريخ الطلب:</span> {format(new Date(request.created_at), 'dd MMMM yyyy', { locale: ar })}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Customer */}
-          <div className="mb-6">
-            <h3 className="text-xs font-bold text-gray-500 mb-2 uppercase">العميل</h3>
-            <div className="border rounded-lg p-4">
-              <p className="font-bold text-base">{invoice.customer_name}</p>
-              {invoice.customer_phone && <p className="text-sm text-gray-600 flex items-center gap-1 mt-1"><Phone className="h-3 w-3" /> {invoice.customer_phone}</p>}
-              {request.location && <p className="text-sm text-gray-600 flex items-center gap-1 mt-1"><MapPin className="h-3 w-3" /> {request.location}</p>}
-            </div>
-          </div>
-
-          {/* Items Table */}
-          <table className="w-full mb-6 border-collapse">
-            <thead>
-              <tr style={{ background: '#030957', color: 'white' }}>
-                <th className="p-3 text-right text-sm font-bold">البند</th>
-                <th className="p-3 text-center text-sm font-bold w-20">الكمية</th>
-                <th className="p-3 text-center text-sm font-bold w-32">سعر الوحدة</th>
-                <th className="p-3 text-center text-sm font-bold w-32">الإجمالي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                  <td className="p-3 text-sm">{item.description}</td>
-                  <td className="p-3 text-sm text-center">{item.quantity}</td>
-                  <td className="p-3 text-sm text-center">{Number(item.unit_price).toLocaleString('ar-EG')}</td>
-                  <td className="p-3 text-sm text-center font-semibold">{Number(item.total).toLocaleString('ar-EG')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Totals */}
-          <div className="flex justify-end mb-6">
-            <div className="w-full max-w-xs space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">المجموع الفرعي:</span>
-                <span className="font-semibold">{Number(subtotal).toLocaleString('ar-EG')} {invoice.currency}</span>
-              </div>
-              {taxAmount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">الضريبة ({invoice.tax_rate || 0}%):</span>
-                  <span className="font-semibold">{Number(taxAmount).toLocaleString('ar-EG')} {invoice.currency}</span>
+          <DocumentTemplate
+            documentType="فاتورة"
+            documentTypeLatin="Invoice"
+            documentId={invoice.invoice_number}
+            documentDate={format(new Date(invoice.issue_date), 'dd MMMM yyyy', { locale: ar })}
+            toBlock={{
+              title: 'فاتورة إلى',
+              lines: [
+                <strong key="n">{invoice.customer_name}</strong>,
+                invoice.customer_phone && (
+                  <span key="p" className="flex items-center gap-1"><Phone className="h-3 w-3" /> {invoice.customer_phone}</span>
+                ),
+                request.location && (
+                  <span key="l" className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {request.location}</span>
+                ),
+              ].filter(Boolean) as ReactNode[],
+            }}
+            fromBlock={{
+              title: 'صادرة من',
+              lines: [
+                <strong key="n">{invoice.company_name || 'UberFix.shop'}</strong>,
+                invoice.company_address || 'منصة الصيانة الذكية',
+                invoice.company_phone && `📞 ${invoice.company_phone}`,
+                invoice.company_tax_id && `الرقم الضريبي: ${invoice.company_tax_id}`,
+              ].filter(Boolean) as ReactNode[],
+            }}
+            headerFields={[
+              { label: 'رقم الفاتورة', value: invoice.invoice_number },
+              { label: 'الطلب المرتبط', value: request.request_number },
+              { label: 'الحالة', value: STATUS_CONFIG[invoice.status]?.label || invoice.status },
+              ...(invoice.due_date ? [{ label: 'تاريخ الاستحقاق', value: format(new Date(invoice.due_date), 'dd/MM/yyyy', { locale: ar }) }] : []),
+            ]}
+            qrUrl={verifyUrl}
+            qrLabel="تحقّق من الفاتورة"
+            summary={
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between gap-8">
+                  <span>المجموع الفرعي:</span>
+                  <span className="font-semibold">{Number(subtotal).toLocaleString('ar-EG')}</span>
                 </div>
-              )}
-              <div className="flex justify-between text-lg pt-2 border-t-2" style={{ borderColor: '#030957' }}>
-                <span className="font-bold" style={{ color: '#030957' }}>الإجمالي:</span>
-                <span className="font-bold" style={{ color: '#030957' }}>{Number(invoice.amount).toLocaleString('ar-EG')} {invoice.currency}</span>
+                {taxAmount > 0 && (
+                  <div className="flex justify-between gap-8">
+                    <span>الضريبة ({invoice.tax_rate || 0}%):</span>
+                    <span className="font-semibold">{Number(taxAmount).toLocaleString('ar-EG')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-8 pt-2 border-t border-[#030957]/30 text-base">
+                  <span className="font-extrabold">الإجمالي:</span>
+                  <span className="font-extrabold">
+                    {Number(invoice.amount).toLocaleString('ar-EG')} {invoice.currency}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-
-          {/* Notes & QR */}
-          <div className="grid grid-cols-3 gap-4 pt-6 border-t">
-            <div className="col-span-2">
-              {invoice.notes && (
-                <>
-                  <h4 className="text-xs font-bold text-gray-500 mb-1 uppercase">ملاحظات</h4>
-                  <p className="text-sm text-gray-700 mb-3">{invoice.notes}</p>
-                </>
-              )}
-              <div className="text-xs text-gray-500 mt-4 pt-3 border-t">
-                <p>هذه الفاتورة صادرة إلكترونياً من نظام UberFix</p>
-                <p className="mt-1">للتحقق من صحة الفاتورة، امسح رمز QR ←</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="bg-white p-2 border rounded">
-                <QRCodeSVG value={verifyUrl} size={90} level="M" />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">للتحقق</p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center text-xs text-gray-400 mt-6 pt-4 border-t">
-            <p style={{ color: '#030957', fontWeight: 600 }}>UberFix © {new Date().getFullYear()} — جميع الحقوق محفوظة</p>
-            <p className="mt-1">uberfix.shop</p>
-          </div>
+            }
+            notes={
+              <>
+                {invoice.notes && (
+                  <p className="mb-2"><strong>ملاحظات:</strong> {invoice.notes}</p>
+                )}
+                <p>هذه الفاتورة صادرة إلكترونياً من نظام UberFix. للتحقق من صحتها، امسح رمز QR.</p>
+              </>
+            }
+          >
+            <DocTable>
+              <DocTableHead columns={['البند', 'الكمية', 'سعر الوحدة', 'الإجمالي']} />
+              <tbody>
+                {items.map((item, idx) => (
+                  <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                    <td className="p-3 text-sm">{item.description}</td>
+                    <td className="p-3 text-sm text-center">{item.quantity}</td>
+                    <td className="p-3 text-sm text-center">{Number(item.unit_price).toLocaleString('ar-EG')}</td>
+                    <td className="p-3 text-sm text-center font-semibold">{Number(item.total).toLocaleString('ar-EG')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DocTable>
+          </DocumentTemplate>
         </div>
       </div>
     </PublicShell>
