@@ -3671,6 +3671,13 @@ export type Database = {
             referencedRelation: "outbound_messages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "outbound_message_events_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_outbound_messages_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       outbound_messages: {
@@ -7812,6 +7819,13 @@ export type Database = {
             foreignKeyName: "wa_stage_template_map_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
+            referencedRelation: "v_wa_templates_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_stage_template_map_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
             referencedRelation: "wa_templates"
             referencedColumns: ["id"]
           },
@@ -7875,6 +7889,13 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "wa_template_events_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "v_wa_templates_dashboard"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wa_template_events_template_id_fkey"
             columns: ["template_id"]
@@ -9915,6 +9936,114 @@ export type Database = {
           },
         ]
       }
+      v_notifications_dashboard: {
+        Row: {
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          read_at: string | null
+          read_state: string | null
+          recipient_id: string | null
+          sender_id: string | null
+          sms_sent: boolean | null
+          title: string | null
+          type: string | null
+          whatsapp_sent: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          read_at?: string | null
+          read_state?: never
+          recipient_id?: string | null
+          sender_id?: string | null
+          sms_sent?: boolean | null
+          title?: string | null
+          type?: string | null
+          whatsapp_sent?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string | null
+          read_at?: string | null
+          read_state?: never
+          recipient_id?: string | null
+          sender_id?: string | null
+          sms_sent?: boolean | null
+          title?: string | null
+          type?: string | null
+          whatsapp_sent?: boolean | null
+        }
+        Relationships: []
+      }
+      v_outbound_messages_dashboard: {
+        Row: {
+          channel: Database["public"]["Enums"]["message_channel_t"] | null
+          created_at: string | null
+          delivered_at: string | null
+          failed_at: string | null
+          id: string | null
+          last_error: string | null
+          lifecycle_state: string | null
+          provider: string | null
+          provider_message_id: string | null
+          read_at: string | null
+          recipient: string | null
+          related_aggregate_id: string | null
+          related_aggregate_type: string | null
+          retry_count: number | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["message_status_t"] | null
+          template_key: string | null
+        }
+        Insert: {
+          channel?: Database["public"]["Enums"]["message_channel_t"] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          id?: string | null
+          last_error?: string | null
+          lifecycle_state?: never
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          related_aggregate_id?: string | null
+          related_aggregate_type?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status_t"] | null
+          template_key?: string | null
+        }
+        Update: {
+          channel?: Database["public"]["Enums"]["message_channel_t"] | null
+          created_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          id?: string | null
+          last_error?: string | null
+          lifecycle_state?: never
+          provider?: string | null
+          provider_message_id?: string | null
+          read_at?: string | null
+          recipient?: string | null
+          related_aggregate_id?: string | null
+          related_aggregate_type?: string | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["message_status_t"] | null
+          template_key?: string | null
+        }
+        Relationships: []
+      }
       v_payments_dashboard: {
         Row: {
           amount: number | null
@@ -10123,6 +10252,57 @@ export type Database = {
           technician_id: string | null
           total_jobs: number | null
           total_reviews: number | null
+        }
+        Relationships: []
+      }
+      v_wa_templates_dashboard: {
+        Row: {
+          approved_at: string | null
+          category: Database["public"]["Enums"]["wa_template_category"] | null
+          created_at: string | null
+          id: string | null
+          language: string | null
+          last_used_at: string | null
+          meta_template_name: string | null
+          name: string | null
+          quality: Database["public"]["Enums"]["wa_template_quality"] | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["wa_template_status"] | null
+          submitted_at: string | null
+          updated_at: string | null
+          used_last_30d: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          category?: Database["public"]["Enums"]["wa_template_category"] | null
+          created_at?: string | null
+          id?: string | null
+          language?: string | null
+          last_used_at?: never
+          meta_template_name?: string | null
+          name?: string | null
+          quality?: Database["public"]["Enums"]["wa_template_quality"] | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["wa_template_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          used_last_30d?: never
+        }
+        Update: {
+          approved_at?: string | null
+          category?: Database["public"]["Enums"]["wa_template_category"] | null
+          created_at?: string | null
+          id?: string | null
+          language?: string | null
+          last_used_at?: never
+          meta_template_name?: string | null
+          name?: string | null
+          quality?: Database["public"]["Enums"]["wa_template_quality"] | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["wa_template_status"] | null
+          submitted_at?: string | null
+          updated_at?: string | null
+          used_last_30d?: never
         }
         Relationships: []
       }
