@@ -890,6 +890,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -2628,6 +2635,13 @@ export type Database = {
             referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maintenance_contracts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maintenance_requests: {
@@ -2879,6 +2893,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_mr_property"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
             columns: ["assigned_technician_id"]
             isOneToOne: false
@@ -2974,6 +2995,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
             referencedColumns: ["id"]
           },
         ]
@@ -8203,6 +8231,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -8264,6 +8299,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
             referencedColumns: ["id"]
           },
           {
@@ -8480,6 +8522,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_contracts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
             referencedColumns: ["id"]
           },
         ]
@@ -9229,6 +9278,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_mr_property"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_requests_assigned_technician_id_fkey"
             columns: ["assigned_technician_id"]
             isOneToOne: false
@@ -9296,6 +9352,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
             referencedColumns: ["id"]
           },
         ]
@@ -9495,6 +9558,42 @@ export type Database = {
           },
         ]
       }
+      v_properties_for_map: {
+        Row: {
+          address: string | null
+          code: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          qr_code_data: string | null
+          status: string | null
+          type: string | null
+        }
+        Insert: {
+          address?: string | null
+          code?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          qr_code_data?: string | null
+          status?: string | null
+          type?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string | null
+          id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          qr_code_data?: string | null
+          status?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
       v_technicians_dashboard: {
         Row: {
           approved_at: string | null
@@ -9596,6 +9695,10 @@ export type Database = {
       approve_technician_profile: {
         Args: { profile_id: string }
         Returns: string
+      }
+      assign_technician_to_map_request: {
+        Args: { p_request_id: string; p_technician_id: string }
+        Returns: Json
       }
       calculate_distance: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
@@ -9741,6 +9844,24 @@ export type Database = {
       generate_unified_serial: {
         Args: { prefix: string; seq_name: string }
         Returns: string
+      }
+      get_active_requests_for_map: {
+        Args: never
+        Returns: {
+          assigned_technician_id: string
+          branch_id: string
+          created_at: string
+          customer_display: string
+          id: string
+          is_sla_breached: boolean
+          latitude: number
+          longitude: number
+          priority: string
+          property_id: string
+          request_number: string
+          sla_due_date: string
+          workflow_stage: string
+        }[]
       }
       get_appointment_contact_info: {
         Args: { appointment_id: string }
