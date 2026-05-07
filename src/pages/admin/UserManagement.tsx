@@ -51,21 +51,30 @@ export default function UserManagement() {
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
-    checkAdminAccess();
-    fetchUsers();
+    (async () => {
+      const ok = await checkAdminAccess();
+      if (ok) fetchUsers();
+    })();
   }, []);
 
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = async (): Promise<boolean> => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
+      window.location.href = '/auth/login';
+      return false;
+    }
     const { data: roles } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+      .eq('user_id', userData.user.id);
 
     const isAdmin = roles?.some(r => r.role === 'admin');
     if (!isAdmin) {
       toast.error('ليس لديك صلاحية للوصول إلى هذه الصفحة');
       window.location.href = '/';
+      return false;
     }
+    return true;
   };
 
   const fetchUsers = async () => {
