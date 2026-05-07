@@ -51,9 +51,9 @@ export const InvoiceEmail = ({
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://al-azab.co/w.png"
-              width="120"
-              height="40"
+              src="https://uberfix.shop/branding/uberfix-banner.jpg"
+              width="600"
+              height="220"
               alt="UberFix"
               style={logo}
             />
@@ -166,13 +166,17 @@ const container = {
 };
 
 const header = {
-  backgroundColor: '#0b1b3b',
-  padding: '20px',
+  backgroundColor: '#030957',
+  padding: '0',
   textAlign: 'center' as const,
+  borderBottom: '4px solid #FFB900',
 };
 
 const logo = {
-  display: 'inline-block',
+  display: 'block',
+  width: '100%',
+  height: 'auto',
+  maxWidth: '600px',
 };
 
 const content = {
@@ -239,16 +243,16 @@ const table = {
 };
 
 const tableHeaderRow = {
-  backgroundColor: '#f5bf23',
+  backgroundColor: '#FFB900',
 };
 
 const tableHeader = {
-  color: '#111',
+  color: '#030957',
   fontSize: '14px',
-  fontWeight: '700',
+  fontWeight: '800',
   padding: '12px 8px',
   textAlign: 'right' as const,
-  borderBottom: '2px solid #111',
+  borderBottom: '2px solid #030957',
 };
 
 const tableRow = {
@@ -296,16 +300,16 @@ const grandTotalLabel = {
   padding: '12px 16px',
   textAlign: 'right' as const,
   fontWeight: '700',
-  backgroundColor: '#fffbeb',
+  backgroundColor: '#FFF6D6',
 };
 
 const grandTotalValue = {
-  color: '#f5bf23',
+  color: '#030957',
   fontSize: '18px',
   padding: '12px 16px',
   textAlign: 'left' as const,
-  fontWeight: '700',
-  backgroundColor: '#fffbeb',
+  fontWeight: '800',
+  backgroundColor: '#FFF6D6',
   direction: 'ltr' as const,
 };
 
@@ -314,7 +318,7 @@ const notesSection = {
   padding: '16px',
   backgroundColor: '#f9fafb',
   borderRadius: '10px',
-  borderRight: '4px solid #f5bf23',
+  borderRight: '4px solid #FFB900',
 };
 
 const notesText = {
@@ -338,8 +342,9 @@ const footerText = {
 };
 
 const footerLink = {
-  color: '#f5bf23',
+  color: '#030957',
   textDecoration: 'none',
+  fontWeight: 700,
 };
 
 const hr = {

@@ -51,9 +51,9 @@ export const MaintenanceNotification = ({
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://al-azab.co/w.png"
-              width="120"
-              height="40"
+              src="https://uberfix.shop/branding/uberfix-banner.jpg"
+              width="600"
+              height="220"
               alt="UberFix"
               style={logo}
             />
@@ -124,13 +124,17 @@ const container = {
 };
 
 const header = {
-  backgroundColor: '#0b1b3b',
-  padding: '20px',
+  backgroundColor: '#030957',
+  padding: '0',
   textAlign: 'center' as const,
+  borderBottom: '4px solid #FFB900',
 };
 
 const logo = {
-  display: 'inline-block',
+  display: 'block',
+  width: '100%',
+  height: 'auto',
+  maxWidth: '600px',
 };
 
 const content = {
@@ -154,8 +158,11 @@ const text = {
 };
 
 const highlight = {
-  color: '#f5bf23',
-  fontWeight: '700',
+  color: '#030957',
+  fontWeight: '800',
+  background: '#FFF6D6',
+  padding: '2px 6px',
+  borderRadius: '4px',
 };
 
 const descriptionBox = {
@@ -175,7 +182,7 @@ const descriptionText = {
 };
 
 const dateText = {
-  color: '#f5bf23',
+  color: '#030957',
   fontWeight: '600',
   direction: 'ltr' as const,
   display: 'inline-block',
@@ -187,8 +194,8 @@ const messageText = {
   lineHeight: '1.8',
   margin: '20px 0 0',
   padding: '16px',
-  backgroundColor: '#fffbeb',
-  borderRight: '4px solid #f5bf23',
+  backgroundColor: '#FFF6D6',
+  borderRight: '4px solid #FFB900',
   borderRadius: '8px',
   textAlign: 'right' as const,
 };
@@ -206,6 +213,7 @@ const footerText = {
 };
 
 const footerLink = {
-  color: '#f5bf23',
+  color: '#030957',
   textDecoration: 'none',
+  fontWeight: 700,
 };
