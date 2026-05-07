@@ -2644,6 +2644,13 @@ export type Database = {
             referencedRelation: "invoices_safe"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoices: {
@@ -2659,6 +2666,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          discount_amount: number
           due_date: string | null
           id: string
           invoice_number: string
@@ -2667,15 +2675,21 @@ export type Database = {
           items: Json | null
           last_modified_by: string | null
           notes: string | null
+          paid_at: string | null
           payment_method: string | null
           payment_reference: string | null
+          pdf_url: string | null
           request_id: string | null
+          sent_at: string | null
           status: string
           subtotal: number | null
           tax_amount: number | null
           tax_rate: number | null
+          total_amount: number | null
           updated_at: string
+          vat_rate: number
           version: number
+          withholding_amount: number
         }
         Insert: {
           amount: number
@@ -2689,6 +2703,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          discount_amount?: number
           due_date?: string | null
           id?: string
           invoice_number: string
@@ -2697,15 +2712,21 @@ export type Database = {
           items?: Json | null
           last_modified_by?: string | null
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          pdf_url?: string | null
           request_id?: string | null
+          sent_at?: string | null
           status?: string
           subtotal?: number | null
           tax_amount?: number | null
           tax_rate?: number | null
+          total_amount?: number | null
           updated_at?: string
+          vat_rate?: number
           version?: number
+          withholding_amount?: number
         }
         Update: {
           amount?: number
@@ -2719,6 +2740,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          discount_amount?: number
           due_date?: string | null
           id?: string
           invoice_number?: string
@@ -2727,15 +2749,21 @@ export type Database = {
           items?: Json | null
           last_modified_by?: string | null
           notes?: string | null
+          paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          pdf_url?: string | null
           request_id?: string | null
+          sent_at?: string | null
           status?: string
           subtotal?: number | null
           tax_amount?: number | null
           tax_rate?: number | null
+          total_amount?: number | null
           updated_at?: string
+          vat_rate?: number
           version?: number
+          withholding_amount?: number
         }
         Relationships: [
           {
@@ -3808,6 +3836,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -9666,6 +9701,97 @@ export type Database = {
         }
         Relationships: []
       }
+      v_invoices_dashboard: {
+        Row: {
+          amount: number | null
+          computed_status: string | null
+          created_at: string | null
+          currency: string | null
+          customer_name: string | null
+          discount_amount: number | null
+          due_date: string | null
+          id: string | null
+          invoice_number: string | null
+          issue_date: string | null
+          paid_at: string | null
+          paid_via_gateway: number | null
+          request_id: string | null
+          sent_at: string | null
+          status: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          total_amount: number | null
+          vat_rate: number | null
+          withholding_amount: number | null
+        }
+        Insert: {
+          amount?: number | null
+          computed_status?: never
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          issue_date?: string | null
+          paid_at?: string | null
+          paid_via_gateway?: never
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          vat_rate?: number | null
+          withholding_amount?: number | null
+        }
+        Update: {
+          amount?: number | null
+          computed_status?: never
+          created_at?: string | null
+          currency?: string | null
+          customer_name?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          issue_date?: string | null
+          paid_at?: string | null
+          paid_via_gateway?: never
+          request_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          vat_rate?: number | null
+          withholding_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_maintenance_mirror: {
         Row: {
           actual_cost: number | null
@@ -9785,6 +9911,69 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_payments_dashboard: {
+        Row: {
+          amount: number | null
+          cart_id: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          paid_at: string | null
+          provider: string | null
+          request_id: string | null
+          status: string | null
+          tran_ref: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
         ]
