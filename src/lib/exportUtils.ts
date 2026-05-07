@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { brandedHeaderHtml, brandedFooterHtml, BRAND } from "./documentBranding";
 
 /**
  * Export data rows as a PDF table with proper Arabic text support.
@@ -23,36 +24,33 @@ export async function exportTablePdf(
 
   // Build HTML
   const dateStr = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
-  
+
   container.innerHTML = `
-    <div style="text-align:center; margin-bottom:24px;">
-      <h1 style="font-size:22px; font-weight:700; color:#030957; margin:0 0 4px 0;">${title}</h1>
-      <p style="font-size:11px; color:#888; margin:0;">تاريخ التصدير: ${dateStr}</p>
-    </div>
-    <table style="width:100%; border-collapse:collapse; font-size:12px;">
-      <thead>
-        <tr>
-          ${headers.map(h => `<th style="
-            background:#2980B3; color:white; padding:10px 8px;
-            text-align:center; font-weight:600; font-size:12px;
-            border:1px solid #2472a0;
-          ">${h}</th>`).join("")}
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map((row, ri) => `
-          <tr style="background:${ri % 2 === 0 ? "#f8f9fc" : "#ffffff"};">
-            ${row.map(cell => `<td style="
-              padding:8px; text-align:center; border:1px solid #e8eaed;
-              font-size:11px; color:#333;
-            ">${cell}</td>`).join("")}
+    ${brandedHeaderHtml({ documentType: title, documentTypeLatin: 'Report', documentDate: dateStr })}
+    <div style="padding:22px 26px;">
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead>
+          <tr>
+            ${headers.map(h => `<th style="
+              background:${BRAND.gold}; color:${BRAND.navy}; padding:10px 8px;
+              text-align:center; font-weight:800; font-size:12px;
+              border-left:1px solid rgba(255,255,255,.4);
+            ">${h}</th>`).join("")}
           </tr>
-        `).join("")}
-      </tbody>
-    </table>
-    <div style="text-align:center; margin-top:20px; font-size:10px; color:#aaa;">
-      UberFix © ${new Date().getFullYear()} — جميع الحقوق محفوظة
+        </thead>
+        <tbody>
+          ${rows.map((row, ri) => `
+            <tr style="background:${ri % 2 === 0 ? "#F8F9FB" : "#ffffff"};">
+              ${row.map(cell => `<td style="
+                padding:8px; text-align:center; border-bottom:1px solid #e8eaed;
+                font-size:11px; color:#222;
+              ">${cell}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
+    ${brandedFooterHtml()}
   `;
 
   document.body.appendChild(container);

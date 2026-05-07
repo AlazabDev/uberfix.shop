@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, FileText, Settings, Calendar, DollarSign, ClipboardList, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowRight, FileText, Settings, Calendar, DollarSign, ClipboardList, Pencil, Trash2, AlertTriangle, Printer } from "lucide-react";
+import { DocumentTemplate } from "@/components/documents/DocumentTemplate";
 import { useMaintenanceContracts, CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, BILLING_TYPE_LABELS } from "@/hooks/useMaintenanceContracts";
 import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
 import { ContractForm } from "@/components/contracts/ContractForm";
@@ -21,6 +22,7 @@ export default function ContractDetails() {
   const { contracts, loading, deleteContract } = useMaintenanceContracts();
   const { requests } = useMaintenanceRequests();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isPrintOpen, setIsPrintOpen] = useState(false);
 
   const contract = useMemo(() => contracts.find(c => c.id === id) || null, [id, contracts]);
 
@@ -73,6 +75,10 @@ export default function ContractDetails() {
           <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)} className="gap-2">
             <Pencil className="h-4 w-4" />
             تعديل
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsPrintOpen(true)} className="gap-2">
+            <Printer className="h-4 w-4" />
+            عرض رسمي
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -296,6 +302,48 @@ export default function ContractDetails() {
             <DialogTitle>تعديل العقد</DialogTitle>
           </DialogHeader>
           <ContractForm contract={contract} onSuccess={() => setIsEditOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Branded printable contract */}
+      <Dialog open={isPrintOpen} onOpenChange={setIsPrintOpen}>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0 bg-transparent border-0 shadow-none">
+          <DocumentTemplate
+            documentType="عقد صيانة"
+            documentTypeLatin="Maintenance Contract"
+            documentId={contract.contract_number}
+            documentDate={`${format(new Date(contract.start_date), "d MMM yyyy", { locale: ar })} → ${format(new Date(contract.end_date), "d MMM yyyy", { locale: ar })}`}
+            toBlock={{
+              title: 'الطرف الثاني',
+              lines: [
+                <strong key="n">{contract.client_name}</strong>,
+                contract.client_phone,
+                contract.client_email,
+              ].filter(Boolean),
+            }}
+            headerFields={[
+              { label: 'نوع الفوترة', value: BILLING_TYPE_LABELS[contract.billing_type] },
+              { label: 'قيمة العقد', value: `${(contract.contract_value || 0).toLocaleString()} ج.م` },
+              { label: 'وقت الاستجابة', value: `${contract.sla_response_hours} ساعة` },
+              { label: 'وقت الحل', value: `${contract.sla_resolution_hours} ساعة` },
+            ]}
+            qrUrl={`${window.location.origin}/contracts/${contract.id}`}
+            qrLabel="تحقّق من العقد"
+            notes={contract.terms_and_conditions || 'يخضع هذا العقد لجميع الشروط والأحكام المعتمدة من شركة UberFix.'}
+          >
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-bold mb-2" style={{ color: '#030957' }}>عنوان العقد</h3>
+                <p className="text-base">{contract.title}</p>
+              </div>
+              {contract.description && (
+                <div>
+                  <h3 className="text-sm font-bold mb-2" style={{ color: '#030957' }}>وصف الخدمة</h3>
+                  <p className="text-sm whitespace-pre-wrap text-gray-700">{contract.description}</p>
+                </div>
+              )}
+            </div>
+          </DocumentTemplate>
         </DialogContent>
       </Dialog>
 
