@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { TechnicianRegistrationData, ServicePrice, TechnicianTrade, CoverageArea, TechnicianDocument } from '@/types/technician-registration';
+import { brandedHeaderHtml, brandedFooterHtml, BRAND } from '@/lib/documentBranding';
 
 interface RegistrationPDFData {
   formData: Partial<TechnicianRegistrationData>;
@@ -44,7 +45,7 @@ function buildFieldRow(label: string, value: string | undefined | null): string 
 function buildSectionHeader(title: string): string {
   return `
     <tr>
-      <td colspan="2" style="padding:10px 12px; background:#2563eb; color:white; font-weight:700; font-size:13px; text-align:center; border-radius:4px;">
+      <td colspan="2" style="padding:10px 12px; background:${BRAND.gold}; color:${BRAND.navy}; font-weight:800; font-size:13px; text-align:center;">
         ${escapeHtml(title)}
       </td>
     </tr>
@@ -172,17 +173,18 @@ export async function generateRegistrationPDF(data: RegistrationPDFData): Promis
   `;
 
   container.innerHTML = `
-    <div style="background:#1e3a8a; padding:20px; text-align:center; border-radius:8px; margin-bottom:20px;">
-      <h1 style="font-size:24px; font-weight:700; color:white; margin:0 0 4px 0;">UberFix.shop</h1>
-      <p style="font-size:14px; color:#93c5fd; margin:0;">نموذج تسجيل فني</p>
+    ${brandedHeaderHtml({
+      documentType: 'نموذج تسجيل فني',
+      documentTypeLatin: 'Technician Registration',
+      documentId: formData.company_name || '',
+      documentDate: dateStr,
+    })}
+    <div style="padding:20px 26px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <tbody>${rows}</tbody>
+      </table>
     </div>
-    <p style="text-align:left; font-size:10px; color:#888; margin-bottom:16px;">تاريخ الإنشاء: ${dateStr}</p>
-    <table style="width:100%; border-collapse:collapse;">
-      <tbody>${rows}</tbody>
-    </table>
-    <div style="text-align:center; margin-top:24px; padding-top:12px; border-top:1px solid #ddd; font-size:10px; color:#aaa;">
-      UberFix © ${new Date().getFullYear()} — جميع الحقوق محفوظة
-    </div>
+    ${brandedFooterHtml()}
   `;
 
   document.body.appendChild(container);
