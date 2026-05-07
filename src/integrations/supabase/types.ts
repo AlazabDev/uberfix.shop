@@ -378,6 +378,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "api_consumers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "api_consumers_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -876,6 +883,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -1061,38 +1075,62 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          city_id: number | null
           code: string | null
           company_id: string
           created_at: string
           created_by: string | null
+          district_id: number | null
           geo: Json | null
           id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          manager_id: string | null
           name: string
           opening_hours: string | null
+          phone: string | null
+          updated_at: string
         }
         Insert: {
           address?: string | null
           city?: string | null
+          city_id?: number | null
           code?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
+          district_id?: number | null
           geo?: Json | null
           id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
           name: string
           opening_hours?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Update: {
           address?: string | null
           city?: string | null
+          city_id?: number | null
           code?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
+          district_id?: number | null
           geo?: Json | null
           id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
           name?: string
           opening_hours?: string | null
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -2556,6 +2594,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_contracts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_contracts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -2574,6 +2619,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_contracts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -2785,6 +2837,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_mr_branch"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_mr_category"
             columns: ["category_id"]
             isOneToOne: false
@@ -2810,6 +2869,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_mr_property"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -2845,6 +2911,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -2894,6 +2967,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -4547,6 +4627,13 @@ export type Database = {
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "technician_agreements_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
+          },
         ]
       }
       technician_badges: {
@@ -4777,6 +4864,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technician_coverage_areas_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "technician_coverage_areas_technician_profile_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -4796,6 +4890,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_coverage_areas_technician_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -4933,6 +5034,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technician_documents_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "technician_documents_technician_profile_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -4952,6 +5060,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_documents_technician_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -5308,9 +5423,12 @@ export type Database = {
           accounting_email: string | null
           accounting_name: string | null
           accounting_phone: string | null
+          acord_pdf_url: string | null
           additional_notes: string | null
           agree_payment_terms: boolean | null
           agree_terms: boolean | null
+          approved_at: string | null
+          approved_by: string | null
           building_no: string | null
           city_id: number | null
           company_model: string | null
@@ -5335,16 +5453,23 @@ export type Database = {
           policy_number: string | null
           preferred_language: string | null
           pricing_notes: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           service_email: string | null
           status: string | null
           street_address: string | null
           submitted_at: string | null
+          technician_code: string | null
+          technician_id: string | null
           terms_accepted_at: string | null
+          terms_pdf_url: string | null
           unit: string | null
           updated_at: string | null
           user_id: string | null
+          w9_pdf_url: string | null
         }
         Insert: {
           accepts_emergency_jobs?: boolean | null
@@ -5352,9 +5477,12 @@ export type Database = {
           accounting_email?: string | null
           accounting_name?: string | null
           accounting_phone?: string | null
+          acord_pdf_url?: string | null
           additional_notes?: string | null
           agree_payment_terms?: boolean | null
           agree_terms?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           building_no?: string | null
           city_id?: number | null
           company_model?: string | null
@@ -5379,16 +5507,23 @@ export type Database = {
           policy_number?: string | null
           preferred_language?: string | null
           pricing_notes?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           service_email?: string | null
           status?: string | null
           street_address?: string | null
           submitted_at?: string | null
+          technician_code?: string | null
+          technician_id?: string | null
           terms_accepted_at?: string | null
+          terms_pdf_url?: string | null
           unit?: string | null
           updated_at?: string | null
           user_id?: string | null
+          w9_pdf_url?: string | null
         }
         Update: {
           accepts_emergency_jobs?: boolean | null
@@ -5396,9 +5531,12 @@ export type Database = {
           accounting_email?: string | null
           accounting_name?: string | null
           accounting_phone?: string | null
+          acord_pdf_url?: string | null
           additional_notes?: string | null
           agree_payment_terms?: boolean | null
           agree_terms?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
           building_no?: string | null
           city_id?: number | null
           company_model?: string | null
@@ -5423,16 +5561,23 @@ export type Database = {
           policy_number?: string | null
           preferred_language?: string | null
           pricing_notes?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           service_email?: string | null
           status?: string | null
           street_address?: string | null
           submitted_at?: string | null
+          technician_code?: string | null
+          technician_id?: string | null
           terms_accepted_at?: string | null
+          terms_pdf_url?: string | null
           unit?: string | null
           updated_at?: string | null
           user_id?: string | null
+          w9_pdf_url?: string | null
         }
         Relationships: [
           {
@@ -5514,6 +5659,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technician_service_prices_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "technician_service_prices_service_id_fkey"
             columns: ["service_id"]
             isOneToOne: false
@@ -5540,6 +5692,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_service_prices_technician_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -5928,6 +6087,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technician_trades_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
+          },
+          {
             foreignKeyName: "technician_trades_technician_profile_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -5947,6 +6113,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_trades_technician_profile_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -6174,6 +6347,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_verifications_technician_id_fkey"
+            columns: ["technician_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -6581,6 +6761,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "technician_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technicians_technician_profile_id_fkey"
+            columns: ["technician_profile_id"]
+            isOneToOne: false
+            referencedRelation: "v_technicians_dashboard"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -8009,6 +8196,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -8063,6 +8257,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -8247,6 +8448,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_contracts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_contracts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -8265,6 +8473,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_contracts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -8850,6 +9065,30 @@ export type Database = {
         }
         Relationships: []
       }
+      v_branches_dashboard: {
+        Row: {
+          active_requests: number | null
+          address: string | null
+          city: string | null
+          code: string | null
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          total_requests: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_completed_requests_dashboard: {
         Row: {
           actual_cost: number | null
@@ -8955,6 +9194,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_mr_branch"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_mr_company"
             columns: ["company_id"]
             isOneToOne: false
@@ -8973,6 +9219,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_mr_property"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -9011,6 +9264,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -9029,6 +9289,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -9092,6 +9359,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_mr_branch"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_mr_company"
             columns: ["company_id"]
             isOneToOne: false
@@ -9134,6 +9408,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_requests_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -9141,6 +9422,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_properties_dashboard: {
+        Row: {
+          active_requests: number | null
+          address: string | null
+          city_id: number | null
+          code: string | null
+          created_at: string | null
+          district_id: number | null
+          id: string | null
+          last_request_at: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          qr_code_data: string | null
+          status: string | null
+          total_requests: number | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_requests?: never
+          address?: string | null
+          city_id?: number | null
+          code?: string | null
+          created_at?: string | null
+          district_id?: number | null
+          id?: string | null
+          last_request_at?: never
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          qr_code_data?: string | null
+          status?: string | null
+          total_requests?: never
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_requests?: never
+          address?: string | null
+          city_id?: number | null
+          code?: string | null
+          created_at?: string | null
+          district_id?: number | null
+          id?: string | null
+          last_request_at?: never
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          qr_code_data?: string | null
+          status?: string | null
+          total_requests?: never
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_technicians_dashboard: {
+        Row: {
+          approved_at: string | null
+          closed_jobs: number | null
+          company_name: string | null
+          company_type: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          hourly_rate: number | null
+          is_active: boolean | null
+          is_verified: boolean | null
+          phone: string | null
+          profile_id: string | null
+          rating: number | null
+          rejected_at: string | null
+          status: string | null
+          technician_code: string | null
+          technician_id: string | null
+          total_jobs: number | null
+          total_reviews: number | null
+        }
+        Relationships: []
       }
       vendors_public_safe: {
         Row: {
