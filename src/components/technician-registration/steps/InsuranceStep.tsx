@@ -7,6 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LegalFormDialog } from "../LegalFormDialog";
+import { FileSignature, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import type { TechnicianDocument } from "@/types/technician-registration";
 
 const insuranceSchema = z.object({
   has_insurance: z.boolean(),
@@ -14,6 +20,24 @@ const insuranceSchema = z.object({
   policy_number: z.string().optional(),
   policy_expiry_date: z.string().optional(),
   insurance_notes: z.string().optional(),
+  // ACORD extras (all optional)
+  insurance_certificate_number: z.string().optional(),
+  insurance_issue_date: z.string().optional(),
+  insurance_start_date: z.string().optional(),
+  insurance_status: z.enum(["active","expired","renewing","suspended"]).optional(),
+  insurance_company_license_no: z.string().optional(),
+  insurance_broker_name: z.string().optional(),
+  insurance_broker_license_no: z.string().optional(),
+  insurance_contact_address: z.string().optional(),
+  insurance_contact_email: z.string().email().optional().or(z.literal("")),
+  insurance_contact_phone: z.string().optional(),
+  insurance_coverage_types: z.array(z.string()).optional(),
+  insurance_limit_per_incident: z.coerce.number().optional(),
+  insurance_limit_aggregate: z.coerce.number().optional(),
+  insurance_limit_property: z.coerce.number().optional(),
+  insurance_limit_bodily: z.coerce.number().optional(),
+  insurance_limit_professional: z.coerce.number().optional(),
+  insurance_limit_workers: z.coerce.number().optional(),
 }).refine((data) => {
   if (data.has_insurance) {
     return data.insurance_company_name && data.policy_number && data.policy_expiry_date;
@@ -34,6 +58,11 @@ interface InsuranceStepProps {
 }
 
 export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: InsuranceStepProps) {
+  const [acordOpen, setAcordOpen] = useState(false);
+  const [acordSig, setAcordSig] = useState<string | undefined>(data.acord_signature_data);
+  const [acordSignedAt, setAcordSignedAt] = useState<string | undefined>(data.acord_signed_at);
+  const [acordAttachment, setAcordAttachment] = useState<TechnicianDocument | undefined>();
+
   const form = useForm<InsuranceFormData>({
     resolver: zodResolver(insuranceSchema),
     defaultValues: {
@@ -42,18 +71,45 @@ export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: Insurance
       policy_number: data.policy_number || '',
       policy_expiry_date: data.policy_expiry_date || '',
       insurance_notes: data.insurance_notes || '',
+      insurance_certificate_number: data.insurance_certificate_number || '',
+      insurance_issue_date: data.insurance_issue_date || '',
+      insurance_start_date: data.insurance_start_date || '',
+      insurance_status: data.insurance_status,
+      insurance_company_license_no: data.insurance_company_license_no || '',
+      insurance_broker_name: data.insurance_broker_name || '',
+      insurance_broker_license_no: data.insurance_broker_license_no || '',
+      insurance_contact_address: data.insurance_contact_address || '',
+      insurance_contact_email: data.insurance_contact_email || '',
+      insurance_contact_phone: data.insurance_contact_phone || '',
+      insurance_coverage_types: data.insurance_coverage_types || [],
+      insurance_limit_per_incident: data.insurance_limit_per_incident,
+      insurance_limit_aggregate: data.insurance_limit_aggregate,
+      insurance_limit_property: data.insurance_limit_property,
+      insurance_limit_bodily: data.insurance_limit_bodily,
+      insurance_limit_professional: data.insurance_limit_professional,
+      insurance_limit_workers: data.insurance_limit_workers,
     },
   });
 
   const hasInsurance = form.watch('has_insurance');
 
   const onSubmit = (formData: InsuranceFormData) => {
-    onNext(formData);
+    const docs = [...(data.documents || [])];
+    if (acordAttachment) {
+      const idx = docs.findIndex(d => d.file_name?.startsWith('ACORD-'));
+      if (idx >= 0) docs[idx] = acordAttachment; else docs.push(acordAttachment);
+    }
+    onNext({
+      ...formData,
+      acord_signature_data: acordSig,
+      acord_signed_at: acordSignedAt,
+      documents: docs,
+    });
   };
 
   const handleSaveAndExit = () => {
     const currentData = form.getValues();
-    onSaveAndExit(currentData);
+    onSaveAndExit({ ...currentData, acord_signature_data: acordSig, acord_signed_at: acordSignedAt });
   };
 
   return (
