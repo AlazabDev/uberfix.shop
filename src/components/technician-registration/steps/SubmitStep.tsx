@@ -7,10 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle2, Eye, EyeOff, Loader2, FileDown } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Eye, EyeOff, Loader2, FileDown, Printer, FileText } from "lucide-react";
+import { useMemo, useState } from "react";
 import { generateRegistrationPDF } from "@/utils/generateRegistrationPDF";
 import { toast } from "sonner";
+import { buildTermsHtml } from "@/lib/legalTerms";
+import { renderHtmlToPdfBlob, downloadBlob } from "@/lib/legalForms";
 
 const submitSchema = z.object({
   password: z.string()
@@ -49,6 +51,34 @@ export function SubmitStep({ data, onSubmit, onBack, isLoading, services, trades
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGeneratingTerms, setIsGeneratingTerms] = useState(false);
+  const termsHtml = useMemo(
+    () => buildTermsHtml({ signerName: data.full_name || data.legal_name }),
+    [data.full_name, data.legal_name]
+  );
+
+  const handleDownloadTerms = async () => {
+    setIsGeneratingTerms(true);
+    try {
+      const blob = await renderHtmlToPdfBlob(termsHtml);
+      downloadBlob(blob, `UberFix_Terms_${data.full_name || "draft"}.pdf`);
+    } catch (e) {
+      console.error(e);
+      toast.error("فشل تجهيز ملف الشروط");
+    } finally {
+      setIsGeneratingTerms(false);
+    }
+  };
+
+  const handlePrintTerms = () => {
+    const w = window.open("", "_blank", "width=900,height=700");
+    if (!w) return toast.error("اسمح بالنوافذ المنبثقة للطباعة");
+    w.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>UberFix — الشروط والأحكام</title>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+      <style>body{font-family:'Cairo',sans-serif;margin:0;background:#fff;}</style>
+      </head><body>${termsHtml}<script>window.onload=()=>setTimeout(()=>window.print(),300);</script></body></html>`);
+    w.document.close();
+  };
 
   const form = useForm<SubmitFormData>({
     resolver: zodResolver(submitSchema),
@@ -228,60 +258,21 @@ export function SubmitStep({ data, onSubmit, onBack, isLoading, services, trades
                       </FormLabel>
                     </div>
                     
-                    <ScrollArea className="h-48 w-full rounded border bg-muted/30 p-4">
-                      <div className="space-y-3 text-sm">
-                        <h4 className="font-semibold">شروط وأحكام منصة UberFix للفنيين</h4>
-                        
-                        <div>
-                          <h5 className="font-medium mb-1">1. التسجيل والقبول</h5>
-                          <p className="text-muted-foreground">
-                            - يجب تقديم معلومات صحيحة ودقيقة أثناء التسجيل
-                            <br />- تحتفظ المنصة بحق قبول أو رفض أي طلب تسجيل
-                            <br />- يجب تقديم المستندات المطلوبة للتحقق
-                          </p>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium mb-1">2. الالتزامات المهنية</h5>
-                          <p className="text-muted-foreground">
-                            - الالتزام بمعايير الجودة العالية في تقديم الخدمات
-                            <br />- الوصول في الوقت المحدد والتواصل المهني مع العملاء
-                            <br />- استخدام معدات وأدوات آمنة ومرخصة
-                          </p>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium mb-1">3. سياسة الإلغاء</h5>
-                          <p className="text-muted-foreground">
-                            - يجب إخطار المنصة مسبقاً في حالة عدم القدرة على تنفيذ الطلب
-                            <br />- الإلغاء المتكرر قد يؤدي إلى تعليق أو إنهاء الحساب
-                          </p>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium mb-1">4. المسؤولية والتأمين</h5>
-                          <p className="text-muted-foreground">
-                            - الفني مسؤول عن جودة العمل المنجز
-                            <br />- يُنصح بشدة بالحصول على تأمين مسؤولية مهنية
-                          </p>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium mb-1">5. حماية البيانات</h5>
-                          <p className="text-muted-foreground">
-                            - معلومات العملاء سرية ولا يجوز مشاركتها
-                            <br />- يُحظر استخدام معلومات العملاء خارج المنصة
-                          </p>
-                        </div>
-
-                        <div>
-                          <h5 className="font-medium mb-1">6. إنهاء الحساب</h5>
-                          <p className="text-muted-foreground">
-                            - يحق للمنصة إنهاء الحساب في حالة انتهاك الشروط
-                            <br />- يمكن للفني طلب إنهاء الحساب مع إشعار مسبق
-                          </p>
-                        </div>
-                      </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={handleDownloadTerms} disabled={isGeneratingTerms}>
+                        {isGeneratingTerms ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <FileText className="h-4 w-4 ml-1" />}
+                        تحميل الشروط PDF
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={handlePrintTerms}>
+                        <Printer className="h-4 w-4 ml-1" /> طباعة
+                      </Button>
+                    </div>
+                    <ScrollArea className="h-72 w-full rounded border bg-white">
+                      <div
+                        style={{ direction: "rtl", transform: "scale(0.78)", transformOrigin: "top center", width: 760 }}
+                        className="mx-auto"
+                        dangerouslySetInnerHTML={{ __html: termsHtml }}
+                      />
                     </ScrollArea>
                     <FormMessage />
                   </div>
