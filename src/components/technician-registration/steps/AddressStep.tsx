@@ -9,6 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Select as USelect, SelectContent as UContent, SelectItem as UItem, SelectTrigger as UTrigger, SelectValue as UValue } from "@/components/ui/select";
+import { LegalFormDialog } from "../LegalFormDialog";
+import { FileSignature, CheckCircle2 } from "lucide-react";
+import type { TechnicianDocument } from "@/types/technician-registration";
 
 const addressSchema = z.object({
   service_email: z.string().email("بريد إلكتروني غير صالح").optional().or(z.literal("")),
@@ -24,6 +28,32 @@ const addressSchema = z.object({
   accounting_name: z.string().optional(),
   accounting_email: z.string().email().optional().or(z.literal("")),
   accounting_phone: z.string().optional(),
+  // W-9 fields (all optional in schema; signing dialog enforces completeness)
+  legal_name: z.string().optional(),
+  trade_name: z.string().optional(),
+  national_id: z.string().optional(),
+  passport_no: z.string().optional(),
+  date_of_birth: z.string().optional(),
+  has_tax_card: z.enum(["yes", "no", "in_progress"]).optional(),
+  tax_registration_number: z.string().optional(),
+  tax_file_number: z.string().optional(),
+  tax_office: z.string().optional(),
+  tax_card_issue_date: z.string().optional(),
+  tax_card_expiry_date: z.string().optional(),
+  vat_status: z.enum(["yes", "no", "not_required", "in_progress"]).optional(),
+  e_invoice_status: z.enum(["yes", "no", "in_progress"]).optional(),
+  has_commercial_register: z.enum(["yes", "no", "in_progress"]).optional(),
+  commercial_register_number: z.string().optional(),
+  commercial_register_office: z.string().optional(),
+  commercial_register_issue_date: z.string().optional(),
+  legal_form: z.enum(["natural_person","sole_proprietorship","llc","partnership","limited_partnership","other"]).optional(),
+  payment_method: z.enum(["bank","wallet","company_account","other"]).optional(),
+  bank_account_holder: z.string().optional(),
+  bank_name: z.string().optional(),
+  bank_account_number: z.string().optional(),
+  bank_iban: z.string().optional(),
+  wallet_number: z.string().optional(),
+  wallet_provider: z.string().optional(),
 });
 
 type AddressFormData = z.infer<typeof addressSchema>;
@@ -39,6 +69,10 @@ export function AddressStep({ data, onNext, onBack, onSaveAndExit }: AddressStep
   const [cities, setCities] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
   const [selectedCityId, setSelectedCityId] = useState<number | undefined>(data.city_id);
+  const [w9Open, setW9Open] = useState(false);
+  const [w9Sig, setW9Sig] = useState<string | undefined>(data.w9_signature_data);
+  const [w9Attachment, setW9Attachment] = useState<TechnicianDocument | undefined>();
+  const [w9SignedAt, setW9SignedAt] = useState<string | undefined>(data.w9_signed_at);
 
   const fetchCities = async () => {
     const { data, error } = await supabase
@@ -79,6 +113,31 @@ export function AddressStep({ data, onNext, onBack, onSaveAndExit }: AddressStep
       accounting_name: data.accounting_name || '',
       accounting_email: data.accounting_email || '',
       accounting_phone: data.accounting_phone || '',
+      legal_name: data.legal_name || data.full_name || '',
+      trade_name: data.trade_name || data.company_name || '',
+      national_id: data.national_id || '',
+      passport_no: data.passport_no || '',
+      date_of_birth: data.date_of_birth || '',
+      has_tax_card: data.has_tax_card,
+      tax_registration_number: data.tax_registration_number || '',
+      tax_file_number: data.tax_file_number || '',
+      tax_office: data.tax_office || '',
+      tax_card_issue_date: data.tax_card_issue_date || '',
+      tax_card_expiry_date: data.tax_card_expiry_date || '',
+      vat_status: data.vat_status,
+      e_invoice_status: data.e_invoice_status,
+      has_commercial_register: data.has_commercial_register,
+      commercial_register_number: data.commercial_register_number || '',
+      commercial_register_office: data.commercial_register_office || '',
+      commercial_register_issue_date: data.commercial_register_issue_date || '',
+      legal_form: data.legal_form,
+      payment_method: data.payment_method,
+      bank_account_holder: data.bank_account_holder || '',
+      bank_name: data.bank_name || '',
+      bank_account_number: data.bank_account_number || '',
+      bank_iban: data.bank_iban || '',
+      wallet_number: data.wallet_number || '',
+      wallet_provider: data.wallet_provider || '',
     },
   });
 
@@ -93,12 +152,23 @@ export function AddressStep({ data, onNext, onBack, onSaveAndExit }: AddressStep
   }, [selectedCityId]);
 
   const onSubmit = (formData: AddressFormData) => {
-    onNext(formData);
+    const docs = [...(data.documents || [])];
+    if (w9Attachment) {
+      // Replace prior W-9 attachment if any
+      const idx = docs.findIndex(d => d.file_name?.startsWith('W9-'));
+      if (idx >= 0) docs[idx] = w9Attachment; else docs.push(w9Attachment);
+    }
+    onNext({
+      ...formData,
+      w9_signature_data: w9Sig,
+      w9_signed_at: w9SignedAt,
+      documents: docs,
+    });
   };
 
   const handleSaveAndExit = () => {
     const currentData = form.getValues();
-    onSaveAndExit(currentData);
+    onSaveAndExit({ ...currentData, w9_signature_data: w9Sig, w9_signed_at: w9SignedAt });
   };
 
   return (
