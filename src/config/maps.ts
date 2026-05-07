@@ -21,7 +21,7 @@ export const MAPS_CONFIG = {
   },
   
   // Libraries to load
-  libraries: ['places', 'geometry', 'marker'] as const,
+  libraries: ['places', 'geometry', 'marker', 'visualization'] as const,
   
   // Marker icons
   markerIcons: {
