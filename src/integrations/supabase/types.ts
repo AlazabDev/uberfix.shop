@@ -2332,6 +2332,272 @@ export type Database = {
           },
         ]
       }
+      inventory_items: {
+        Row: {
+          barcode: string | null
+          category: string | null
+          cost_price: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          item_code: string | null
+          name_ar: string
+          name_en: string | null
+          reorder_level: number
+          selling_price: number
+          unit: string
+          updated_at: string
+          vat_rate: number
+          withholding_rate: number
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string | null
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          item_code?: string | null
+          name_ar: string
+          name_en?: string | null
+          reorder_level?: number
+          selling_price?: number
+          unit?: string
+          updated_at?: string
+          vat_rate?: number
+          withholding_rate?: number
+        }
+        Update: {
+          barcode?: string | null
+          category?: string | null
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          item_code?: string | null
+          name_ar?: string
+          name_en?: string | null
+          reorder_level?: number
+          selling_price?: number
+          unit?: string
+          updated_at?: string
+          vat_rate?: number
+          withholding_rate?: number
+        }
+        Relationships: []
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          movement_code: string | null
+          movement_type: string
+          notes: string | null
+          performed_by: string | null
+          quantity: number
+          reason: string | null
+          reference_id: string | null
+          reference_type: string | null
+          request_id: string | null
+          total_cost: number | null
+          unit_cost: number
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          movement_code?: string | null
+          movement_type: string
+          notes?: string | null
+          performed_by?: string | null
+          quantity: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          request_id?: string | null
+          total_cost?: number | null
+          unit_cost?: number
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          movement_code?: string | null
+          movement_type?: string
+          notes?: string | null
+          performed_by?: string | null
+          quantity?: number
+          reason?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          request_id?: string | null
+          total_cost?: number | null
+          unit_cost?: number
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_stock: {
+        Row: {
+          id: string
+          item_id: string
+          quantity: number
+          updated_at: string
+          warehouse_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          quantity?: number
+          updated_at?: string
+          warehouse_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          quantity?: number
+          updated_at?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v_inventory_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_stock_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_warehouses: {
+        Row: {
+          address: string | null
+          branch_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          manager_id: string | null
+          name_ar: string
+          name_en: string | null
+          notes: string | null
+          updated_at: string
+          warehouse_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          name_ar: string
+          name_en?: string | null
+          notes?: string | null
+          updated_at?: string
+          warehouse_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          name_ar?: string
+          name_en?: string | null
+          notes?: string | null
+          updated_at?: string
+          warehouse_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_warehouses_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_warehouses_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           created_at: string
@@ -4401,6 +4667,7 @@ export type Database = {
       }
       services: {
         Row: {
+          barcode: string | null
           base_price: number | null
           category_id: string | null
           code: string
@@ -4417,12 +4684,16 @@ export type Database = {
           name_ar: string
           name_en: string | null
           pricing_type: string
+          sku: string | null
           sort_order: number | null
           subcategory_id: string | null
           unit: string | null
           updated_at: string | null
+          vat_rate: number
+          withholding_rate: number
         }
         Insert: {
+          barcode?: string | null
           base_price?: number | null
           category_id?: string | null
           code: string
@@ -4439,12 +4710,16 @@ export type Database = {
           name_ar: string
           name_en?: string | null
           pricing_type?: string
+          sku?: string | null
           sort_order?: number | null
           subcategory_id?: string | null
           unit?: string | null
           updated_at?: string | null
+          vat_rate?: number
+          withholding_rate?: number
         }
         Update: {
+          barcode?: string | null
           base_price?: number | null
           category_id?: string | null
           code?: string
@@ -4461,10 +4736,13 @@ export type Database = {
           name_ar?: string
           name_en?: string | null
           pricing_type?: string
+          sku?: string | null
           sort_order?: number | null
           subcategory_id?: string | null
           unit?: string | null
           updated_at?: string | null
+          vat_rate?: number
+          withholding_rate?: number
         }
         Relationships: []
       }
@@ -5761,6 +6039,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_catalog_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -9363,6 +9648,24 @@ export type Database = {
           },
         ]
       }
+      v_inventory_dashboard: {
+        Row: {
+          category: string | null
+          cost_price: number | null
+          id: string | null
+          is_active: boolean | null
+          item_code: string | null
+          name_ar: string | null
+          reorder_level: number | null
+          selling_price: number | null
+          stock_status: string | null
+          total_quantity: number | null
+          unit: string | null
+          vat_rate: number | null
+          warehouse_count: number | null
+        }
+        Relationships: []
+      }
       v_maintenance_mirror: {
         Row: {
           actual_cost: number | null
@@ -9591,6 +9894,22 @@ export type Database = {
           qr_code_data?: string | null
           status?: string | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      v_service_catalog_dashboard: {
+        Row: {
+          base_price: number | null
+          code: string | null
+          id: string | null
+          is_active: boolean | null
+          name_ar: string | null
+          pricing_type: string | null
+          times_invoiced: number | null
+          total_revenue: number | null
+          unit: string | null
+          vat_rate: number | null
+          withholding_rate: number | null
         }
         Relationships: []
       }
