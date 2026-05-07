@@ -7,6 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { LegalFormDialog } from "../LegalFormDialog";
+import { FileSignature, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import type { TechnicianDocument } from "@/types/technician-registration";
 
 const insuranceSchema = z.object({
   has_insurance: z.boolean(),
@@ -14,6 +20,24 @@ const insuranceSchema = z.object({
   policy_number: z.string().optional(),
   policy_expiry_date: z.string().optional(),
   insurance_notes: z.string().optional(),
+  // ACORD extras (all optional)
+  insurance_certificate_number: z.string().optional(),
+  insurance_issue_date: z.string().optional(),
+  insurance_start_date: z.string().optional(),
+  insurance_status: z.enum(["active","expired","renewing","suspended"]).optional(),
+  insurance_company_license_no: z.string().optional(),
+  insurance_broker_name: z.string().optional(),
+  insurance_broker_license_no: z.string().optional(),
+  insurance_contact_address: z.string().optional(),
+  insurance_contact_email: z.string().email().optional().or(z.literal("")),
+  insurance_contact_phone: z.string().optional(),
+  insurance_coverage_types: z.array(z.string()).optional(),
+  insurance_limit_per_incident: z.coerce.number().optional(),
+  insurance_limit_aggregate: z.coerce.number().optional(),
+  insurance_limit_property: z.coerce.number().optional(),
+  insurance_limit_bodily: z.coerce.number().optional(),
+  insurance_limit_professional: z.coerce.number().optional(),
+  insurance_limit_workers: z.coerce.number().optional(),
 }).refine((data) => {
   if (data.has_insurance) {
     return data.insurance_company_name && data.policy_number && data.policy_expiry_date;
@@ -34,6 +58,11 @@ interface InsuranceStepProps {
 }
 
 export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: InsuranceStepProps) {
+  const [acordOpen, setAcordOpen] = useState(false);
+  const [acordSig, setAcordSig] = useState<string | undefined>(data.acord_signature_data);
+  const [acordSignedAt, setAcordSignedAt] = useState<string | undefined>(data.acord_signed_at);
+  const [acordAttachment, setAcordAttachment] = useState<TechnicianDocument | undefined>();
+
   const form = useForm<InsuranceFormData>({
     resolver: zodResolver(insuranceSchema),
     defaultValues: {
@@ -42,18 +71,45 @@ export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: Insurance
       policy_number: data.policy_number || '',
       policy_expiry_date: data.policy_expiry_date || '',
       insurance_notes: data.insurance_notes || '',
+      insurance_certificate_number: data.insurance_certificate_number || '',
+      insurance_issue_date: data.insurance_issue_date || '',
+      insurance_start_date: data.insurance_start_date || '',
+      insurance_status: data.insurance_status,
+      insurance_company_license_no: data.insurance_company_license_no || '',
+      insurance_broker_name: data.insurance_broker_name || '',
+      insurance_broker_license_no: data.insurance_broker_license_no || '',
+      insurance_contact_address: data.insurance_contact_address || '',
+      insurance_contact_email: data.insurance_contact_email || '',
+      insurance_contact_phone: data.insurance_contact_phone || '',
+      insurance_coverage_types: data.insurance_coverage_types || [],
+      insurance_limit_per_incident: data.insurance_limit_per_incident,
+      insurance_limit_aggregate: data.insurance_limit_aggregate,
+      insurance_limit_property: data.insurance_limit_property,
+      insurance_limit_bodily: data.insurance_limit_bodily,
+      insurance_limit_professional: data.insurance_limit_professional,
+      insurance_limit_workers: data.insurance_limit_workers,
     },
   });
 
   const hasInsurance = form.watch('has_insurance');
 
   const onSubmit = (formData: InsuranceFormData) => {
-    onNext(formData);
+    const docs = [...(data.documents || [])];
+    if (acordAttachment) {
+      const idx = docs.findIndex(d => d.file_name?.startsWith('ACORD-'));
+      if (idx >= 0) docs[idx] = acordAttachment; else docs.push(acordAttachment);
+    }
+    onNext({
+      ...formData,
+      acord_signature_data: acordSig,
+      acord_signed_at: acordSignedAt,
+      documents: docs,
+    });
   };
 
   const handleSaveAndExit = () => {
     const currentData = form.getValues();
-    onSaveAndExit(currentData);
+    onSaveAndExit({ ...currentData, acord_signature_data: acordSig, acord_signed_at: acordSignedAt });
   };
 
   return (
@@ -149,6 +205,142 @@ export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: Insurance
                   </FormItem>
                 )}
               />
+
+              {/* ==================== ACORD (Egyptian) certificate ==================== */}
+              <div className="border-t pt-6 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <FileSignature className="h-5 w-5 text-primary" />
+                      شهادة التأمين (نموذج ACORD المصري)
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      تخضع للهيئة العامة للرقابة المالية
+                    </p>
+                  </div>
+                  {acordSig ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> موقّع
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded">
+                      بانتظار التوقيع
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={form.control} name="insurance_certificate_number" render={({ field }) => (
+                    <FormItem><FormLabel>رقم الشهادة</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_issue_date" render={({ field }) => (
+                    <FormItem><FormLabel>تاريخ الإصدار</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_start_date" render={({ field }) => (
+                    <FormItem><FormLabel>بداية التغطية</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_status" render={({ field }) => (
+                    <FormItem><FormLabel>حالة الوثيقة</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">سارية</SelectItem>
+                          <SelectItem value="expired">منتهية</SelectItem>
+                          <SelectItem value="renewing">تحت التجديد</SelectItem>
+                          <SelectItem value="suspended">موقوفة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_company_license_no" render={({ field }) => (
+                    <FormItem><FormLabel>ترخيص شركة التأمين</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_broker_name" render={({ field }) => (
+                    <FormItem><FormLabel>اسم الوسيط</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_broker_license_no" render={({ field }) => (
+                    <FormItem><FormLabel>قيد الوسيط</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_contact_phone" render={({ field }) => (
+                    <FormItem><FormLabel>هاتف الاتصال</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_contact_email" render={({ field }) => (
+                    <FormItem><FormLabel>بريد الاتصال</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_contact_address" render={({ field }) => (
+                    <FormItem className="md:col-span-2"><FormLabel>العنوان</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                  )} />
+                </div>
+
+                <div className="mt-4">
+                  <FormField control={form.control} name="insurance_coverage_types" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>أنواع التغطية</FormLabel>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        {[
+                          ["civil_liability","مسؤولية مدنية تجاه الغير"],
+                          ["professional_liability","مسؤولية مهنية"],
+                          ["property_damage","أضرار ممتلكات العملاء"],
+                          ["bodily_injury","إصابات جسدية"],
+                          ["employer_liability","مسؤولية صاحب العمل"],
+                          ["vehicles","سيارات / انتقالات"],
+                          ["electrical","أعمال كهرباء"],
+                          ["plumbing","أعمال سباكة"],
+                          ["hvac","أعمال تكييف"],
+                          ["heights","أعمال ارتفاعات"],
+                          ["welding","لحام / قطع"],
+                        ].map(([k, l]) => {
+                          const arr = (field.value || []) as string[];
+                          const checked = arr.includes(k);
+                          return (
+                            <label key={k} className="flex items-center gap-2 text-sm cursor-pointer rounded border p-2">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(c) => {
+                                  const next = c ? [...arr, k] : arr.filter(x => x !== k);
+                                  field.onChange(next);
+                                }}
+                              />
+                              {l}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                  <FormField control={form.control} name="insurance_limit_per_incident" render={({ field }) => (
+                    <FormItem><FormLabel>حد لكل حادث</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_limit_aggregate" render={({ field }) => (
+                    <FormItem><FormLabel>الإجمالي السنوي</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_limit_property" render={({ field }) => (
+                    <FormItem><FormLabel>أضرار ممتلكات</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_limit_bodily" render={({ field }) => (
+                    <FormItem><FormLabel>إصابات جسدية</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_limit_professional" render={({ field }) => (
+                    <FormItem><FormLabel>مسؤولية مهنية</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name="insurance_limit_workers" render={({ field }) => (
+                    <FormItem><FormLabel>مسؤولية العاملين</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ""} /></FormControl></FormItem>
+                  )} />
+                </div>
+
+                <Button
+                  type="button"
+                  variant={acordSig ? "outline" : "default"}
+                  onClick={() => setAcordOpen(true)}
+                  className="mt-4 w-full md:w-auto"
+                >
+                  <FileSignature className="h-4 w-4 ml-2" />
+                  {acordSig ? "مراجعة وإعادة توقيع شهادة التأمين" : "مراجعة وتوقيع شهادة التأمين"}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -175,6 +367,18 @@ export function InsuranceStep({ data, onNext, onBack, onSaveAndExit }: Insurance
           </div>
         </form>
       </Form>
+
+      <LegalFormDialog
+        open={acordOpen}
+        kind="acord"
+        data={{ ...data, ...form.getValues() } as any}
+        onOpenChange={setAcordOpen}
+        onSigned={(patch, attachment) => {
+          if (patch.acord_signature_data !== undefined) setAcordSig(patch.acord_signature_data);
+          if (patch.acord_signed_at) setAcordSignedAt(patch.acord_signed_at);
+          if (attachment) setAcordAttachment(attachment);
+        }}
+      />
     </div>
   );
 }
