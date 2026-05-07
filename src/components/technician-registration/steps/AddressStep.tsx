@@ -409,6 +409,218 @@ export function AddressStep({ data, onNext, onBack, onSaveAndExit }: AddressStep
             </div>
           </div>
 
+          {/* ==================== W-9 (Egyptian) tax & legal profile ==================== */}
+          <div className="border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <FileSignature className="h-5 w-5 text-primary" />
+                  نموذج W-9 — البيانات الضريبية والقانونية
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  مطلوب طبقًا لقانون الإجراءات الضريبية رقم 206 لسنة 2020
+                </p>
+              </div>
+              {w9Sig ? (
+                <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> موقّع
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-1 rounded">
+                  بانتظار التوقيع
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField control={form.control} name="legal_name" render={({ field }) => (
+                <FormItem><FormLabel>الاسم القانوني *</FormLabel>
+                  <FormControl><Input placeholder="الاسم الثلاثي حسب البطاقة" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="trade_name" render={({ field }) => (
+                <FormItem><FormLabel>الاسم التجاري</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="national_id" render={({ field }) => (
+                <FormItem><FormLabel>الرقم القومي</FormLabel>
+                  <FormControl><Input placeholder="14 رقمًا" maxLength={14} {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="passport_no" render={({ field }) => (
+                <FormItem><FormLabel>جواز السفر (للأجانب)</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="date_of_birth" render={({ field }) => (
+                <FormItem><FormLabel>تاريخ الميلاد</FormLabel>
+                  <FormControl><Input type="date" {...field} /></FormControl>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="has_tax_card" render={({ field }) => (
+                <FormItem><FormLabel>هل لديك بطاقة ضريبية؟</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="yes">نعم</UItem>
+                      <UItem value="no">لا</UItem>
+                      <UItem value="in_progress">جاري الاستخراج</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="tax_registration_number" render={({ field }) => (
+                <FormItem><FormLabel>رقم التسجيل الضريبي</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="tax_file_number" render={({ field }) => (
+                <FormItem><FormLabel>رقم الملف الضريبي</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="tax_office" render={({ field }) => (
+                <FormItem><FormLabel>المأمورية</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="tax_card_issue_date" render={({ field }) => (
+                <FormItem><FormLabel>تاريخ إصدار البطاقة</FormLabel>
+                  <FormControl><Input type="date" {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="tax_card_expiry_date" render={({ field }) => (
+                <FormItem><FormLabel>تاريخ انتهاء البطاقة</FormLabel>
+                  <FormControl><Input type="date" {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="vat_status" render={({ field }) => (
+                <FormItem><FormLabel>حالة ضريبة القيمة المضافة</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="yes">مسجَّل</UItem>
+                      <UItem value="no">غير مسجَّل</UItem>
+                      <UItem value="not_required">غير ملزم</UItem>
+                      <UItem value="in_progress">جاري الفحص</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="e_invoice_status" render={({ field }) => (
+                <FormItem><FormLabel>الفاتورة/الإيصال الإلكتروني</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="yes">مفعّل</UItem>
+                      <UItem value="no">غير مفعّل</UItem>
+                      <UItem value="in_progress">جاري التجهيز</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="has_commercial_register" render={({ field }) => (
+                <FormItem><FormLabel>السجل التجاري</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="yes">لديّ سجل</UItem>
+                      <UItem value="no">لا</UItem>
+                      <UItem value="in_progress">جاري الاستخراج</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="commercial_register_number" render={({ field }) => (
+                <FormItem><FormLabel>رقم السجل التجاري</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="commercial_register_office" render={({ field }) => (
+                <FormItem><FormLabel>مكتب السجل</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="commercial_register_issue_date" render={({ field }) => (
+                <FormItem><FormLabel>تاريخ الإصدار</FormLabel>
+                  <FormControl><Input type="date" {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="legal_form" render={({ field }) => (
+                <FormItem><FormLabel>الشكل القانوني</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="natural_person">شخص طبيعي</UItem>
+                      <UItem value="sole_proprietorship">منشأة فردية</UItem>
+                      <UItem value="llc">شركة ذات مسؤولية محدودة</UItem>
+                      <UItem value="partnership">شركة تضامن</UItem>
+                      <UItem value="limited_partnership">شركة توصية بسيطة</UItem>
+                      <UItem value="other">أخرى</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="payment_method" render={({ field }) => (
+                <FormItem><FormLabel>طريقة استلام المستحقات</FormLabel>
+                  <USelect onValueChange={field.onChange} value={field.value}>
+                    <FormControl><UTrigger><UValue placeholder="اختر" /></UTrigger></FormControl>
+                    <UContent>
+                      <UItem value="bank">حساب بنكي</UItem>
+                      <UItem value="wallet">محفظة إلكترونية</UItem>
+                      <UItem value="company_account">حساب شركة</UItem>
+                      <UItem value="other">أخرى</UItem>
+                    </UContent>
+                  </USelect>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="bank_account_holder" render={({ field }) => (
+                <FormItem><FormLabel>اسم صاحب الحساب</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="bank_name" render={({ field }) => (
+                <FormItem><FormLabel>اسم البنك</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="bank_account_number" render={({ field }) => (
+                <FormItem><FormLabel>رقم الحساب</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="bank_iban" render={({ field }) => (
+                <FormItem><FormLabel>IBAN</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="wallet_number" render={({ field }) => (
+                <FormItem><FormLabel>رقم المحفظة</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="wallet_provider" render={({ field }) => (
+                <FormItem><FormLabel>مزود المحفظة</FormLabel>
+                  <FormControl><Input placeholder="فودافون كاش، انستاباي…" {...field} /></FormControl>
+                </FormItem>
+              )} />
+            </div>
+
+            <Button
+              type="button"
+              variant={w9Sig ? "outline" : "default"}
+              onClick={() => setW9Open(true)}
+              className="mt-4 w-full md:w-auto"
+            >
+              <FileSignature className="h-4 w-4 ml-2" />
+              {w9Sig ? "مراجعة وإعادة توقيع W-9" : "مراجعة وتوقيع نموذج W-9"}
+            </Button>
+          </div>
+
           <div className="flex gap-4 justify-between pt-6">
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={onBack}>
@@ -424,6 +636,19 @@ export function AddressStep({ data, onNext, onBack, onSaveAndExit }: AddressStep
           </div>
         </form>
       </Form>
+
+      <LegalFormDialog
+        open={w9Open}
+        kind="w9"
+        data={{ ...data, ...form.getValues() } as any}
+        onOpenChange={setW9Open}
+        onSigned={(patch, attachment) => {
+          if (patch.w9_signature_data !== undefined) setW9Sig(patch.w9_signature_data);
+          if (patch.w9_signed_at) setW9SignedAt(patch.w9_signed_at);
+          if (patch.legal_name) form.setValue("legal_name", patch.legal_name);
+          if (attachment) setW9Attachment(attachment);
+        }}
+      />
     </div>
   );
 }
