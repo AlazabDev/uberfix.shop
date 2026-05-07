@@ -1,563 +1,599 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, User, MapPin, Phone, Star, Home, ClipboardList, Settings as SettingsIcon, Cog, LogOut } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createRoot } from "react-dom/client";
+import { useNavigate } from "react-router-dom";
+import {
+  Search, MapPin, Users, Building2, Home as HomeIcon, ClipboardList,
+  Layers, Flame, RefreshCw, AlertTriangle, Phone, MessageCircle, X,
+  CheckCircle2, Settings as SettingsIcon, Activity,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { loadGoogleMaps } from "@/lib/googleMapsLoader";
 import { MAPS_CONFIG } from "@/config/maps";
-import { useTechnicians } from "@/hooks/useTechnicians";
-import { useBranchLocations, BranchLocation } from "@/hooks/useBranchLocations";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useServiceMapData, MapTechnician, MapActiveRequest, MapBranch, MapProperty } from "@/hooks/useServiceMapData";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { NotificationsList } from "@/components/notifications/NotificationsList";
+  SPECIALIZATIONS_LIST, mapStatusToMapLabel,
+  getTechnicianIconByText, getBranchIcon,
+} from "@/constants/technicianConstants";
+import { WORKFLOW_STAGES, WorkflowStage } from "@/constants/workflowStages";
 import { TechnicianMapPopup } from "@/components/maps/TechnicianMapPopup";
 import { BranchMapPopup } from "@/components/maps/BranchMapPopup";
-import { createRoot } from "react-dom/client";
+import { openWhatsApp } from "@/config/whatsapp";
+// @ts-ignore - markerclusterer types optional
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
-interface UserData {
-  email: string;
-  firstName: string;
-  lastName: string;
-  avatarUrl: string | null;
-  role: "مسؤول" | "مدير" | "موظف" | "فني" | "عميل";
-}
-
-import { 
-  SPECIALIZATIONS_LIST, 
-  mapStatusToMapLabel, 
-  getTechnicianIconByText, 
-  getBranchIcon,
-  getSpecializationEmoji 
-} from "@/constants/technicianConstants";
+declare global { interface Window { google?: any } }
 
 const SPECIALTIES = [
   { id: "all", label: "كل التخصصات", emoji: "🛠️", keywords: [] as string[] },
-  ...SPECIALIZATIONS_LIST.map(s => ({ id: s.id, label: s.label, emoji: s.emoji, keywords: s.keywords }))
+  ...SPECIALIZATIONS_LIST.map(s => ({ id: s.id, label: s.label, emoji: s.emoji, keywords: s.keywords })),
 ];
 
+// UberFix Navy/Gold map style
 const MAP_STYLE: any[] = [
-  { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { elementType: "geometry", stylers: [{ color: "#f7f8fa" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#6b7280" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#f9fafb" }] },
-  {
-    featureType: "administrative.land_parcel",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9ca3af" }],
-  },
-  {
-    featureType: "poi",
-    elementType: "geometry",
-    stylers: [{ color: "#e8f0fe" }],
-  },
-  {
-    featureType: "poi.park",
-    elementType: "geometry",
-    stylers: [{ color: "#d1f0e5" }],
-  },
-  {
-    featureType: "poi.park",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#16a34a" }],
-  },
+  { elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eef2ff" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#dcfce7" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e5e7eb" }] },
-  {
-    featureType: "road.highway",
-    elementType: "geometry",
-    stylers: [{ color: "#fbbf24" }],
-  },
-  {
-    featureType: "road.highway",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#f59e0b" }],
-  },
-  {
-    featureType: "transit.line",
-    elementType: "geometry",
-    stylers: [{ color: "#e5e7eb" }],
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#dbeafe" }],
-  },
-  {
-    featureType: "water",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#3b82f6" }],
-  },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#FFB900" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#030957" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#cbd5e1" }] },
 ];
 
-// Icons now imported from unified constants above
+const PRIORITY_COLOR: Record<string, string> = {
+  urgent: "#dc2626", high: "#f97316", normal: "#0ea5e9", low: "#64748b",
+};
+
+type SelectedItem =
+  | { kind: "technician"; data: MapTechnician }
+  | { kind: "branch"; data: MapBranch }
+  | { kind: "property"; data: MapProperty }
+  | { kind: "request"; data: MapActiveRequest }
+  | null;
 
 export default function ServiceMap() {
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mapError, setMapError] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { technicians, branches, properties, requests, loading, refetch } = useServiceMapData();
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<BranchLocation | null>(null);
+  const clustererRef = useRef<any>(null);
+  const heatmapRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
 
-  const { technicians } = useTechnicians();
-  const { branches } = useBranchLocations();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [layerTechnicians, setLayerTechnicians] = useState(true);
+  const [layerBranches, setLayerBranches] = useState(true);
+  const [layerProperties, setLayerProperties] = useState(true);
+  const [layerRequests, setLayerRequests] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showClusters, setShowClusters] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  const createMarkerIcon = (url: string) => ({
-    url,
-    scaledSize: new google.maps.Size(40, 48),
-    anchor: new google.maps.Point(20, 48),
-  });
-
-  const fetchUserData = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, name, first_name, last_name, avatar_url, role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const displayName = profile?.full_name || profile?.name || '';
-      const nameParts = displayName.split(' ');
-      setUserData({
-        email: user.email || "",
-        firstName: profile?.first_name || nameParts[0] || "مستخدم",
-        lastName: profile?.last_name || nameParts.slice(1).join(' ') || "",
-        avatarUrl: profile?.avatar_url || null,
-        role:
-          profile?.role === "admin"
-            ? "مسؤول"
-            : profile?.role === "manager"
-            ? "مدير"
-            : profile?.role === "staff"
-            ? "موظف"
-            : profile?.role === "vendor"
-            ? "فني"
-            : "عميل",
-      });
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
-
-  const handleRequestService = (technician: any) => {
-    // Save technician data to sessionStorage for QuickRequestFromMap
-    sessionStorage.setItem('selectedTechnician', JSON.stringify({
-      id: technician.id,
-      name: technician.name || 'فني',
-      specialization: technician.specialization || 'general',
-      rating: technician.rating || 0,
-      total_reviews: technician.total_reviews || 0,
-      status: technician.status || 'offline',
-      latitude: technician.current_latitude || 0,
-      longitude: technician.current_longitude || 0,
-    }));
-    navigate("/quick-request-from-map");
-  };
-
+  // Authorization check (for assignment)
   useEffect(() => {
-    fetchUserData();
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
+      const roles = (data || []).map((r: any) => r.role);
+      setIsAuthorized(roles.some(r => ['admin','manager','staff','dispatcher'].includes(r)));
+    })();
   }, []);
 
-  useEffect(() => {
-    if (!selectedBranch && branches && branches.length > 0) {
-      setSelectedBranch(branches[0]);
-    }
-  }, [branches, selectedBranch]);
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "تم تسجيل الخروج",
-        description: "نراك قريباً",
-      });
-      navigate("/login");
-    } catch {
-      toast({
-        title: "خطأ في تسجيل الخروج",
-        description: "يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    }
-  };
-
+  // Initialize map once
   useEffect(() => {
     let mounted = true;
-
-    const initMap = async () => {
+    (async () => {
       try {
         if (typeof window.google === "undefined" || !window.google.maps) {
           await loadGoogleMaps();
-          await new Promise((resolve) => setTimeout(resolve, 500));
         }
-
-        if (mapRef.current && !mapInstanceRef.current && mounted) {
-          mapInstanceRef.current = new google.maps.Map(mapRef.current, {
-            center: MAPS_CONFIG.defaultCenter,
-            zoom: 13,
-            styles: MAP_STYLE,
-            mapTypeControl: false,
-            fullscreenControl: false,
-            streetViewControl: false,
-            zoomControl: true,
-            gestureHandling: "greedy",
-            backgroundColor: "#f8fafc",
-          });
-        }
-
-        if (!mapInstanceRef.current) return;
-
-        markersRef.current.forEach((marker) => {
-          marker.map = null;
+        if (!mapRef.current || mapInstanceRef.current || !mounted) return;
+        mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+          center: MAPS_CONFIG.defaultCenter,
+          zoom: 12,
+          styles: MAP_STYLE,
+          mapTypeControl: false,
+          fullscreenControl: false,
+          streetViewControl: false,
+          zoomControl: true,
+          gestureHandling: "greedy",
+          backgroundColor: "#f7f8fa",
         });
-        markersRef.current = [];
-
-        branches.forEach((branch) => {
-          if (!branch.latitude || !branch.longitude) return;
-
-          const lat = parseFloat(branch.latitude);
-          const lng = parseFloat(branch.longitude);
-
-          if (isNaN(lat) || isNaN(lng)) return;
-
-          // استخدام أيقونة الفرع المرفقة بدون أي تعديل
-          const marker = new google.maps.Marker({
-            map: mapInstanceRef.current!,
-            position: { lat, lng },
-            icon: createMarkerIcon(getBranchIcon()),
-            title: branch.branch,
-            zIndex: 100,
-          });
-
-          const infoWindow = new google.maps.InfoWindow({ maxWidth: 300 });
-          marker.addListener("click", () => {
-            setSelectedBranch(branch);
-            const div = document.createElement("div");
-            const root = createRoot(div);
-            root.render(
-              <BranchMapPopup 
-                id={branch.id} 
-                name={branch.branch} 
-                address={branch.address || "لا يوجد عنوان"} 
-                area={branch.district || undefined}
-                status="Active"
-                phone={branch.phone || undefined}
-                workingHours="9:00 ص - 9:00 م"
-                onGetDirections={() => {
-                  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-                  window.open(url, '_blank');
-                }}
-                onCall={branch.phone ? () => window.open(`tel:${branch.phone}`) : undefined}
-              />
-            );
-            infoWindow.setContent(div);
-            infoWindow.open(mapInstanceRef.current!, marker);
-          });
-
-          markersRef.current.push(marker);
-        });
-
-        technicians.forEach((tech) => {
-          if (!tech.current_latitude || !tech.current_longitude) return;
-
-          const lat = Number(tech.current_latitude);
-          const lng = Number(tech.current_longitude);
-
-          if (isNaN(lat) || isNaN(lng)) return;
-
-          const techStatus = mapStatusToMapLabel(tech.status || 'offline');
-
-          // استخدام أيقونة الفني المرفقة بدون أي تعديل
-          const marker = new google.maps.Marker({
-            map: mapInstanceRef.current!,
-            position: { lat, lng },
-            icon: createMarkerIcon(getTechnicianIconByText(tech.specialization || "")),
-            title: tech.name || "فني",
-            zIndex: 200,
-          });
-
-          const infoWindow = new google.maps.InfoWindow({ maxWidth: 280 });
-
-          marker.addListener("click", () => {
-            const div = document.createElement("div");
-            const root = createRoot(div);
-            root.render(
-              <TechnicianMapPopup
-                name={tech.name || "فني غير معروف"}
-                specialization={tech.specialization || "خدمة صيانة"}
-                rating={tech.rating || 4.5}
-                status={techStatus}
-                availableIn={techStatus === "soon" ? 40 : undefined}
-                onRequestService={() => handleRequestService(tech)}
-              />
-            );
-            infoWindow.setContent(div);
-            infoWindow.open(mapInstanceRef.current!, marker);
-          });
-
-          markersRef.current.push(marker);
-        });
-      } catch (error) {
-        console.error("Map error:", error);
+        setMapReady(true);
+      } catch (e) {
+        console.error("Map init error", e);
         if (mounted) setMapError(true);
       }
-    };
+    })();
+    return () => { mounted = false; };
+  }, []);
 
-    initMap();
+  // Filtering
+  const selectedSpecConfig = SPECIALTIES.find(s => s.id === selectedSpecialty);
+  const q = searchQuery.toLowerCase();
 
-    return () => {
-      mounted = false;
-      markersRef.current.forEach((marker) => {
-        marker.map = null;
+  const filteredTechs = useMemo(() => technicians.filter(t => {
+    const spec = (t.specialization || "").toLowerCase();
+    const matchSpec = selectedSpecialty === "all"
+      || (selectedSpecConfig?.keywords.some(k => spec.includes(k.toLowerCase())) ?? false);
+    const matchQ = !q || (t.name || "").toLowerCase().includes(q) || spec.includes(q);
+    return matchSpec && matchQ;
+  }), [technicians, selectedSpecialty, q, selectedSpecConfig]);
+
+  const filteredBranches = useMemo(() => branches.filter(b =>
+    !q || (b.branch || "").toLowerCase().includes(q) || (b.address || "").toLowerCase().includes(q)
+  ), [branches, q]);
+
+  const filteredProperties = useMemo(() => properties.filter(p =>
+    !q || (p.name || "").toLowerCase().includes(q) || (p.code || "").toLowerCase().includes(q)
+  ), [properties, q]);
+
+  const filteredRequests = useMemo(() => requests.filter(r =>
+    !q || (r.request_number || "").toLowerCase().includes(q) || (r.customer_display || "").toLowerCase().includes(q)
+  ), [requests, q]);
+
+  // Render markers / clusters / heatmap
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    // cleanup
+    markersRef.current.forEach(m => m.setMap?.(null));
+    markersRef.current = [];
+    clustererRef.current?.clearMarkers?.();
+    clustererRef.current = null;
+    heatmapRef.current?.setMap?.(null);
+    heatmapRef.current = null;
+
+    const allMarkers: any[] = [];
+
+    const makeIcon = (url: string, size = 40) => ({
+      url, scaledSize: new google.maps.Size(size, size + 8),
+      anchor: new google.maps.Point(size / 2, size + 8),
+    });
+
+    if (layerBranches) {
+      filteredBranches.forEach(b => {
+        const lat = parseFloat(b.latitude!); const lng = parseFloat(b.longitude!);
+        if (isNaN(lat) || isNaN(lng)) return;
+        const m = new google.maps.Marker({
+          position: { lat, lng }, icon: makeIcon(getBranchIcon(), 38),
+          title: b.branch, zIndex: 100,
+        });
+        m.addListener("click", () => setSelectedItem({ kind: "branch", data: b }));
+        allMarkers.push(m);
       });
-      markersRef.current = [];
-    };
-  }, [technicians, branches]);
+    }
 
-  const handleQuickRequest = () => {
-    navigate("/quick-request-from-map");
+    if (layerProperties) {
+      filteredProperties.forEach(p => {
+        if (!p.latitude || !p.longitude) return;
+        const m = new google.maps.Marker({
+          position: { lat: p.latitude, lng: p.longitude },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE, scale: 9,
+            fillColor: "#030957", fillOpacity: 0.9,
+            strokeColor: "#FFB900", strokeWeight: 2.5,
+          },
+          title: p.name, zIndex: 80,
+        });
+        m.addListener("click", () => setSelectedItem({ kind: "property", data: p }));
+        allMarkers.push(m);
+      });
+    }
+
+    if (layerTechnicians) {
+      filteredTechs.forEach(t => {
+        if (!t.current_latitude || !t.current_longitude) return;
+        const m = new google.maps.Marker({
+          position: { lat: Number(t.current_latitude), lng: Number(t.current_longitude) },
+          icon: makeIcon(getTechnicianIconByText(t.specialization || ""), 42),
+          title: t.name, zIndex: 200,
+        });
+        m.addListener("click", () => setSelectedItem({ kind: "technician", data: t }));
+        allMarkers.push(m);
+      });
+    }
+
+    if (layerRequests) {
+      filteredRequests.forEach(r => {
+        const color = r.is_sla_breached ? "#dc2626" : (PRIORITY_COLOR[r.priority] || "#0ea5e9");
+        const m = new google.maps.Marker({
+          position: { lat: Number(r.latitude), lng: Number(r.longitude) },
+          icon: {
+            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW, scale: 6,
+            fillColor: color, fillOpacity: 0.95,
+            strokeColor: "#ffffff", strokeWeight: 2,
+          },
+          title: `${r.request_number} • ${r.customer_display}`,
+          zIndex: r.is_sla_breached ? 400 : 300,
+          animation: r.is_sla_breached ? google.maps.Animation.BOUNCE : undefined,
+        });
+        m.addListener("click", () => setSelectedItem({ kind: "request", data: r }));
+        allMarkers.push(m);
+      });
+    }
+
+    markersRef.current = allMarkers;
+
+    if (showClusters && allMarkers.length > 30) {
+      try {
+        clustererRef.current = new MarkerClusterer({ map, markers: allMarkers });
+      } catch {
+        allMarkers.forEach(m => m.setMap(map));
+      }
+    } else {
+      allMarkers.forEach(m => m.setMap(map));
+    }
+
+    if (showHeatmap && google.maps.visualization) {
+      const data = filteredRequests.map(r => new google.maps.LatLng(Number(r.latitude), Number(r.longitude)));
+      heatmapRef.current = new google.maps.visualization.HeatmapLayer({
+        data, map, radius: 28, opacity: 0.55,
+      });
+    }
+  }, [mapReady, filteredTechs, filteredBranches, filteredProperties, filteredRequests,
+      layerTechnicians, layerBranches, layerProperties, layerRequests, showClusters, showHeatmap]);
+
+  const handleAssignTechnician = useCallback(async (requestId: string, technicianId: string) => {
+    const { data, error } = await supabase.rpc('assign_technician_to_map_request', {
+      p_request_id: requestId, p_technician_id: technicianId,
+    });
+    if (error || !(data as any)?.success) {
+      toast({ title: "فشل التعيين", description: (data as any)?.error || error?.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✓ تم التعيين", description: "تم تعيين الفني للطلب بنجاح" });
+    refetch();
+    setSelectedItem(null);
+  }, [toast, refetch]);
+
+  const handleQuickRequestFromLocation = (lat: number, lng: number, ctx?: any) => {
+    sessionStorage.setItem('mapPickedLocation', JSON.stringify({ lat, lng, ctx }));
+    navigate('/quick-request-from-map');
   };
 
-  const selectedSpecialtyConfig = SPECIALTIES.find((item) => item.id === selectedSpecialty);
-  const filteredTechnicians = technicians.filter((tech) => {
-    const specializationText = tech.specialization?.toLowerCase() || "";
-    const matchesSpecialty =
-      !selectedSpecialty ||
-      selectedSpecialty === "all" ||
-      selectedSpecialtyConfig?.keywords.some((keyword) => specializationText.includes(keyword.toLowerCase()));
-    const matchesSearch =
-      !searchQuery ||
-      tech.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tech.specialization?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSpecialty && matchesSearch;
-  });
+  const handleFollowTechnician = (t: MapTechnician) => {
+    if (!t.current_latitude || !t.current_longitude) return;
+    const map = mapInstanceRef.current;
+    map.panTo({ lat: Number(t.current_latitude), lng: Number(t.current_longitude) });
+    map.setZoom(16);
+    toast({ title: "تتبع نشط", description: `جاري تتبع ${t.name}` });
+  };
 
-  const featuredBranch = selectedBranch || branches[0];
-  const featuredTechnicians = filteredTechnicians.slice(0, 2);
-
-  const statusLabel = (status: "available" | "busy" | "soon") =>
-    status === "available" ? "متاح الآن" : status === "busy" ? "مشغول حالياً" : "متاح خلال 40 دقيقة";
-
-  const statusClasses = (status: "available" | "busy" | "soon") =>
-    status === "available"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : status === "busy"
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+  // KPIs
+  const kpis = useMemo(() => ({
+    techsTotal: technicians.length,
+    techsAvailable: technicians.filter(t => t.status === 'online').length,
+    branches: branches.length,
+    properties: properties.length,
+    activeRequests: requests.length,
+    slaBreaches: requests.filter(r => r.is_sla_breached).length,
+  }), [technicians, branches, properties, requests]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100" dir="rtl">
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur-md">
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      {/* Top Bar — Navy */}
+      <header className="sticky top-0 z-40 bg-[#030957] text-white shadow-md">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 bg-gradient-to-br from-primary/90 to-primary/70 rounded-2xl flex items-center justify-center shadow-lg">
-              <div className="relative">
-                <span className="text-primary-foreground font-bold text-base">UF</span>
-                <Cog
-                  className="absolute -top-1 -right-1 h-2.5 w-2.5 text-primary-foreground/80 animate-spin"
-                  style={{ animationDuration: "8s" }}
-                />
-              </div>
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-[#FFB900] text-[#030957] flex items-center justify-center font-bold">UF</div>
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-primary font-semibold">Quick Maintenance Methods</p>
-              <h1 className="text-lg font-bold text-slate-900">UberFix.shop – خريطة الخدمات</h1>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#FFB900] font-semibold">Live Operations</p>
+              <h1 className="text-base font-bold">خريطة خدمات UberFix — المرآة الميدانية</h1>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4 ml-1" /> تحديث
+            </Button>
+            <Badge className="bg-[#FFB900] text-[#030957] hover:bg-[#FFB900]">
+              <Activity className="w-3 h-3 ml-1" /> Live
+            </Badge>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-3">
-            <NotificationsList />
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-slate-200">
-                  <Avatar className="h-10 w-10">
-                    {userData?.avatarUrl ? (
-                      <AvatarImage src={userData.avatarUrl} alt={userData.firstName} />
-                    ) : (
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {userData?.firstName?.[0] || "U"}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {userData ? `${userData.firstName} ${userData.lastName}` : "مستخدم"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{userData?.email || "user@example.com"}</p>
-                    <p className="text-xs text-primary font-semibold">{userData?.role || "عميل"}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                    <Home className="mr-2 h-4 w-4" />
-                    <span>لوحة التحكم</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>الملف الشخصي</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
-                    <SettingsIcon className="mr-2 h-4 w-4" />
-                    <span>الإعدادات</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/maintenance-requests")}>
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                    <span>طلبات الصيانة</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/vendor/profile")}>بروفايل المورد</DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>تسجيل الخروج</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* KPI strip */}
+        <div className="bg-[#040a6a] border-t border-white/5">
+          <div className="container mx-auto px-4 py-2 grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+            <Kpi label="إجمالي الفنيين" value={kpis.techsTotal} />
+            <Kpi label="متاح الآن" value={kpis.techsAvailable} accent />
+            <Kpi label="الفروع" value={kpis.branches} />
+            <Kpi label="العقارات" value={kpis.properties} />
+            <Kpi label="طلبات نشطة" value={kpis.activeRequests} />
+            <Kpi label="تجاوز SLA" value={kpis.slaBreaches} danger />
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-5 space-y-4">
-        <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 space-y-3">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <p className="text-xs text-primary font-semibold tracking-wide">الخدمة عند طلبها</p>
-              <h2 className="text-2xl font-bold text-slate-900">كل الفنيين والأفرع أمامك على الخريطة</h2>
-              <p className="text-sm text-muted-foreground">
-                حدد نوع الخدمة أو ابحث باسم الفني وشاهد حالة التوفر والوقت المتوقع للوصول.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <div className="relative md:w-80">
-                <Search className="w-4 h-4 text-muted-foreground absolute top-1/2 -translate-y-1/2 right-3" />
-                <Input
-                  placeholder="ابحث باسم الفني أو نوع الخدمة..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-9"
-                />
+      <main className="relative">
+        <div className="container mx-auto p-4 grid grid-cols-12 gap-4">
+          {/* Sidebar Filters */}
+          <aside className="col-span-12 lg:col-span-3 space-y-3">
+            <Card className="p-3 space-y-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
+                <Input placeholder="بحث: اسم/تخصص/رقم طلب…" value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)} className="pr-9" />
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleQuickRequest}>
-                  طلب صيانة سريع
-                </Button>
-                <Button variant="default" size="sm" onClick={handleQuickRequest}>
-                  <MapPin className="w-4 h-4 ml-1" /> إلى خريطة الطلب
-                </Button>
+
+              <div>
+                <Label className="text-xs font-bold text-[#030957] mb-2 block flex items-center gap-1">
+                  <Layers className="w-3 h-3" /> الطبقات
+                </Label>
+                <div className="space-y-1.5">
+                  <LayerToggle icon={<Users className="w-3.5 h-3.5" />} label="الفنيون" count={filteredTechs.length}
+                    checked={layerTechnicians} onChange={setLayerTechnicians} />
+                  <LayerToggle icon={<Building2 className="w-3.5 h-3.5" />} label="الفروع" count={filteredBranches.length}
+                    checked={layerBranches} onChange={setLayerBranches} />
+                  <LayerToggle icon={<HomeIcon className="w-3.5 h-3.5" />} label="العقارات" count={filteredProperties.length}
+                    checked={layerProperties} onChange={setLayerProperties} />
+                  <LayerToggle icon={<ClipboardList className="w-3.5 h-3.5" />} label="الطلبات النشطة" count={filteredRequests.length}
+                    checked={layerRequests} onChange={setLayerRequests} />
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500">التخصصات:</span>
-            {SPECIALTIES.map((specialty) => (
-              <Button
-                key={specialty.id}
-                variant={selectedSpecialty === specialty.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedSpecialty(selectedSpecialty === specialty.id ? null : specialty.id)}
-                className="whitespace-nowrap"
-              >
-                <span className="ml-1">{specialty.emoji}</span>
-                {specialty.label}
-              </Button>
-            ))}
-            <Badge variant="outline" className="ml-auto text-xs">
-              {filteredTechnicians.length} فني متاح • {branches.length} فرع نشط
-            </Badge>
-          </div>
-        </section>
-
-        <section className="relative rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-white">
-          <div className="absolute inset-0">
-            {mapError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted/60">
-                <Card className="p-6 max-w-md text-center space-y-3 shadow-lg">
-                  <div className="flex items-center justify-center gap-2 text-primary mb-2">
-                    <MapPin className="w-5 h-5" />
-                    <span className="font-semibold">خريطة الخدمات غير متاحة حالياً</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    حدث خطأ أثناء تحميل الخريطة أو بيانات الفنيين. تم تفعيل مسار تحميل أبسط، ويمكنك إعادة المحاولة الآن.
-                  </p>
-                  <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                    إعادة المحاولة
-                  </Button>
-                </Card>
+              <div className="border-t pt-3 space-y-2">
+                <Label className="text-xs font-bold text-[#030957] mb-1 block flex items-center gap-1">
+                  <SettingsIcon className="w-3 h-3" /> العرض
+                </Label>
+                <LayerToggle icon={<Flame className="w-3.5 h-3.5" />} label="Heatmap كثافة الطلبات"
+                  checked={showHeatmap} onChange={setShowHeatmap} />
+                <LayerToggle icon={<Layers className="w-3.5 h-3.5" />} label="تجميع Clusters"
+                  checked={showClusters} onChange={setShowClusters} />
               </div>
-            ) : (
-              <div ref={mapRef} className="absolute inset-0" />
-            )}
-          </div>
+            </Card>
 
-          {/* عرض الخريطة بملء الشاشة - البطاقات تظهر منبثقة عند الضغط على الأيقونات */}
-          <div className="relative z-10 pointer-events-none h-[760px] w-full">
-            {/* زر طلب الخدمة */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto">
-              <Button size="lg" className="shadow-xl px-8" onClick={handleQuickRequest}>
-                طلب الخدمة الآن
-              </Button>
-            </div>
-            
-            {/* شريط الفلاتر المبسط */}
-            <div className="absolute top-4 left-4 pointer-events-auto">
-              <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-xl shadow-md p-2 flex flex-wrap gap-1">
-                {SPECIALTIES.slice(1).map((specialty) => (
-                  <Badge
-                    key={specialty.id}
-                    variant={selectedSpecialty === specialty.id ? "default" : "outline"}
-                    className="cursor-pointer text-xs"
-                    onClick={() => setSelectedSpecialty(selectedSpecialty === specialty.id ? null : specialty.id)}
+            <Card className="p-3">
+              <Label className="text-xs font-bold text-[#030957] mb-2 block">التخصصات</Label>
+              <div className="flex flex-wrap gap-1">
+                {SPECIALTIES.map(s => (
+                  <button key={s.id}
+                    onClick={() => setSelectedSpecialty(s.id)}
+                    className={`text-xs px-2 py-1 rounded-md border transition ${
+                      selectedSpecialty === s.id
+                        ? "bg-[#030957] text-white border-[#030957]"
+                        : "bg-white text-slate-700 border-slate-200 hover:border-[#FFB900]"
+                    }`}
                   >
-                    <span className="ml-1">{specialty.emoji}</span>
-                    {specialty.label}
-                  </Badge>
+                    <span className="ml-1">{s.emoji}</span>{s.label}
+                  </button>
                 ))}
               </div>
+            </Card>
+
+            {kpis.slaBreaches > 0 && (
+              <Card className="p-3 border-red-200 bg-red-50">
+                <div className="flex items-center gap-2 text-red-700 text-sm font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                  {kpis.slaBreaches} طلب تجاوز SLA
+                </div>
+              </Card>
+            )}
+          </aside>
+
+          {/* Map */}
+          <section className="col-span-12 lg:col-span-9">
+            <Card className="overflow-hidden border-2 border-slate-200 shadow-xl">
+              {mapError ? (
+                <div className="h-[640px] flex items-center justify-center bg-slate-100">
+                  <div className="text-center space-y-3">
+                    <MapPin className="w-10 h-10 mx-auto text-slate-400" />
+                    <p className="text-sm text-muted-foreground">تعذر تحميل الخريطة</p>
+                    <Button onClick={() => window.location.reload()} variant="outline" size="sm">إعادة المحاولة</Button>
+                  </div>
+                </div>
+              ) : (
+                <div ref={mapRef} className="w-full h-[640px]" />
+              )}
+            </Card>
+
+            {/* Legend */}
+            <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
+              <LegendDot color="#030957" label="عقارات" />
+              <LegendDot color="#FFB900" label="فروع" />
+              <LegendDot color="#0ea5e9" label="طلب عادي" />
+              <LegendDot color="#f97316" label="أولوية عالية" />
+              <LegendDot color="#dc2626" label="تجاوز SLA" pulse />
             </div>
-            
-            {/* معلومات سريعة */}
-            <div className="absolute top-4 right-4 pointer-events-auto">
-              <Badge variant="secondary" className="shadow-md text-xs">
-                {filteredTechnicians.length} فني متاح • {branches.length} فرع
-              </Badge>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
+
+      {/* Detail Side Sheet */}
+      <Sheet open={!!selectedItem} onOpenChange={(o) => !o && setSelectedItem(null)}>
+        <SheetContent side="left" className="w-full sm:max-w-md overflow-y-auto" dir="rtl">
+          <SheetHeader>
+            <SheetTitle className="text-[#030957]">
+              {selectedItem?.kind === "technician" && "تفاصيل الفني"}
+              {selectedItem?.kind === "branch" && "تفاصيل الفرع"}
+              {selectedItem?.kind === "property" && "تفاصيل العقار"}
+              {selectedItem?.kind === "request" && "تفاصيل الطلب"}
+            </SheetTitle>
+          </SheetHeader>
+
+          {selectedItem?.kind === "technician" && (
+            <TechnicianDetail t={selectedItem.data}
+              onFollow={() => handleFollowTechnician(selectedItem.data)}
+              onWhatsApp={() => openWhatsApp(`مرحباً ${selectedItem.data.name}، رجاءً تواصل بخصوص مهمة جديدة.`)}
+              onCall={() => selectedItem.data.phone && window.open(`tel:${selectedItem.data.phone}`)}
+            />
+          )}
+          {selectedItem?.kind === "branch" && (
+            <BranchDetail b={selectedItem.data}
+              onCreateRequest={() => handleQuickRequestFromLocation(
+                parseFloat(selectedItem.data.latitude!), parseFloat(selectedItem.data.longitude!),
+                { branch_id: selectedItem.data.id }
+              )}
+              onCall={() => selectedItem.data.phone && window.open(`tel:${selectedItem.data.phone}`)}
+            />
+          )}
+          {selectedItem?.kind === "property" && (
+            <PropertyDetail p={selectedItem.data}
+              onCreateRequest={() => handleQuickRequestFromLocation(
+                selectedItem.data.latitude!, selectedItem.data.longitude!,
+                { property_id: selectedItem.data.id }
+              )}
+            />
+          )}
+          {selectedItem?.kind === "request" && (
+            <RequestDetail r={selectedItem.data} technicians={technicians}
+              isAuthorized={isAuthorized}
+              onAssign={(techId) => handleAssignTechnician(selectedItem.data.id, techId)}
+              onOpenRequest={() => navigate(`/requests/${selectedItem.data.id}`)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+// ─────────── Sub-components ───────────
+function Kpi({ label, value, accent, danger }: { label: string; value: number; accent?: boolean; danger?: boolean }) {
+  return (
+    <div className={`rounded-lg px-3 py-1.5 ${danger ? "bg-red-500/20 border border-red-400/30" : accent ? "bg-[#FFB900]/20 border border-[#FFB900]/30" : "bg-white/5 border border-white/10"}`}>
+      <div className={`text-base font-bold ${danger ? "text-red-200" : accent ? "text-[#FFB900]" : "text-white"}`}>{value}</div>
+      <div className="text-[10px] text-white/70">{label}</div>
+    </div>
+  );
+}
+
+function LayerToggle({ icon, label, count, checked, onChange }: {
+  icon: React.ReactNode; label: string; count?: number; checked: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <div className="flex items-center gap-1.5 text-sm text-slate-700">
+        {icon}<span>{label}</span>
+        {count !== undefined && <Badge variant="secondary" className="text-[10px] h-4">{count}</Badge>}
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function LegendDot({ color, label, pulse }: { color: string; label: string; pulse?: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`w-3 h-3 rounded-full ${pulse ? "animate-pulse" : ""}`} style={{ background: color }} />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function TechnicianDetail({ t, onFollow, onWhatsApp, onCall }: any) {
+  const status = mapStatusToMapLabel(t.status || 'offline');
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <div className="text-lg font-bold text-[#030957]">{t.name}</div>
+        <div className="text-sm text-muted-foreground">{t.specialization}</div>
+        <Badge className="mt-2" variant={status === "available" ? "default" : "secondary"}>
+          {status === "available" ? "متاح الآن" : status === "busy" ? "مشغول" : "غير متصل"}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="bg-slate-50 p-2 rounded"><span className="text-muted-foreground">التقييم: </span><b>{t.rating?.toFixed(1) || "—"}</b></div>
+        <div className="bg-slate-50 p-2 rounded"><span className="text-muted-foreground">آخر تحديث: </span><b className="text-xs">{t.location_updated_at ? new Date(t.location_updated_at).toLocaleTimeString('ar-EG') : "—"}</b></div>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Button onClick={onFollow} className="bg-[#030957] hover:bg-[#040a6a]"><MapPin className="w-4 h-4 ml-1"/>تتبع</Button>
+        <Button onClick={onWhatsApp} variant="outline"><MessageCircle className="w-4 h-4 ml-1"/>واتساب</Button>
+        <Button onClick={onCall} variant="outline" disabled={!t.phone}><Phone className="w-4 h-4 ml-1"/>اتصال</Button>
+      </div>
+    </div>
+  );
+}
+
+function BranchDetail({ b, onCreateRequest, onCall }: any) {
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <div className="text-lg font-bold text-[#030957]">{b.branch}</div>
+        <div className="text-sm text-muted-foreground">{b.address || "—"}</div>
+        {b.district && <Badge variant="outline" className="mt-2">{b.district}</Badge>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Button onClick={onCreateRequest} className="bg-[#FFB900] text-[#030957] hover:bg-[#FFB900]/90">
+          <ClipboardList className="w-4 h-4 ml-1"/>طلب صيانة
+        </Button>
+        <Button onClick={onCall} variant="outline" disabled={!b.phone}><Phone className="w-4 h-4 ml-1"/>اتصال</Button>
+      </div>
+    </div>
+  );
+}
+
+function PropertyDetail({ p, onCreateRequest }: any) {
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <div className="text-lg font-bold text-[#030957]">{p.name}</div>
+        {p.code && <Badge className="bg-[#FFB900] text-[#030957] mt-1">{p.code}</Badge>}
+        <div className="text-sm text-muted-foreground mt-2">{p.address || "—"}</div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="bg-slate-50 p-2 rounded">النوع: <b>{p.type}</b></div>
+        <div className="bg-slate-50 p-2 rounded">الحالة: <b>{p.status}</b></div>
+      </div>
+      <Button onClick={onCreateRequest} className="w-full bg-[#FFB900] text-[#030957] hover:bg-[#FFB900]/90">
+        <ClipboardList className="w-4 h-4 ml-1"/>إنشاء طلب صيانة
+      </Button>
+    </div>
+  );
+}
+
+function RequestDetail({ r, technicians, isAuthorized, onAssign, onOpenRequest }: any) {
+  const stage = WORKFLOW_STAGES[r.workflow_stage as WorkflowStage];
+  const [selTech, setSelTech] = useState<string>("");
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <div className="text-lg font-bold text-[#030957]">{r.request_number}</div>
+        <div className="text-sm text-muted-foreground">{r.customer_display}</div>
+        <div className="flex gap-2 mt-2">
+          <Badge style={{ background: stage?.color, color: 'white' }}>{stage?.label || r.workflow_stage}</Badge>
+          <Badge style={{ background: PRIORITY_COLOR[r.priority] || "#0ea5e9", color: 'white' }}>{r.priority}</Badge>
+          {r.is_sla_breached && <Badge variant="destructive"><AlertTriangle className="w-3 h-3 ml-1"/>SLA</Badge>}
+        </div>
+      </div>
+
+      {isAuthorized && (
+        <div className="space-y-2 border-t pt-3">
+          <Label className="text-xs font-bold text-[#030957]">تعيين فني</Label>
+          <select value={selTech} onChange={(e) => setSelTech(e.target.value)}
+            className="w-full text-sm border rounded-md p-2 bg-white">
+            <option value="">— اختر فنياً —</option>
+            {technicians.filter((t: any) => t.status === 'online').map((t: any) => (
+              <option key={t.id} value={t.id}>{t.name} • {t.specialization}</option>
+            ))}
+          </select>
+          <Button disabled={!selTech} onClick={() => onAssign(selTech)}
+            className="w-full bg-[#030957] hover:bg-[#040a6a]">
+            <CheckCircle2 className="w-4 h-4 ml-1"/>تعيين الفني
+          </Button>
+        </div>
+      )}
+
+      <Button onClick={onOpenRequest} variant="outline" className="w-full">فتح الطلب الكامل</Button>
     </div>
   );
 }
