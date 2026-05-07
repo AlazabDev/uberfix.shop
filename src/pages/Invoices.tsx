@@ -9,6 +9,7 @@ import { InvoiceStats } from "@/components/invoices/InvoiceStats";
 import { InvoiceCard } from "@/components/invoices/InvoiceCard";
 import { InvoiceTable } from "@/components/invoices/InvoiceTable";
 import { AppFooter } from "@/components/shared/AppFooter";
+import { useNavigate } from "react-router-dom";
 
 type Invoice = {
   id: string;
@@ -32,6 +33,27 @@ export default function Invoices() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const openInvoice = async (id: string) => {
+    // Look up linked maintenance request for this invoice and open the branded PublicInvoice
+    const inv = invoices.find(i => i.id === id);
+    const { data } = await supabase
+      .from('invoices')
+      .select('related_request_id')
+      .eq('id', id)
+      .maybeSingle();
+    const reqId = (data as any)?.related_request_id;
+    if (reqId) {
+      window.open(`/track/${reqId}/invoice`, '_blank');
+    } else {
+      toast({
+        title: 'الفاتورة غير مرتبطة بطلب',
+        description: `لا يمكن عرض القالب البصري للفاتورة ${inv?.invoice_number || ''} لأنها غير مرتبطة بطلب صيانة.`,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -149,16 +171,16 @@ export default function Invoices() {
             <InvoiceCard
               key={invoice.id}
               invoice={invoice}
-              onView={(id) => console.warn('View invoice', id)}
-              onDownload={(id) => console.warn('Download invoice', id)}
+              onView={openInvoice}
+              onDownload={openInvoice}
             />
           ))}
         </div>
       ) : (
         <InvoiceTable
           invoices={invoices}
-          onView={(id) => console.warn('View invoice', id)}
-          onDownload={(id) => console.warn('Download invoice', id)}
+          onView={openInvoice}
+          onDownload={openInvoice}
         />
       )}
 
