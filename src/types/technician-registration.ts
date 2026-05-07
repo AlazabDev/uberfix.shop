@@ -29,6 +29,56 @@ export interface TechnicianRegistrationData {
   policy_expiry_date?: string;
   insurance_notes?: string;
 
+  // W-9 (Egyptian tax/legal profile) — collected within Address step
+  legal_name?: string;
+  trade_name?: string;
+  national_id?: string;
+  passport_no?: string;
+  date_of_birth?: string;
+  has_tax_card?: 'yes' | 'no' | 'in_progress';
+  tax_registration_number?: string;
+  tax_file_number?: string;
+  tax_office?: string;
+  tax_card_issue_date?: string;
+  tax_card_expiry_date?: string;
+  vat_status?: 'yes' | 'no' | 'not_required' | 'in_progress';
+  e_invoice_status?: 'yes' | 'no' | 'in_progress';
+  has_commercial_register?: 'yes' | 'no' | 'in_progress';
+  commercial_register_number?: string;
+  commercial_register_office?: string;
+  commercial_register_issue_date?: string;
+  legal_form?: 'natural_person' | 'sole_proprietorship' | 'llc' | 'partnership' | 'limited_partnership' | 'other';
+  payment_method?: 'bank' | 'wallet' | 'company_account' | 'other';
+  bank_account_holder?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_iban?: string;
+  wallet_number?: string;
+  wallet_provider?: string;
+  w9_signed_at?: string;
+  w9_signature_data?: string; // base64 PNG
+
+  // ACORD (Egyptian liability/professional insurance) — collected within Insurance step
+  insurance_certificate_number?: string;
+  insurance_issue_date?: string;
+  insurance_start_date?: string;
+  insurance_status?: 'active' | 'expired' | 'renewing' | 'suspended';
+  insurance_company_license_no?: string;
+  insurance_broker_name?: string;
+  insurance_broker_license_no?: string;
+  insurance_contact_address?: string;
+  insurance_contact_email?: string;
+  insurance_contact_phone?: string;
+  insurance_coverage_types?: string[]; // e.g. ['civil_liability','professional_liability',...]
+  insurance_limit_per_incident?: number;
+  insurance_limit_aggregate?: number;
+  insurance_limit_property?: number;
+  insurance_limit_bodily?: number;
+  insurance_limit_professional?: number;
+  insurance_limit_workers?: number;
+  acord_signed_at?: string;
+  acord_signature_data?: string;
+
   // Step 4: Rates
   pricing_notes?: string;
   services?: ServicePrice[];
