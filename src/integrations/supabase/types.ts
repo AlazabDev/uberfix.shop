@@ -493,6 +493,13 @@ export type Database = {
             referencedRelation: "api_consumers_safe"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "api_idempotency_keys_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_consumers_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       api_webhook_deliveries: {
@@ -547,6 +554,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "api_webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_webhook_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_webhooks_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -607,6 +621,13 @@ export type Database = {
             columns: ["consumer_id"]
             isOneToOne: false
             referencedRelation: "api_consumers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_webhook_subscriptions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_consumers_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -3268,6 +3289,13 @@ export type Database = {
             columns: ["created_via_consumer_id"]
             isOneToOne: false
             referencedRelation: "api_consumers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_created_via_consumer_id_fkey"
+            columns: ["created_via_consumer_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_consumers_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -9454,6 +9482,193 @@ export type Database = {
           total_reviews?: number | null
         }
         Relationships: []
+      }
+      v_api_consumers_dashboard: {
+        Row: {
+          activity_state: string | null
+          allowed_origins: string[] | null
+          api_key_prefix: string | null
+          auth_type: string | null
+          channel: string | null
+          created_at: string | null
+          errors_last_24h: number | null
+          id: string | null
+          is_active: boolean | null
+          last_rotated_at: string | null
+          last_used_at: string | null
+          name: string | null
+          rate_limit_per_minute: number | null
+          requests_last_24h: number | null
+          requests_last_7d: number | null
+          scopes: string[] | null
+          storage_target: string | null
+          total_requests: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          activity_state?: never
+          allowed_origins?: string[] | null
+          api_key_prefix?: string | null
+          auth_type?: string | null
+          channel?: string | null
+          created_at?: string | null
+          errors_last_24h?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_rotated_at?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          rate_limit_per_minute?: number | null
+          requests_last_24h?: never
+          requests_last_7d?: never
+          scopes?: string[] | null
+          storage_target?: string | null
+          total_requests?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          activity_state?: never
+          allowed_origins?: string[] | null
+          api_key_prefix?: string | null
+          auth_type?: string | null
+          channel?: string | null
+          created_at?: string | null
+          errors_last_24h?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_rotated_at?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          rate_limit_per_minute?: number | null
+          requests_last_24h?: never
+          requests_last_7d?: never
+          scopes?: string[] | null
+          storage_target?: string | null
+          total_requests?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      v_api_gateway_logs_dashboard: {
+        Row: {
+          client_ip: unknown
+          consumer_channel: string | null
+          consumer_id: string | null
+          consumer_name: string | null
+          consumer_type: string | null
+          created_at: string | null
+          duration_ms: number | null
+          id: string | null
+          latency_band: string | null
+          method: string | null
+          outcome: string | null
+          request_id: string | null
+          response_size: number | null
+          route: string | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Relationships: []
+      }
+      v_api_webhooks_dashboard: {
+        Row: {
+          consumer_id: string | null
+          consumer_name: string | null
+          created_at: string | null
+          deliveries_last_24h: number | null
+          description: string | null
+          endpoint_url: string | null
+          event_types: string[] | null
+          failure_count: number | null
+          failures_last_24h: number | null
+          health_state: string | null
+          id: string | null
+          is_active: boolean | null
+          last_delivery_at: string | null
+          last_delivery_status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_webhook_subscriptions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_webhook_subscriptions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_webhook_subscriptions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_consumers_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_bot_sessions_dashboard: {
+        Row: {
+          bot_source: string | null
+          client_phone: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          last_request_id: string | null
+          lifecycle_state: string | null
+          session_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bot_source?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          last_request_id?: string | null
+          lifecycle_state?: never
+          session_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bot_source?: string | null
+          client_phone?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          last_request_id?: string | null
+          lifecycle_state?: never
+          session_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_branches_dashboard: {
         Row: {
