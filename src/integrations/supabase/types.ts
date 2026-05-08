@@ -7034,6 +7034,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technician_withdrawals_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "v_users_dashboard"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "technician_withdrawals_technician_id_fkey"
             columns: ["technician_id"]
             isOneToOne: false
@@ -10277,6 +10284,39 @@ export type Database = {
           },
         ]
       }
+      v_module_permissions_dashboard: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          is_enabled: boolean | null
+          module_key: string | null
+          module_name: string | null
+          role: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          module_key?: string | null
+          module_name?: string | null
+          role?: string | null
+          state?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          is_enabled?: boolean | null
+          module_key?: string | null
+          module_name?: string | null
+          role?: string | null
+          state?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       v_notifications_dashboard: {
         Row: {
           created_at: string | null
@@ -10575,6 +10615,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_role_permissions_dashboard: {
+        Row: {
+          actions: string[] | null
+          first_granted_at: string | null
+          last_granted_at: string | null
+          permission_count: number | null
+          resource_count: number | null
+          resources: string[] | null
+          role: string | null
+        }
+        Relationships: []
+      }
       v_service_catalog_dashboard: {
         Row: {
           base_price: number | null
@@ -10674,6 +10726,67 @@ export type Database = {
           technician_id: string | null
           total_jobs: number | null
           total_reviews: number | null
+        }
+        Relationships: []
+      }
+      v_user_roles_dashboard: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_by_name: string | null
+          id: string | null
+          role: string | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
+      v_users_dashboard: {
+        Row: {
+          activity_state: string | null
+          avatar_url: string | null
+          department_id: string | null
+          display_name: string | null
+          email: string | null
+          is_deleted: boolean | null
+          joined_at: string | null
+          last_updated_at: string | null
+          phone: string | null
+          position: string | null
+          role_count: number | null
+          roles: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_state?: never
+          avatar_url?: string | null
+          department_id?: string | null
+          display_name?: never
+          email?: string | null
+          is_deleted?: never
+          joined_at?: string | null
+          last_updated_at?: string | null
+          phone?: string | null
+          position?: string | null
+          role_count?: never
+          roles?: never
+          user_id?: string | null
+        }
+        Update: {
+          activity_state?: never
+          avatar_url?: string | null
+          department_id?: string | null
+          display_name?: never
+          email?: string | null
+          is_deleted?: never
+          joined_at?: string | null
+          last_updated_at?: string | null
+          phone?: string | null
+          position?: string | null
+          role_count?: never
+          roles?: never
+          user_id?: string | null
         }
         Relationships: []
       }
