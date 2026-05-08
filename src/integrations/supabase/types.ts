@@ -97,6 +97,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       _legacy_messages: {
@@ -1049,6 +1056,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       branch_locations: {
@@ -1293,6 +1307,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -1608,6 +1629,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daftra_sync_logs_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -2199,6 +2227,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "facebook_leads_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facebook_users: {
@@ -2499,6 +2534,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -2806,6 +2848,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -3901,6 +3950,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pending_technician_registrations: {
@@ -4539,6 +4595,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_review_request"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -6331,6 +6394,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_task_request"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_task_technician"
             columns: ["technician_id"]
             isOneToOne: false
@@ -6377,6 +6447,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_tasks_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -6640,6 +6717,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technician_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -7546,6 +7630,13 @@ export type Database = {
             columns: ["current_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_current_request_id_fkey"
+            columns: ["current_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -8985,6 +9076,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "message_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       messages: {
@@ -9612,6 +9710,20 @@ export type Database = {
           },
         ]
       }
+      v_audit_dashboard: {
+        Row: {
+          action: string | null
+          actor_name: string | null
+          created_at: string | null
+          id: string | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_bot_sessions_dashboard: {
         Row: {
           bot_source: string | null
@@ -9666,6 +9778,13 @@ export type Database = {
             columns: ["last_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -10026,6 +10145,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_maintenance_mirror: {
@@ -10320,6 +10446,13 @@ export type Database = {
             referencedRelation: "v_maintenance_mirror"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_properties_dashboard: {
@@ -10430,6 +10563,18 @@ export type Database = {
         }
         Relationships: []
       }
+      v_reports_overview: {
+        Row: {
+          active_requests: number | null
+          avg_completion_hours: number | null
+          cancelled_requests: number | null
+          completed_requests: number | null
+          month: string | null
+          revenue: number | null
+          total_requests: number | null
+        }
+        Relationships: []
+      }
       v_service_catalog_dashboard: {
         Row: {
           base_price: number | null
@@ -10443,6 +10588,68 @@ export type Database = {
           unit: string | null
           vat_rate: number | null
           withholding_rate: number | null
+        }
+        Relationships: []
+      }
+      v_sla_compliance_summary: {
+        Row: {
+          completed_late: number | null
+          completed_on_time: number | null
+          compliance_rate_pct: number | null
+          priority: string | null
+          total_requests: number | null
+          workflow_stage: string | null
+        }
+        Relationships: []
+      }
+      v_sla_dashboard: {
+        Row: {
+          accept_state: string | null
+          arrive_state: string | null
+          complete_state: string | null
+          created_at: string | null
+          id: string | null
+          overall_sla_state: string | null
+          priority: string | null
+          request_number: string | null
+          sla_accept_due: string | null
+          sla_arrive_due: string | null
+          sla_complete_due: string | null
+          status: Database["public"]["Enums"]["mr_status"] | null
+          title: string | null
+          workflow_stage: string | null
+        }
+        Insert: {
+          accept_state?: never
+          arrive_state?: never
+          complete_state?: never
+          created_at?: string | null
+          id?: string | null
+          overall_sla_state?: never
+          priority?: string | null
+          request_number?: string | null
+          sla_accept_due?: string | null
+          sla_arrive_due?: string | null
+          sla_complete_due?: string | null
+          status?: Database["public"]["Enums"]["mr_status"] | null
+          title?: string | null
+          workflow_stage?: string | null
+        }
+        Update: {
+          accept_state?: never
+          arrive_state?: never
+          complete_state?: never
+          created_at?: string | null
+          id?: string | null
+          overall_sla_state?: never
+          priority?: string | null
+          request_number?: string | null
+          sla_accept_due?: string | null
+          sla_arrive_due?: string | null
+          sla_complete_due?: string | null
+          status?: Database["public"]["Enums"]["mr_status"] | null
+          title?: string | null
+          workflow_stage?: string | null
         }
         Relationships: []
       }
