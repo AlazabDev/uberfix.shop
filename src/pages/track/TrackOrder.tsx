@@ -39,6 +39,13 @@ interface RequestData {
   channel?: string;
 }
 
+interface TimelineNote {
+  from_stage?: string | null;
+  to_stage?: string | null;
+  reason?: string | null;
+  occurred_at?: string | null;
+}
+
 const TRACKING_STAGES = [
   { key: 'received', label: 'تم الاستلام', labelEn: 'Received', icon: FileText, description: 'تم استلام طلبك بنجاح' },
   { key: 'reviewed', label: 'قيد المراجعة', labelEn: 'Reviewed', icon: CheckCircle2, description: 'جاري مراجعة التفاصيل وتحديد الفني' },
@@ -78,6 +85,7 @@ export default function TrackOrder() {
   const { orderId } = useParams<{ orderId: string }>();
   const [searchParams] = useSearchParams();
   const [request, setRequest] = useState<RequestData | null>(null);
+  const [timelineNotes, setTimelineNotes] = useState<TimelineNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,6 +107,19 @@ export default function TrackOrder() {
     return { data: data.length === 1 ? data[0] : data, error: null };
   };
 
+  const fetchTimelineNotes = async (requestId: string) => {
+    const { data, error } = await supabase.rpc('public_get_request_timeline_notes', {
+      p_request_id: requestId,
+    } as never);
+
+    if (error || !data) {
+      setTimelineNotes([]);
+      return;
+    }
+
+    setTimelineNotes(Array.isArray(data) ? data as TimelineNote[] : []);
+  };
+
   const loadRequest = async (id: string) => {
     setLoading(true);
     setError(null);
@@ -112,9 +133,11 @@ export default function TrackOrder() {
       if (Array.isArray(data)) {
         setRequest(data[0]);
         setPhoneResults(data.length > 1 ? data : []);
+        if (data[0]?.id) await fetchTimelineNotes(data[0].id);
       } else {
         setRequest(data);
         setPhoneResults([]);
+        if (data?.id) await fetchTimelineNotes(data.id);
       }
     } catch {
       setError('حدث خطأ غير متوقع');
@@ -150,9 +173,11 @@ export default function TrackOrder() {
         if (Array.isArray(data)) {
           setRequest(data[0]);
           setPhoneResults(data.length > 1 ? data : []);
+          if (data[0]?.id) await fetchTimelineNotes(data[0].id);
         } else {
           setRequest(data);
           setPhoneResults([]);
+          if (data?.id) await fetchTimelineNotes(data.id);
         }
         setError(null);
       }
@@ -168,6 +193,16 @@ export default function TrackOrder() {
       navigator.clipboard.writeText(request.request_number);
       toast({ title: '✓ تم النسخ', description: 'تم نسخ رقم الطلب' });
     }
+  };
+
+  const getStageNote = (stageKey: string) => {
+    const relatedWorkflowStages = Object.entries(WORKFLOW_MAP)
+      .filter(([, trackingStage]) => trackingStage === stageKey)
+      .map(([workflowStage]) => workflowStage);
+
+    return timelineNotes
+      .filter((note) => note.to_stage && relatedWorkflowStages.includes(note.to_stage))
+      .at(-1);
   };
 
   const getStages = () => {
@@ -464,6 +499,23 @@ export default function TrackOrder() {
                       {stage.status !== 'pending' && (
                         <p className="text-xs text-muted-foreground mt-0.5">{stage.description}</p>
                       )}
+
+                      {stage.status !== 'pending' && (
+                        <div className="mt-2 rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-muted-foreground mb-1">
+                            ملاحظة الحركة
+                          </p>
+                          <p className="text-xs leading-5 text-foreground">
+                            {getStageNote(stage.key)?.reason || 'لا توجد ملاحظة مسجلة لهذه الحركة'}
+                          </p>
+                          {getStageNote(stage.key)?.occurred_at && (
+                            <p className="text-[11px] text-muted-foreground mt-1">
+                              {format(new Date(getStageNote(stage.key)!.occurred_at!), 'dd MMMM yyyy - hh:mm a', { locale: ar })}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {stage.status === 'current' && request.updated_at && (
                         <p className="text-xs text-primary/70 mt-1 font-medium">
                           {format(new Date(request.updated_at), 'dd MMMM yyyy - hh:mm a', { locale: ar })}
