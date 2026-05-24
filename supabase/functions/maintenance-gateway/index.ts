@@ -60,6 +60,10 @@ interface GatewayRequest {
   source_id?: string;
   source_metadata?: Record<string, unknown>;
   images?: string[];
+  // Geo + technician assignment (Phase 1 — map-driven intake)
+  latitude?: number;
+  longitude?: number;
+  assigned_technician_id?: string;
 }
 
 interface GatewayResponse {
