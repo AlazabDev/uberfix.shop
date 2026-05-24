@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, ArrowRight } from "lucide-react";
+import { Loader2, Star, ArrowRight, MapPin } from "lucide-react";
 import { getSpecializationLabel } from "@/constants/technicianConstants";
+import { InteractiveMap } from "@/components/maps/InteractiveMap";
 
 interface SelectedTechnician {
   id: string;
@@ -27,6 +28,7 @@ export default function QuickRequestFromMap() {
   const { toast } = useToast();
   const [technician, setTechnician] = useState<SelectedTechnician | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [clientCoords, setClientCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   const [formData, setFormData] = useState({
     client_name: '',
@@ -62,7 +64,16 @@ export default function QuickRequestFromMap() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!technician) return;
-    
+
+    if (!clientCoords) {
+      toast({
+        title: '📍 حدد موقعك على الخريطة',
+        description: 'يرجى تثبيت موقعك بالضبط على الخريطة لكي يصلك الفني',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -85,6 +96,11 @@ export default function QuickRequestFromMap() {
           notes: enrichedDescription,
           branch_name: '',
           channel: 'public_form',
+          // Map-driven payload (Phase 1)
+          location: formData.location,
+          latitude: clientCoords.lat,
+          longitude: clientCoords.lng,
+          assigned_technician_id: technician.id,
         },
       });
 
@@ -212,6 +228,36 @@ export default function QuickRequestFromMap() {
                   placeholder="أدخل عنوانك بالتفصيل"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  حدد موقعك على الخريطة *
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  اسحب العلامة أو اضغط على "موقعي الحالي" لتثبيت موقعك بدقة لكي يصلك الفني.
+                </p>
+                <InteractiveMap
+                  latitude={clientCoords?.lat ?? technician.latitude ?? 30.0444}
+                  longitude={clientCoords?.lng ?? technician.longitude ?? 31.2357}
+                  height="320px"
+                  onLocationChange={(lat, lng, address) => {
+                    setClientCoords({ lat, lng });
+                    if (address && !formData.location) {
+                      setFormData((prev) => ({ ...prev, location: address }));
+                    }
+                  }}
+                />
+                {clientCoords ? (
+                  <p className="text-xs text-emerald-600">
+                    ✓ تم تثبيت الموقع: {clientCoords.lat.toFixed(5)}, {clientCoords.lng.toFixed(5)}
+                  </p>
+                ) : (
+                  <p className="text-xs text-destructive">
+                    لم يتم تحديد الموقع بعد
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
