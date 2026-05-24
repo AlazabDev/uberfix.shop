@@ -200,9 +200,10 @@ export default function TrackOrder() {
       .filter(([, trackingStage]) => trackingStage === stageKey)
       .map(([workflowStage]) => workflowStage);
 
-    return timelineNotes
-      .filter((note) => note.to_stage && relatedWorkflowStages.includes(note.to_stage))
-      .at(-1);
+    const filtered = timelineNotes.filter(
+      (note) => note.to_stage && relatedWorkflowStages.includes(note.to_stage)
+    );
+    return filtered[filtered.length - 1];
   };
 
   const getStages = () => {
