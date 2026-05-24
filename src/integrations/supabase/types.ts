@@ -11315,6 +11315,10 @@ export type Database = {
         Args: { p_request_id: string }
         Returns: Json
       }
+      public_get_request_timeline_notes: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       public_submit_rating: {
         Args: {
           comment_text?: string
