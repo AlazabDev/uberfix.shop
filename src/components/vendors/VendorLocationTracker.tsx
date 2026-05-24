@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, RefreshCw, Clock, Route } from "lucide-react";
-import { GoogleMap } from "@/components/maps/GoogleMap";
+import { GoogleLocationInput as GoogleMap } from "@/modules/maps";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow, format } from "date-fns";

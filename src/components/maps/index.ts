@@ -8,7 +8,9 @@
 // Google Maps Components (للاستخدام الفعلي)
 export { GoogleMapContainer } from './GoogleMapContainer';
 export type { MapMarker } from './GoogleMapContainer';
-export { GoogleMap } from './GoogleMap';
+export { GoogleLocationInput } from './GoogleLocationInput';
+// Backwards-compat alias — old name was misleading (it is a numeric lat/lng input, not a map)
+export { GoogleLocationInput as GoogleMap } from './GoogleLocationInput';
 export { MapLocationPicker } from './MapLocationPicker';
 export { InteractiveMap } from './InteractiveMap';
 export { GooglePlacesAutocomplete } from './GooglePlacesAutocomplete';
