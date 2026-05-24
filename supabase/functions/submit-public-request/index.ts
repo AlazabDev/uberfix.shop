@@ -26,6 +26,11 @@ interface RequestBody {
   notes?: string;
   images?: string[];
   channel?: string;
+  // Map-driven intake (Phase 1)
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  assigned_technician_id?: string;
 }
 
 const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
@@ -85,6 +90,15 @@ Deno.serve(async (req) => {
     const sanitizedNotes = (body.description || body.notes || '').trim().slice(0, 500);
     const priority = VALID_PRIORITIES.includes(body.priority || '') ? body.priority! : 'medium';
     const channel = body.channel || (body.property_id ? 'qr_guest' : 'public_form');
+    const sanitizedLocation = body.location?.toString().trim().slice(0, 200) || '';
+    const latNum = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
+    const lngNum = typeof body.longitude === 'number' ? body.longitude : Number(body.longitude);
+    const hasGeo = Number.isFinite(latNum) && Number.isFinite(lngNum)
+      && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const technicianId = body.assigned_technician_id && uuidRe.test(body.assigned_technician_id)
+      ? body.assigned_technician_id
+      : undefined;
 
     // Validate: direct mode requires client_name
     if (!body.property_id && !sanitizedName) {
@@ -183,16 +197,23 @@ Deno.serve(async (req) => {
         service_type: serviceType,
         priority,
         description: sanitizedNotes || `طلب صيانة ${serviceLabel.ar}`,
-        location: propertyAddress || body.branch_name || undefined,
+        location: sanitizedLocation || propertyAddress || body.branch_name || undefined,
         property_id: body.property_id || undefined,
         branch_name: body.branch_name || undefined,
         company_id: companyId,
         branch_id: branchId,
         images: body.images,
+        latitude: hasGeo ? latNum : undefined,
+        longitude: hasGeo ? lngNum : undefined,
+        assigned_technician_id: technicianId,
         source_id: body.property_id || undefined,
         source_metadata: {
           submission_mode: body.property_id ? 'qr' : 'direct',
           property_name: propertyName || undefined,
+          map_intake: hasGeo || !!technicianId ? {
+            has_geo: hasGeo,
+            assigned_technician_id: technicianId || null,
+          } : undefined,
         }
       }
     });
