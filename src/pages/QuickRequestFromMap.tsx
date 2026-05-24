@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, ArrowRight, MapPin } from "lucide-react";
 import { getSpecializationLabel } from "@/constants/technicianConstants";
 import { InteractiveMap } from "@/components/maps/InteractiveMap";
+import { useVendorRouting } from "@/hooks/useVendorRouting";
 
 interface SelectedTechnician {
   id: string;
@@ -29,6 +30,14 @@ export default function QuickRequestFromMap() {
   const [technician, setTechnician] = useState<SelectedTechnician | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [clientCoords, setClientCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Phase 2 — live ETA between the chosen technician and the client coords
+  const { routeInfo, loading: routeLoading, error: routeError } = useVendorRouting({
+    vendorLat: technician?.latitude ?? null,
+    vendorLng: technician?.longitude ?? null,
+    destinationLat: clientCoords?.lat ?? null,
+    destinationLng: clientCoords?.lng ?? null,
+  });
   
   const [formData, setFormData] = useState({
     client_name: '',
@@ -101,6 +110,14 @@ export default function QuickRequestFromMap() {
           latitude: clientCoords.lat,
           longitude: clientCoords.lng,
           assigned_technician_id: technician.id,
+          // Phase 2 — route summary (snapshot at submission time)
+          route_info: routeInfo ? {
+            distance: routeInfo.distance,
+            duration: routeInfo.duration,
+            distance_value: routeInfo.distanceValue,
+            duration_value: routeInfo.durationValue,
+            eta: routeInfo.eta,
+          } : undefined,
         },
       });
 
@@ -257,6 +274,32 @@ export default function QuickRequestFromMap() {
                   <p className="text-xs text-destructive">
                     لم يتم تحديد الموقع بعد
                   </p>
+                )}
+
+                {clientCoords && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+                    {routeLoading && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        جاري حساب وقت الوصول التقريبي...
+                      </div>
+                    )}
+                    {!routeLoading && routeInfo && (
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-primary">
+                            🛵 الوصول التقريبي للفني: {routeInfo.duration}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            المسافة: {routeInfo.distance} • متوقع عند: {new Date(routeInfo.eta).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {!routeLoading && routeError && (
+                      <p className="text-xs text-destructive">تعذر حساب وقت الوصول الآن — يمكنك المتابعة بدون ذلك.</p>
+                    )}
+                  </div>
                 )}
               </div>
 
