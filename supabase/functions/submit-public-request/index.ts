@@ -31,6 +31,14 @@ interface RequestBody {
   latitude?: number;
   longitude?: number;
   assigned_technician_id?: string;
+  // Route info (Phase 2 — ETA from technician → client)
+  route_info?: {
+    distance?: string;
+    duration?: string;
+    distance_value?: number;
+    duration_value?: number;
+    eta?: string;
+  };
 }
 
 const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
@@ -213,6 +221,13 @@ Deno.serve(async (req) => {
           map_intake: hasGeo || !!technicianId ? {
             has_geo: hasGeo,
             assigned_technician_id: technicianId || null,
+          route: body.route_info && typeof body.route_info === 'object' ? {
+            distance: String(body.route_info.distance || '').slice(0, 32) || null,
+            duration: String(body.route_info.duration || '').slice(0, 32) || null,
+            distance_value: Number.isFinite(Number(body.route_info.distance_value)) ? Number(body.route_info.distance_value) : null,
+            duration_value: Number.isFinite(Number(body.route_info.duration_value)) ? Number(body.route_info.duration_value) : null,
+            eta: typeof body.route_info.eta === 'string' ? body.route_info.eta.slice(0, 64) : null,
+          } : null,
           } : undefined,
         }
       }
