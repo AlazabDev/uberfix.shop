@@ -720,6 +720,21 @@ Deno.serve(async (req) => {
     };
 
     if (body.property_id) requestData.property_id = body.property_id;
+
+    // ─── Geo coordinates (from map-driven intake) ────────────────
+    const latNum = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
+    const lngNum = typeof body.longitude === 'number' ? body.longitude : Number(body.longitude);
+    if (Number.isFinite(latNum) && Number.isFinite(lngNum) && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180) {
+      requestData.latitude = latNum;
+      requestData.longitude = lngNum;
+    }
+
+    // ─── Pre-assigned technician (selected on the map) ───────────
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (body.assigned_technician_id && uuidRe.test(body.assigned_technician_id)) {
+      requestData.assigned_technician_id = body.assigned_technician_id;
+    }
+
     // Track which API consumer created this request for scope-limited operations later.
     if (consumer) requestData.created_via_consumer_id = consumer.id;
 
