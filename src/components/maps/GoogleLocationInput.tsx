@@ -17,7 +17,7 @@ interface MapMarker {
   data?: Record<string, string | number | boolean>;
 }
 
-interface GoogleMapProps {
+interface GoogleLocationInputProps {
   latitude?: number;
   longitude?: number;
   onLocationSelect?: (lat: number, lng: number, address?: string) => void;
@@ -28,7 +28,7 @@ interface GoogleMapProps {
   onMarkerClick?: (marker: MapMarker) => void;
 }
 
-export const GoogleMap: React.FC<GoogleMapProps> = ({
+export const GoogleLocationInput: React.FC<GoogleLocationInputProps> = ({
   latitude = 30.0444,
   longitude = 31.2357,
   onLocationSelect,
