@@ -11450,6 +11450,9 @@ export type Database = {
         | "closed"
         | "cancelled"
         | "on_hold"
+        | "triaged"
+        | "handover_to_admin"
+        | "rejected"
       maintenance_status_v2:
         | "submitted"
         | "triaged"
@@ -11742,6 +11745,9 @@ export const Constants = {
         "closed",
         "cancelled",
         "on_hold",
+        "triaged",
+        "handover_to_admin",
+        "rejected",
       ],
       maintenance_status_v2: [
         "submitted",
