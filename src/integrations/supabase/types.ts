@@ -1578,6 +1578,51 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          created_at: string
+          customer_code: string | null
+          email: string | null
+          first_seen_at: string
+          id: string
+          is_active: boolean
+          last_seen_at: string
+          name: string | null
+          notes: string | null
+          phone: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_code?: string | null
+          email?: string | null
+          first_seen_at?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          name?: string | null
+          notes?: string | null
+          phone: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_code?: string | null
+          email?: string | null
+          first_seen_at?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       daftra_sync_logs: {
         Row: {
           created_at: string | null
@@ -2727,6 +2772,7 @@ export type Database = {
           created_by: string | null
           currency: string
           customer_email: string | null
+          customer_id: string | null
           customer_name: string
           customer_phone: string | null
           discount_amount: number
@@ -2764,6 +2810,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
           discount_amount?: number
@@ -2801,6 +2848,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
           discount_amount?: number
@@ -2829,6 +2877,20 @@ export type Database = {
           withholding_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_customers_dashboard"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_request_id_fkey"
             columns: ["request_id"]
@@ -3028,6 +3090,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_via_consumer_id: string | null
+          customer_id: string | null
           customer_notes: string | null
           daftra_invoice_id: string | null
           daftra_sync_status: string | null
@@ -3089,6 +3152,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_via_consumer_id?: string | null
+          customer_id?: string | null
           customer_notes?: string | null
           daftra_invoice_id?: string | null
           daftra_sync_status?: string | null
@@ -3150,6 +3214,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_via_consumer_id?: string | null
+          customer_id?: string | null
           customer_notes?: string | null
           daftra_invoice_id?: string | null
           daftra_sync_status?: string | null
@@ -3345,6 +3410,20 @@ export type Database = {
             columns: ["created_via_consumer_id"]
             isOneToOne: false
             referencedRelation: "v_api_consumers_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_customers_dashboard"
             referencedColumns: ["id"]
           },
           {
@@ -10045,6 +10124,26 @@ export type Database = {
           },
         ]
       }
+      v_customers_dashboard: {
+        Row: {
+          avg_rating: number | null
+          customer_code: string | null
+          email: string | null
+          first_seen_at: string | null
+          id: string | null
+          invoices_count: number | null
+          is_active: boolean | null
+          last_request_at: string | null
+          last_seen_at: string | null
+          name: string | null
+          phone: string | null
+          requests_count: number | null
+          total_billed: number | null
+          total_outstanding: number | null
+          total_paid: number | null
+        }
+        Relationships: []
+      }
       v_inventory_dashboard: {
         Row: {
           category: string | null
@@ -11307,6 +11406,7 @@ export type Database = {
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
+      normalize_phone: { Args: { _phone: string }; Returns: string }
       public_get_invoice_by_request: {
         Args: { p_request_id: string }
         Returns: Json
@@ -11383,6 +11483,10 @@ export type Database = {
           storage_url: string
           text_content_preview: string
         }[]
+      }
+      upsert_customer_from_request: {
+        Args: { _email: string; _name: string; _phone: string }
+        Returns: string
       }
     }
     Enums: {
