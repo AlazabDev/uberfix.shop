@@ -103,21 +103,19 @@ async function ensureProfileForAuthenticatedUser(
         ? user.user_metadata.picture
         : null;
 
+  const profilePayload = {
+    id: user.id,
+    email,
+    name: fullName,
+    phone,
+    avatar_url: avatarUrl,
+    role,
+    updated_at: new Date().toISOString(),
+  };
+
   const { error } = await supabase
     .from('profiles')
-    .upsert(
-      {
-        id: user.id,
-        email,
-        name: fullName,
-        full_name: fullName,
-        phone,
-        avatar_url: avatarUrl,
-        role,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    );
+    .upsert(profilePayload, { onConflict: 'id' });
 
   if (error) {
     console.error('Failed to ensure profile after OAuth:', error);
