@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, ArrowRight, MapPin } from "lucide-react";
+import { Loader2, Star, ArrowRight, MapPin, Building2, Home as HomeIcon } from "lucide-react";
 import { getSpecializationLabel } from "@/constants/technicianConstants";
 import { InteractiveMap } from "@/components/maps/InteractiveMap";
 import { useVendorRouting } from "@/hooks/useVendorRouting";
@@ -24,10 +24,22 @@ interface SelectedTechnician {
   longitude: number;
 }
 
+interface MapPickedLocation {
+  lat: number;
+  lng: number;
+  ctx?: {
+    branch_id?: string;
+    property_id?: string;
+    branch_name?: string;
+    property_name?: string;
+  };
+}
+
 export default function QuickRequestFromMap() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [technician, setTechnician] = useState<SelectedTechnician | null>(null);
+  const [pickedLocation, setPickedLocation] = useState<MapPickedLocation | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [clientCoords, setClientCoords] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -50,9 +62,18 @@ export default function QuickRequestFromMap() {
 
   useEffect(() => {
     const savedTechnician = sessionStorage.getItem('selectedTechnician');
+    const savedLocation = sessionStorage.getItem('mapPickedLocation');
     if (savedTechnician) {
       try {
         setTechnician(JSON.parse(savedTechnician));
+      } catch {
+        navigateBack();
+      }
+    } else if (savedLocation) {
+      try {
+        const loc: MapPickedLocation = JSON.parse(savedLocation);
+        setPickedLocation(loc);
+        setClientCoords({ lat: loc.lat, lng: loc.lng });
       } catch {
         navigateBack();
       }
@@ -63,8 +84,8 @@ export default function QuickRequestFromMap() {
 
   const navigateBack = () => {
     toast({
-      title: '⚠️ لم يتم اختيار فني',
-      description: 'يرجى العودة للخريطة واختيار فني',
+      title: '⚠️ لم يتم تحديد فني أو موقع',
+      description: 'يرجى العودة للخريطة لاختيار فني أو تحديد موقع',
       variant: 'destructive',
     });
     navigate('/service-map');
@@ -72,7 +93,7 @@ export default function QuickRequestFromMap() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!technician) return;
+    if (!technician && !pickedLocation) return;
 
     if (!clientCoords) {
       toast({
@@ -86,30 +107,40 @@ export default function QuickRequestFromMap() {
     setSubmitting(true);
 
     try {
-      const enrichedDescription = [
-        formData.description,
-        '',
-        `الفني المختار من الخريطة: ${technician.name}`,
-        `معرف الفني: ${technician.id}`,
-        `التخصص: ${getSpecializationLabel(technician.specialization)}`,
-      ].join('\n');
+      const enrichedLines = [formData.description, ''];
+      if (technician) {
+        enrichedLines.push(
+          `الفني المختار من الخريطة: ${technician.name}`,
+          `معرف الفني: ${technician.id}`,
+          `التخصص: ${getSpecializationLabel(technician.specialization)}`,
+        );
+      }
+      if (pickedLocation?.ctx?.branch_name) {
+        enrichedLines.push(`الفرع: ${pickedLocation.ctx.branch_name}`);
+      }
+      if (pickedLocation?.ctx?.property_name) {
+        enrichedLines.push(`العقار: ${pickedLocation.ctx.property_name}`);
+      }
+      const enrichedDescription = enrichedLines.join('\n');
 
       const { data: request, error } = await supabase.functions.invoke('submit-public-request', {
         body: {
           client_name: formData.client_name,
           client_phone: formData.client_phone,
           client_email: formData.client_email || undefined,
-          service_type: technician.specialization,
+          service_type: technician?.specialization || 'general',
           priority: formData.priority,
           description: enrichedDescription,
           notes: enrichedDescription,
-          branch_name: '',
+          branch_name: pickedLocation?.ctx?.branch_name || '',
           channel: 'public_form',
           // Map-driven payload (Phase 1)
           location: formData.location,
           latitude: clientCoords.lat,
           longitude: clientCoords.lng,
-          assigned_technician_id: technician.id,
+          assigned_technician_id: technician?.id,
+          branch_id: pickedLocation?.ctx?.branch_id,
+          property_id: pickedLocation?.ctx?.property_id,
           // Phase 2 — route summary (snapshot at submission time)
           route_info: routeInfo ? {
             distance: routeInfo.distance,
@@ -129,6 +160,7 @@ export default function QuickRequestFromMap() {
       });
 
       sessionStorage.removeItem('selectedTechnician');
+      sessionStorage.removeItem('mapPickedLocation');
       navigate('/service-map');
     } catch (error: any) {
       console.error('Error creating request:', error);
@@ -142,7 +174,7 @@ export default function QuickRequestFromMap() {
     }
   };
 
-  if (!technician) {
+  if (!technician && !pickedLocation) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -162,8 +194,9 @@ export default function QuickRequestFromMap() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* بطاقة الفني المختار */}
-            <Card className="bg-muted/50 border-primary/20">
+            {/* بطاقة السياق: فني / فرع / عقار */}
+            {technician && (
+            <Card className="bg-muted/50 border-primary/20 animate-fade-in">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -197,6 +230,35 @@ export default function QuickRequestFromMap() {
                 </div>
               </CardContent>
             </Card>
+            )}
+            {!technician && pickedLocation && (
+              <Card className="bg-muted/50 border-primary/20 animate-fade-in">
+                <CardContent className="pt-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {pickedLocation.ctx?.branch_id ? (
+                      <Building2 className="w-8 h-8 text-primary" />
+                    ) : pickedLocation.ctx?.property_id ? (
+                      <HomeIcon className="w-8 h-8 text-primary" />
+                    ) : (
+                      <MapPin className="w-8 h-8 text-primary" />
+                    )}
+                    <div>
+                      <h3 className="text-lg font-bold">
+                        {pickedLocation.ctx?.branch_name
+                          || pickedLocation.ctx?.property_name
+                          || 'طلب من الموقع المحدد'}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        سيتم تعيين فني مناسب تلقائياً حسب التخصص والقرب
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/service-map')}>
+                    تغيير الموقع
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {/* نموذج الطلب */}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -256,8 +318,8 @@ export default function QuickRequestFromMap() {
                   اسحب العلامة أو اضغط على "موقعي الحالي" لتثبيت موقعك بدقة لكي يصلك الفني.
                 </p>
                 <InteractiveMap
-                  latitude={clientCoords?.lat ?? technician.latitude ?? 30.0444}
-                  longitude={clientCoords?.lng ?? technician.longitude ?? 31.2357}
+                  latitude={clientCoords?.lat ?? technician?.latitude ?? pickedLocation?.lat ?? 30.0444}
+                  longitude={clientCoords?.lng ?? technician?.longitude ?? pickedLocation?.lng ?? 31.2357}
                   height="320px"
                   onLocationChange={(lat, lng, address) => {
                     setClientCoords({ lat, lng });
