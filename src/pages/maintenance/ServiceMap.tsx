@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from "react";
 import { createRoot } from "react-dom/client";
 import { useNavigate } from "react-router-dom";
 import {
   Search, MapPin, Users, Building2, Home as HomeIcon, ClipboardList,
   Layers, Flame, RefreshCw, AlertTriangle, Phone, MessageCircle, X,
-  CheckCircle2, Settings as SettingsIcon, Activity,
+  CheckCircle2, Settings as SettingsIcon, Activity, Plus, LocateFixed, Keyboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,10 @@ export default function ServiceMap() {
   const [showClusters, setShowClusters] = useState(true);
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Debounce search input via useDeferredValue → smoother filtering at scale
+  const deferredQuery = useDeferredValue(searchQuery);
 
   // Authorization check (for assignment)
   useEffect(() => {
@@ -128,7 +132,7 @@ export default function ServiceMap() {
 
   // Filtering
   const selectedSpecConfig = SPECIALTIES.find(s => s.id === selectedSpecialty);
-  const q = searchQuery.toLowerCase();
+  const q = deferredQuery.toLowerCase();
 
   const filteredTechs = useMemo(() => technicians.filter(t => {
     const spec = (t.specialization || "").toLowerCase();
@@ -253,6 +257,54 @@ export default function ServiceMap() {
   }, [mapReady, filteredTechs, filteredBranches, filteredProperties, filteredRequests,
       layerTechnicians, layerBranches, layerProperties, layerRequests, showClusters, showHeatmap]);
 
+  // Pan map to selected item for instant visual focus
+  useEffect(() => {
+    if (!mapInstanceRef.current || !selectedItem) return;
+    const map = mapInstanceRef.current;
+    let lat: number | null = null, lng: number | null = null;
+    if (selectedItem.kind === 'technician') {
+      lat = Number(selectedItem.data.current_latitude);
+      lng = Number(selectedItem.data.current_longitude);
+    } else if (selectedItem.kind === 'branch') {
+      lat = parseFloat(selectedItem.data.latitude || '');
+      lng = parseFloat(selectedItem.data.longitude || '');
+    } else if (selectedItem.kind === 'property') {
+      lat = selectedItem.data.latitude;
+      lng = selectedItem.data.longitude;
+    } else if (selectedItem.kind === 'request') {
+      lat = Number(selectedItem.data.latitude);
+      lng = Number(selectedItem.data.longitude);
+    }
+    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+      map.panTo({ lat, lng });
+      if (map.getZoom() < 14) map.setZoom(15);
+    }
+  }, [selectedItem]);
+
+  // Keyboard shortcuts: / search, F heatmap, C clusters, R refresh, Esc close, ? help
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if (e.key === 'Escape') { setSelectedItem(null); setShowShortcuts(false); return; }
+      if (inField) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        (document.getElementById('service-map-search') as HTMLInputElement | null)?.focus();
+      } else if (e.key.toLowerCase() === 'f') {
+        setShowHeatmap(v => !v);
+      } else if (e.key.toLowerCase() === 'c') {
+        setShowClusters(v => !v);
+      } else if (e.key.toLowerCase() === 'r') {
+        refetch();
+      } else if (e.key === '?') {
+        setShowShortcuts(v => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [refetch]);
+
   const handleAssignTechnician = useCallback(async (requestId: string, technicianId: string) => {
     const { data, error } = await supabase.rpc('assign_technician_to_map_request', {
       p_request_id: requestId, p_technician_id: technicianId,
@@ -269,6 +321,26 @@ export default function ServiceMap() {
   const handleQuickRequestFromLocation = (lat: number, lng: number, ctx?: any) => {
     sessionStorage.setItem('mapPickedLocation', JSON.stringify({ lat, lng, ctx }));
     navigate('/quick-request-from-map');
+  };
+
+  const handleQuickRequestFromMapCenter = () => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const c = map.getCenter();
+    if (!c) return;
+    handleQuickRequestFromLocation(c.lat(), c.lng());
+  };
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation || !mapInstanceRef.current) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        mapInstanceRef.current.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        mapInstanceRef.current.setZoom(15);
+        toast({ title: '📍 موقعك الحالي', description: 'تم تحديد موقعك على الخريطة' });
+      },
+      () => toast({ title: 'تعذر تحديد الموقع', variant: 'destructive' })
+    );
   };
 
   const handleFollowTechnician = (t: MapTechnician) => {
@@ -292,28 +364,36 @@ export default function ServiceMap() {
   return (
     <div className="min-h-screen bg-slate-50" dir="rtl">
       {/* Top Bar — Navy */}
-      <header className="sticky top-0 z-40 bg-[#030957] text-white shadow-md">
+      <header className="sticky top-0 z-40 bg-gradient-to-l from-[#030957] via-[#040a6a] to-[#030957] text-white shadow-lg">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FFB900] text-[#030957] flex items-center justify-center font-bold">UF</div>
+            <div className="w-10 h-10 rounded-xl bg-[#FFB900] text-[#030957] flex items-center justify-center font-bold shadow-md ring-2 ring-[#FFB900]/30">UF</div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-[#FFB900] font-semibold">Live Operations</p>
               <h1 className="text-base font-bold">خريطة خدمات UberFix — المرآة الميدانية</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hidden md:inline-flex"
+              onClick={() => setShowShortcuts(v => !v)} title="اختصارات لوحة المفاتيح">
+              <Keyboard className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4 ml-1" /> تحديث
             </Button>
-            <Badge className="bg-[#FFB900] text-[#030957] hover:bg-[#FFB900]">
-              <Activity className="w-3 h-3 ml-1" /> Live
+            <Badge className="bg-[#FFB900] text-[#030957] hover:bg-[#FFB900] gap-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              Live
             </Badge>
           </div>
         </div>
 
         {/* KPI strip */}
         <div className="bg-[#040a6a] border-t border-white/5">
-          <div className="container mx-auto px-4 py-2 grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+          <div className="container mx-auto px-4 py-2 grid grid-cols-3 md:grid-cols-6 gap-2 text-xs animate-fade-in">
             <Kpi label="إجمالي الفنيين" value={kpis.techsTotal} />
             <Kpi label="متاح الآن" value={kpis.techsAvailable} accent />
             <Kpi label="الفروع" value={kpis.branches} />
@@ -331,8 +411,15 @@ export default function ServiceMap() {
             <Card className="p-3 space-y-3">
               <div className="relative">
                 <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
-                <Input placeholder="بحث: اسم/تخصص/رقم طلب…" value={searchQuery}
+                <Input id="service-map-search" placeholder="بحث: اسم/تخصص/رقم طلب…  (اضغط /)" value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)} className="pr-9" />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')}
+                    className="absolute top-1/2 -translate-y-1/2 left-2 p-0.5 rounded hover:bg-slate-100"
+                    aria-label="مسح البحث">
+                    <X className="w-3.5 h-3.5 text-slate-500" />
+                  </button>
+                )}
               </div>
 
               <div>
@@ -392,7 +479,7 @@ export default function ServiceMap() {
 
           {/* Map */}
           <section className="col-span-12 lg:col-span-9">
-            <Card className="overflow-hidden border-2 border-slate-200 shadow-xl">
+            <Card className="overflow-hidden border-2 border-slate-200 shadow-xl relative">
               {mapError ? (
                 <div className="h-[640px] flex items-center justify-center bg-slate-100">
                   <div className="text-center space-y-3">
@@ -402,7 +489,32 @@ export default function ServiceMap() {
                   </div>
                 </div>
               ) : (
-                <div ref={mapRef} className="w-full h-[640px]" />
+                <>
+                  <div ref={mapRef} className="w-full h-[640px]" />
+                  {(loading || !mapReady) && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center pointer-events-none animate-fade-in">
+                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-lg">
+                        <RefreshCw className="w-4 h-4 animate-spin text-[#030957]" />
+                        <span className="text-sm text-[#030957] font-semibold">جاري تحميل الخريطة…</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Floating action buttons */}
+                  {mapReady && (
+                    <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-10">
+                      <Button size="icon" onClick={handleLocateMe}
+                        className="rounded-full bg-white text-[#030957] hover:bg-slate-50 shadow-lg w-11 h-11"
+                        title="موقعي الحالي">
+                        <LocateFixed className="w-5 h-5" />
+                      </Button>
+                      <Button size="icon" onClick={handleQuickRequestFromMapCenter}
+                        className="rounded-full bg-[#FFB900] text-[#030957] hover:bg-[#FFB900]/90 shadow-lg w-12 h-12"
+                        title="إنشاء طلب من مركز الخريطة">
+                        <Plus className="w-6 h-6" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </Card>
 
@@ -417,6 +529,38 @@ export default function ServiceMap() {
           </section>
         </div>
       </main>
+
+      {/* Keyboard shortcuts overlay */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowShortcuts(false)}>
+          <Card className="w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-[#030957] flex items-center gap-2">
+                <Keyboard className="w-4 h-4" /> اختصارات لوحة المفاتيح
+              </h3>
+              <Button size="icon" variant="ghost" onClick={() => setShowShortcuts(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="space-y-2 text-sm">
+              {[
+                ['/', 'تركيز شريط البحث'],
+                ['F', 'تبديل Heatmap'],
+                ['C', 'تبديل Clusters'],
+                ['R', 'تحديث البيانات'],
+                ['Esc', 'إغلاق التفاصيل'],
+                ['?', 'إظهار/إخفاء هذه القائمة'],
+              ].map(([k, label]) => (
+                <div key={k} className="flex items-center justify-between border-b pb-1.5">
+                  <span className="text-slate-700">{label}</span>
+                  <kbd className="px-2 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs font-mono">{k}</kbd>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Detail Side Sheet */}
       <Sheet open={!!selectedItem} onOpenChange={(o) => !o && setSelectedItem(null)}>
