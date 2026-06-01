@@ -21,10 +21,30 @@ const businessActivities = [
   { value: "other", label: "أخرى" },
 ];
 
-const slaLevels = [
-  { value: "standard", label: "عادي - استجابة خلال 24 ساعة" },
-  { value: "priority", label: "أولوية - استجابة خلال 4 ساعات" },
-  { value: "critical", label: "حرج - استجابة خلال ساعة" },
+const operatingStatuses = [
+  { value: "active", label: "نشط" },
+  { value: "preparing", label: "تحت التجهيز" },
+  { value: "under_maintenance", label: "تحت الصيانة" },
+  { value: "temporarily_closed", label: "مغلق مؤقتًا" },
+];
+
+const locationNatures = [
+  { value: "inside_mall", label: "داخل مول" },
+  { value: "outside_mall", label: "خارج مول" },
+  { value: "standalone", label: "موقع مستقل" },
+];
+
+const subscriptionStatuses = [
+  { value: "subscribed", label: "مشترك" },
+  { value: "no_subscription", label: "بدون اشتراك" },
+];
+
+const accessPolicies = [
+  { value: "direct", label: "دخول مباشر" },
+  { value: "branch_manager", label: "تنسيق مسبق مع مسؤول الفرع" },
+  { value: "security_permit", label: "تصريح أمني مسبق" },
+  { value: "mall_management", label: "تصريح من إدارة المول" },
+  { value: "after_hours", label: "زيارة خارج ساعات العمل" },
 ];
 
 const criticalAssets = [
@@ -40,10 +60,10 @@ export function CommercialFields({ register, setValue, watch }: CommercialFields
     <div className="space-y-6">
       <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">
-          🏬 خصائص العقار التجاري
+          🏬 خصائص الفرع التجاري
         </h4>
         <p className="text-sm text-blue-600 dark:text-blue-400">
-          أدخل تفاصيل المنشأة التجارية. سيتم تطبيق نظام SLA للصيانة.
+          أدخل تفاصيل تشغيل الفرع وآلية الوصول إليه لتسهيل عمليات الصيانة.
         </p>
       </div>
 
@@ -68,13 +88,20 @@ export function CommercialFields({ register, setValue, watch }: CommercialFields
         </div>
 
         <div className="space-y-2">
-          <Label>عدد المحلات / المساحات</Label>
-          <Input
-            type="number"
-            min={1}
-            {...register("units_count", { valueAsNumber: true })}
-            placeholder="مثال: 20"
-          />
+          <Label>حالة تشغيل الفرع</Label>
+          <Select
+            value={watch("operating_status") || "active"}
+            onValueChange={(value) => setValue("operating_status", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="اختر حالة التشغيل" />
+            </SelectTrigger>
+            <SelectContent>
+              {operatingStatuses.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -97,19 +124,17 @@ export function CommercialFields({ register, setValue, watch }: CommercialFields
         </div>
 
         <div className="space-y-2">
-          <Label>مستوى الأولوية (SLA)</Label>
+          <Label>طبيعة موقع الفرع</Label>
           <Select
-            value={watch("sla_level") || "standard"}
-            onValueChange={(value) => setValue("sla_level", value)}
+            value={watch("location_nature") || "standalone"}
+            onValueChange={(value) => setValue("location_nature", value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="اختر مستوى SLA" />
+              <SelectValue placeholder="اختر طبيعة الموقع" />
             </SelectTrigger>
             <SelectContent>
-              {slaLevels.map((level) => (
-                <SelectItem key={level.value} value={level.value}>
-                  {level.label}
-                </SelectItem>
+              {locationNatures.map((n) => (
+                <SelectItem key={n.value} value={n.value}>{n.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -128,23 +153,40 @@ export function CommercialFields({ register, setValue, watch }: CommercialFields
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label>عدد الطوابق</Label>
-          <Input
-            type="number"
-            min={1}
-            {...register("floors", { valueAsNumber: true })}
-            placeholder="3"
-          />
+          <Label>حالة الاشتراك</Label>
+          <Select
+            value={watch("subscription_status") || "no_subscription"}
+            onValueChange={(value) => setValue("subscription_status", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="اختر حالة الاشتراك" />
+            </SelectTrigger>
+            <SelectContent>
+              {subscriptionStatuses.map((s) => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            تفاصيل الاشتراك الكاملة تُدار من صفحة العقد.
+          </p>
         </div>
 
         <div className="space-y-2">
-          <Label>مواقف السيارات</Label>
-          <Input
-            type="number"
-            min={0}
-            {...register("parking_spaces", { valueAsNumber: true })}
-            placeholder="50"
-          />
+          <Label>آلية الدخول والتصاريح</Label>
+          <Select
+            value={watch("access_policy") || "direct"}
+            onValueChange={(value) => setValue("access_policy", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="اختر آلية الدخول" />
+            </SelectTrigger>
+            <SelectContent>
+              {accessPolicies.map((p) => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

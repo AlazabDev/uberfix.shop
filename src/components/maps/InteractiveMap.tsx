@@ -26,7 +26,13 @@ export function InteractiveMap({
   const markerInstanceRef = useRef<any>(null);
   const geocoderRef = useRef<any>(null);
   const isCleaningUpRef = useRef(false);
-  
+  // Keep the latest onLocationChange in a ref so the init effect does not
+  // re-run (and tear down the map) every time the parent re-renders.
+  const onLocationChangeRef = useRef(onLocationChange);
+  useEffect(() => {
+    onLocationChangeRef.current = onLocationChange;
+  }, [onLocationChange]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [currentLat, setCurrentLat] = useState(latitude);
   const [currentLng, setCurrentLng] = useState(longitude);
@@ -106,12 +112,12 @@ export function InteractiveMap({
             const result = await geocoder.geocode({ location: { lat, lng } });
             const address = result.results[0]?.formatted_address;
             if (isMounted && !isCleaningUpRef.current) {
-              onLocationChange?.(lat, lng, address);
+              onLocationChangeRef.current?.(lat, lng, address);
               toast.success("تم تحديث الموقع");
             }
           } catch {
             if (isMounted && !isCleaningUpRef.current) {
-              onLocationChange?.(lat, lng);
+              onLocationChangeRef.current?.(lat, lng);
             }
           }
         });
@@ -134,12 +140,12 @@ export function InteractiveMap({
             const result = await geocoder.geocode({ location: { lat, lng } });
             const address = result.results[0]?.formatted_address;
             if (isMounted && !isCleaningUpRef.current) {
-              onLocationChange?.(lat, lng, address);
+              onLocationChangeRef.current?.(lat, lng, address);
               toast.success("تم تحديث الموقع");
             }
           } catch {
             if (isMounted && !isCleaningUpRef.current) {
-              onLocationChange?.(lat, lng);
+              onLocationChangeRef.current?.(lat, lng);
             }
           }
         });
@@ -188,7 +194,11 @@ export function InteractiveMap({
         // Cleanup error, safe to ignore
       }
     };
-  }, [onLocationChange, height]);
+    // Initialize the map exactly once on mount. `height` and the callback are
+    // captured via refs/initial closure to avoid the destroy/recreate loop
+    // that was surfacing as "Failed to load Google Maps SDK".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update marker position when coordinates change
   useEffect(() => {
@@ -241,9 +251,9 @@ export function InteractiveMap({
           try {
             const result = await geocoderRef.current.geocode({ location: newPos });
             const address = result.results[0]?.formatted_address;
-            onLocationChange?.(newLat, newLng, address);
+            onLocationChangeRef.current?.(newLat, newLng, address);
           } catch {
-            onLocationChange?.(newLat, newLng);
+            onLocationChangeRef.current?.(newLat, newLng);
           }
         }
         
@@ -251,7 +261,7 @@ export function InteractiveMap({
       },
       () => toast.error("فشل تحديد الموقع")
     );
-  }, [onLocationChange]);
+  }, []);
 
   return (
     <Card className={className}>

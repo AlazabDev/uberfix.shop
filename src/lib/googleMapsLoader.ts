@@ -70,7 +70,7 @@ class GoogleMapsLoader {
 
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libs}&language=ar&region=EG&v=weekly`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libs}&language=ar&region=EG&v=weekly&loading=async`;
         script.async = true;
         script.defer = true;
         script.onload = () => {
