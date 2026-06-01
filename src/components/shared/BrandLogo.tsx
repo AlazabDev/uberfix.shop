@@ -46,7 +46,7 @@ export function BrandLogo({
     >
       <img
         src={iconSrc}
-        alt="UberFix"
+        alt="UberFix - Maintenance Management"
         className={`${s.iconImg} object-contain`}
       />
     </div>

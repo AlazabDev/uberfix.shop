@@ -120,6 +120,7 @@ export const ServicesSection = () => {
                     variant="outline"
                     onClick={() => openWhatsApp(service.whatsappMessage)}
                     className="text-success border-success/30 hover:bg-success/10"
+                    aria-label={`تواصل عبر واتساب بخصوص ${service.title}`}
                   >
                     <MessageCircle className="h-4 w-4" />
                   </Button>

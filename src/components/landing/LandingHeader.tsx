@@ -182,7 +182,7 @@ export const LandingHeader = () => {
                     <BrandLogo size="md" />
                   </div>
                   <SheetClose asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="إغلاق القائمة">
                       <X className="h-5 w-5" />
                     </Button>
                   </SheetClose>
