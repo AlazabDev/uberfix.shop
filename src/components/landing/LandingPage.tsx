@@ -59,25 +59,27 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-background text-foreground" dir={direction}>
       <LandingHeader />
 
-      {/* قسم الهيرو */}
-      <HeroSection />
+      <main>
+        {/* قسم الهيرو */}
+        <HeroSection />
 
-      {/* شريط الخدمات السريع أسفل الهيرو مباشرة */}
-      <HeroServicesBar />
+        {/* شريط الخدمات السريع أسفل الهيرو مباشرة */}
+        <HeroServicesBar />
 
-      {/* قسم الخريطة الترويجية - Globe */}
-      <Suspense fallback={<MapLoadingFallback />}>
-        <GlobalMap />
-      </Suspense>
+        {/* قسم الخريطة الترويجية - Globe */}
+        <Suspense fallback={<MapLoadingFallback />}>
+          <GlobalMap />
+        </Suspense>
 
-      {/* باقي أقسام صفحة الهبوط */}
-      <ServicesSection />
-      <StatsSection />
-      <ExperienceSection />
-      <StorySection />
-      <FeaturesSection />
-      <TechnicianSection />
-      <TestimonialsSection />
+        {/* باقي أقسام صفحة الهبوط */}
+        <ServicesSection />
+        <StatsSection />
+        <ExperienceSection />
+        <StorySection />
+        <FeaturesSection />
+        <TechnicianSection />
+        <TestimonialsSection />
+      </main>
       <Footer />
       
       {/* Floating Communication Buttons */}
