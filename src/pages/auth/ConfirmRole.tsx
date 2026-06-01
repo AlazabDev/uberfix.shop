@@ -119,20 +119,18 @@ export default function ConfirmRole() {
         (user.supabaseUser.user_metadata?.picture as string) ||
         null;
 
+      const profilePayload = {
+        id: user.id,
+        email: user.email || `${user.id}@oauth.local`,
+        name: fullName,
+        avatar_url: avatarUrl,
+        role: selectedRole,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error: upsertError } = await supabase
         .from("profiles")
-        .upsert(
-          {
-            id: user.id,
-            email: user.email || `${user.id}@oauth.local`,
-            name: fullName,
-            full_name: fullName,
-            avatar_url: avatarUrl,
-            role: selectedRole,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" },
-        );
+        .upsert(profilePayload, { onConflict: "id" });
 
       if (upsertError) {
         throw upsertError;
