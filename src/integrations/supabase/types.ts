@@ -4328,6 +4328,7 @@ export type Database = {
           longitude: number | null
           maintenance_schedule: string | null
           manager_id: string | null
+          metadata: Json
           name: string
           next_inspection_date: string | null
           parking_spaces: number | null
@@ -4362,6 +4363,7 @@ export type Database = {
           longitude?: number | null
           maintenance_schedule?: string | null
           manager_id?: string | null
+          metadata?: Json
           name: string
           next_inspection_date?: string | null
           parking_spaces?: number | null
@@ -4396,6 +4398,7 @@ export type Database = {
           longitude?: number | null
           maintenance_schedule?: string | null
           manager_id?: string | null
+          metadata?: Json
           name?: string
           next_inspection_date?: string | null
           parking_spaces?: number | null
