@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://main.alazab.dev/sitemap.xml
+Sitemap: https://uberfix.shop/sitemap.xml
