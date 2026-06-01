@@ -18,8 +18,7 @@ export const propertyFormSchema = z.object({
   category: z.enum(["residential", "commercial", "industrial"]),
   type: z.string().min(1, "نوع العقار مطلوب"),
   status: z.string().min(1, "حالة العقار مطلوبة"),
-  address: z.string().min(5, "العنوان مطلوب").or(z.literal("")).optional()
-    .transform((v) => v ?? ""),
+  address: z.string().min(5, "العنوان مطلوب"),
   city_id: z.number().optional(),
   district_id: z.number().optional(),
   latitude: optionalNumber,
