@@ -309,8 +309,17 @@ export function SmartPropertyForm({ initialData, propertyId, skipNavigation, onS
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
-                <Label>رمز العقار</Label>
-                <Input {...register("code")} placeholder="اختياري" />
+                <Label>كود الفرع / العقار</Label>
+                <Input
+                  {...register("code")}
+                  readOnly
+                  disabled
+                  placeholder={initialData?.code || "سيتم توليده تلقائيًا (AZ-PROP-XXXXX)"}
+                  className="bg-muted cursor-not-allowed text-muted-foreground"
+                />
+                <p className="text-xs text-muted-foreground">
+                  يتم توليد الكود تلقائيًا بواسطة النظام عند الحفظ ولا يمكن تعديله.
+                </p>
               </div>
 
               <div className="space-y-2">
