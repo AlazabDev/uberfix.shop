@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { calculateDashboardStats } from "@/lib/dashboardStats";
 
 export interface DashboardStats {
   pending_requests: number;
@@ -64,53 +65,10 @@ export function useDashboardStats() {
       }
 
       const requests = allRequests;
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const requestsArray = requests || [];
-
-      // Calculate statistics
-      const totalRequests = requestsArray.length;
-      const pendingRequests = requestsArray.filter(r => 
-        r.status === 'Open' || r.status === 'On Hold' || r.status === 'Waiting' || r.workflow_stage === 'submitted'
-      ).length;
-      const completedRequests = requestsArray.filter(r => 
-        r.status === 'Completed' || r.workflow_stage === 'completed'
-      ).length;
-      const todayRequests = requestsArray.filter(r => new Date(r.created_at) >= today).length;
-      const monthRequests = requestsArray.filter(r => new Date(r.created_at) >= monthStart).length;
-
-      const highPriority = requestsArray.filter(r => r.priority === 'high' || r.priority === 'urgent').length;
-      const mediumPriority = requestsArray.filter(r => r.priority === 'medium').length;
-      const lowPriority = requestsArray.filter(r => r.priority === 'low').length;
-
-      const submitted = requestsArray.filter(r => r.workflow_stage === 'submitted').length;
-      const assigned = requestsArray.filter(r => r.workflow_stage === 'assigned').length;
-      const inProgress = requestsArray.filter(r => r.workflow_stage === 'in_progress').length;
-      const workflowCompleted = requestsArray.filter(r => r.workflow_stage === 'completed').length;
-
-      const totalBudget = requestsArray.reduce((sum, r) => sum + (Number(r.estimated_cost) || 0), 0);
-      const actualCost = requestsArray.reduce((sum, r) => sum + (Number(r.actual_cost) || 0), 0);
-      const completionRate = totalRequests > 0 ? (completedRequests / totalRequests) * 100 : 0;
+      const calculatedStats = calculateDashboardStats(requests || []);
 
       setStats({
-        pending_requests: pendingRequests,
-        today_requests: todayRequests,
-        completed_requests: completedRequests,
-        total_requests: totalRequests,
-        this_month_requests: monthRequests,
-        total_budget: totalBudget,
-        actual_cost: actualCost,
-        completion_rate: Math.round(completionRate),
-        avg_completion_days: 0,
-        high_priority_count: highPriority,
-        medium_priority_count: mediumPriority,
-        low_priority_count: lowPriority,
-        submitted_count: submitted,
-        assigned_count: assigned,
-        in_progress_count: inProgress,
-        workflow_completed_count: workflowCompleted,
+        ...calculatedStats,
         last_updated: new Date().toISOString(),
       });
 
