@@ -1,0 +1,31 @@
+# UberFix
+
+> UberFix is an integrated maintenance management platform for the Egyptian market — receive maintenance requests, dispatch technicians, track SLAs, and manage invoices, all in one system.
+
+UberFix connects customers with vetted technicians through web, WhatsApp, and a public intake gateway. The platform covers the full maintenance lifecycle: request, assignment, execution, invoicing, and feedback.
+
+## Pages
+
+- [Home](/): UberFix overview, services, and how the platform works.
+- [About](/about): Company story, mission, and team.
+- [Services](/services): Maintenance categories covered (AC, electrical, plumbing, fit-out).
+- [Gallery](/gallery): Photos from completed maintenance projects.
+- [Blog](/blog): Articles, tips, and industry updates.
+- [FAQ](/faq): Common questions about requests, pricing, and coverage.
+- [Book a Consultation](/book-consultation): Free Arabic consultation booking wizard.
+- [Request Service](/uf): Public maintenance request form.
+- [Request a Quote](/quote): Submit a project bid request.
+- [Track Order](/track): Track the status of an existing maintenance request.
+- [Sitemap](/sitemap): Directory of public pages.
+
+## Legal
+
+- [Privacy Policy](/privacy): How customer data is handled (Egyptian Law 151/2020 compliant).
+- [Terms of Service](/terms): Service usage terms.
+- [Acceptable Use](/acceptable-use): Acceptable use policy.
+- [Data Deletion](/data-deletion): How to request data deletion.
+
+## Optional
+
+- [API Documentation](/docs/api): Public API reference for partner integrations.
+- [User Guide](/docs/user-guide): End-user guide for the platform.
