@@ -325,6 +325,39 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // ── AUTH: allow either (a) Supabase service_role key (internal edge-fn calls)
+    //   or (b) a signed-in user with an elevated role (admin/manager/staff). ──
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const isServiceRole = token === supabaseServiceKey;
+    if (!isServiceRole) {
+      const { data: { user }, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !user) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const allowed = new Set(["admin", "manager", "staff", "dispatcher", "owner"]);
+      const ok = (roles || []).some((r: any) => allowed.has(r.role));
+      if (!ok) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const requestData: NotificationRequest = await req.json();
     
     console.log('Processing notification:', requestData);
