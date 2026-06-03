@@ -3,9 +3,38 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const ALLOWED_MIME = /^(image\/|application\/pdf|video\/|audio\/)/i;
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS });
+  }
+
+  // ── AUTH: require a valid Supabase user JWT ──────────────────────────────
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
+  }
+  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: { user }, error: userErr } = await authClient.auth.getUser();
+  if (userErr || !user) {
+    return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+      status: 401,
+      headers: { ...CORS, "Content-Type": "application/json" },
+    });
   }
 
   const SEAFILE_BASE_URL = Deno.env.get("SEAFILE_BASE_URL");
@@ -27,6 +56,20 @@ Deno.serve(async (req) => {
     if (!file) {
       return new Response(JSON.stringify({ error: "No file provided" }), {
         status: 400,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── File validation ────────────────────────────────────────────────────
+    if (file.size > MAX_FILE_BYTES) {
+      return new Response(JSON.stringify({ error: "File too large (max 25MB)" }), {
+        status: 413,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+    if (file.type && !ALLOWED_MIME.test(file.type)) {
+      return new Response(JSON.stringify({ error: "Unsupported file type" }), {
+        status: 415,
         headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
