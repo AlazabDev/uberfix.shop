@@ -132,7 +132,28 @@ serve(async (req) => {
       }
 
       case "set": {
-        // Manual cache set for API responses
+        // Admin/service-role only — prevents cache poisoning
+        const auth = req.headers.get('Authorization') ?? '';
+        const token = auth.replace('Bearer ', '');
+        const isService = token && token === supabaseKey;
+        let allowed = !!isService;
+        if (!allowed && token) {
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            const { data: roles } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+            allowed = !!roles?.some((r) => ['admin', 'owner', 'manager'].includes(r.role));
+          }
+        }
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+
         if (!key) {
           return new Response(JSON.stringify({ error: "Missing key" }), {
             status: 400,
@@ -160,6 +181,28 @@ serve(async (req) => {
       }
 
       case "invalidate": {
+        // Admin/service-role only — prevents cache-flush DoS
+        const auth = req.headers.get('Authorization') ?? '';
+        const token = auth.replace('Bearer ', '');
+        const isService = token && token === supabaseKey;
+        let allowed = !!isService;
+        if (!allowed && token) {
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            const { data: roles } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', user.id);
+            allowed = !!roles?.some((r) => ['admin', 'owner', 'manager'].includes(r.role));
+          }
+        }
+        if (!allowed) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+
         if (!key) {
           // Clear all cache
           cache.clear();
