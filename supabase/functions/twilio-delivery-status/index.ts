@@ -26,8 +26,37 @@ Deno.serve(async (req) => {
   try {
     console.log('📥 Twilio delivery status webhook received');
 
-    // Parse form data from Twilio
-    const formData = await req.formData();
+    // Verify Twilio HMAC signature
+    const twilioSignature = req.headers.get('X-Twilio-Signature') || req.headers.get('x-twilio-signature');
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    if (!twilioSignature || !authToken) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing signature' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const rawBody = await req.text();
+    const params = new URLSearchParams(rawBody);
+    const sortedKeys = [...params.keys()].sort();
+    const url = req.url;
+    let data = url;
+    for (const k of sortedKeys) data += k + (params.get(k) ?? '');
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(authToken),
+      { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+    if (expected !== twilioSignature) {
+      console.warn('❌ Invalid Twilio signature');
+      return new Response(JSON.stringify({ success: false, error: 'Invalid signature' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Build formData-compatible accessor from parsed params
+    const formData = {
+      get: (k: string) => params.get(k),
+    };
     const statusUpdate: TwilioStatusUpdate = {
       MessageSid: formData.get('MessageSid') as string,
       MessageStatus: formData.get('MessageStatus') as any,
