@@ -46,6 +46,34 @@ Deno.serve(async (req) => {
       throw new Error('JOTFORM_API_KEY is not configured');
     }
 
+    // Require service-role or staff JWT
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const token = authHeader.replace('Bearer ', '');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    let allowed = !!token && token === serviceKey;
+    if (!allowed && token) {
+      const { data: { user } } = await supabaseAuth.auth.getUser(token);
+      if (user) {
+        const adminCheck = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          serviceKey
+        );
+        const { data: roles } = await adminCheck
+          .from('user_roles').select('role').eq('user_id', user.id);
+        allowed = !!roles?.some((r: { role: string }) =>
+          ['admin','owner','manager','staff','dispatcher'].includes(r.role));
+      }
+    }
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { request_id, status, workflow_stage } = await req.json();
 
     if (!request_id) {
