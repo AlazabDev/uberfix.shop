@@ -61,30 +61,42 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // التحقق من المستخدم (اختياري)
+    // المصادقة إلزامية
     let userId: string | null = null;
     const authHeader = req.headers.get('Authorization');
-    
-    if (authHeader) {
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const isServiceRole = authHeader && serviceKey && authHeader.replace('Bearer ', '') === serviceKey;
+
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isServiceRole) {
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      
-      if (!authError && user) {
-        userId = user.id;
-        
-        // Rate limiting
-        const { data: recentMessages } = await supabase
-          .from('message_logs')
-          .select('created_at')
-          .eq('metadata->>sender_id', userId)
-          .gte('created_at', new Date(Date.now() - 60000).toISOString());
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
 
-        if (recentMessages && recentMessages.length >= 10) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'Rate limit exceeded. Maximum 10 messages per minute.' }),
-            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      // Rate limiting
+      const { data: recentMessages } = await supabase
+        .from('message_logs')
+        .select('created_at')
+        .eq('metadata->>sender_id', userId)
+        .gte('created_at', new Date(Date.now() - 60000).toISOString());
+
+      if (recentMessages && recentMessages.length >= 10) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Rate limit exceeded. Maximum 10 messages per minute.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
