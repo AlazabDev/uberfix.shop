@@ -217,6 +217,25 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Require service-role or admin/manager JWT
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const token = authHeader.replace('Bearer ', '');
+    let allowed = !!token && token === supabaseServiceKey;
+    if (!allowed && token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        const { data: roles } = await supabase
+          .from('user_roles').select('role').eq('user_id', user.id);
+        allowed = !!roles?.some((r: { role: string }) =>
+          ['admin','owner','manager','dispatcher'].includes(r.role));
+      }
+    }
+    if (!allowed) {
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { action, request_id, priority, created_at } = await req.json();
 
     if (action === 'calculate') {

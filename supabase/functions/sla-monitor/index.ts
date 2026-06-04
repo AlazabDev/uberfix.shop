@@ -14,6 +14,19 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Cron-only endpoint: require shared secret or service-role token
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const token = authHeader.replace('Bearer ', '');
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const cronHeader = req.headers.get('x-cron-secret');
+    const isService = !!token && token === supabaseKey;
+    const isCron = !!cronSecret && cronHeader === cronSecret;
+    if (!isService && !isCron) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // جلب الطلبات التي تجاوزت SLA
     const { data: overdueTasks, error: fetchError } = await supabase
       .from('maintenance_requests')

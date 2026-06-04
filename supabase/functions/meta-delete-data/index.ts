@@ -45,9 +45,9 @@ serve(async (req) => {
     const payload = await req.text();
     const signature = req.headers.get('x-hub-signature-256')?.replace('sha256=', '');
 
-    // Verify Meta signature
-    if (signature && !(await verifySignature(payload, signature))) {
-      console.error('Invalid signature');
+    // Meta signature is mandatory
+    if (!signature || !(await verifySignature(payload, signature))) {
+      console.error('Invalid or missing signature');
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
