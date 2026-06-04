@@ -105,6 +105,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Optional HMAC verification when JOTFORM_WEBHOOK_SECRET is configured
+    const jfSecret = Deno.env.get('JOTFORM_WEBHOOK_SECRET');
+    const rawBody = await req.clone().text();
+    if (jfSecret) {
+      const provided = req.headers.get('jotform-signature-key') || req.headers.get('x-jotform-signature') || '';
+      const key = await crypto.subtle.importKey(
+        'raw', new TextEncoder().encode(jfSecret),
+        { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+      const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
+      const expected = Array.from(new Uint8Array(sigBuf))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      if (expected !== provided.toLowerCase().replace(/^sha256=/, '')) {
+        console.warn('❌ Invalid JotForm signature');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // JotForm sends form data as application/x-www-form-urlencoded or JSON
     let body: Record<string, unknown>;
     const contentType = req.headers.get('content-type') || '';
