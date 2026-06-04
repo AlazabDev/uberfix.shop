@@ -122,6 +122,29 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // Admin-only one-shot operation
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user } } = await supabase.auth.getUser(token);
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const { data: roles } = await supabase
+      .from('user_roles').select('role').eq('user_id', user.id);
+    const isAdmin = roles?.some((r: { role: string }) => ['admin','owner'].includes(r.role));
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     if (!accessToken || !wabaId) {
       return new Response(JSON.stringify({ success: false, error: 'Missing WhatsApp credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
