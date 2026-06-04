@@ -218,6 +218,10 @@ verify_jwt = false
 verify_jwt = true
 # Syncs request status changes back to JotForm submissions
 
+[functions.submit-uberfix-templates]
+verify_jwt = true
+# Admin-only: submits WhatsApp templates to Meta
+
 [functions.query-maintenance-requests]
 verify_jwt = false
 # Public API endpoint for querying maintenance requests (JotForm, external tools)
