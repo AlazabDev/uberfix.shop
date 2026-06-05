@@ -240,15 +240,12 @@ export default function UberFixRequestForm() {
           </h1>
           <div className="flex items-center justify-center gap-2 text-muted-foreground flex-wrap">
             <Wrench className="h-5 w-5 text-[#FFB900]" />
-            <span>الصيانة المعمارية المتكاملة للفروع التجارية</span>
+            <span>نقدم حلولاً استثنائية لصيانة المحلات التجارية والسكنية</span>
             <Store className="h-5 w-5 text-[#FFB900]" />
           </div>
-          <div className="inline-flex flex-wrap justify-center gap-4 bg-card px-6 py-3 rounded-full shadow-md border border-[#FFB900]/20">
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> أبوعوف · 350 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> سفن فورتشين · 120 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> الحسيني · 60 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm">⭐ +75 عميل</span>
-          </div>
+          <p className="max-w-2xl mx-auto text-sm md:text-base text-muted-foreground leading-relaxed">
+            فريق متخصص، استجابة سريعة، وجودة تنفيذ مضمونة لجميع أعمال الصيانة الدورية والطارئة لمحلاتك التجارية ووحداتك السكنية.
+          </p>
         </div>
 
         {/* Tabs */}
