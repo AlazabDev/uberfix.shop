@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type TabType = "general" | "urgent" | "periodic";
 
-const CLIENTS = ["أبوعوف", "سفن فورتشين", "محمصات الحسيني", "عميل آخر (متنوع)"];
 
 const GENERAL_SERVICE_TYPES = [
   { value: "electrical", label: "كهرباء" },
