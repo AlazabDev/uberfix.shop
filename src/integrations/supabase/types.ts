@@ -9799,6 +9799,132 @@ export type Database = {
           },
         ]
       }
+      v_app_settings_safe: {
+        Row: {
+          allow_edit_after_start: boolean | null
+          allow_self_registration: boolean | null
+          allow_technician_quotes: boolean | null
+          app_logo_url: string | null
+          app_name: string | null
+          auto_backup_enabled: boolean | null
+          background_color: string | null
+          backup_frequency: string | null
+          company_address: string | null
+          company_email: string | null
+          company_phone: string | null
+          created_at: string | null
+          custom_css: string | null
+          default_currency: string | null
+          default_language: string | null
+          enable_2fa: boolean | null
+          enable_email_notifications: boolean | null
+          enable_in_app_notifications: boolean | null
+          enable_reminders: boolean | null
+          enable_sms_notifications: boolean | null
+          enable_technician_rating: boolean | null
+          erpnext_enabled: boolean | null
+          google_maps_enabled: boolean | null
+          id: string | null
+          lock_sensitive_settings: boolean | null
+          map_style: string | null
+          max_execution_time: number | null
+          notification_templates: Json | null
+          notification_types: Json | null
+          primary_color: string | null
+          require_manager_approval: boolean | null
+          secondary_color: string | null
+          session_timeout: number | null
+          show_footer: boolean | null
+          show_technicians_on_map: boolean | null
+          theme_mode: string | null
+          timezone: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allow_edit_after_start?: boolean | null
+          allow_self_registration?: boolean | null
+          allow_technician_quotes?: boolean | null
+          app_logo_url?: string | null
+          app_name?: string | null
+          auto_backup_enabled?: boolean | null
+          background_color?: string | null
+          backup_frequency?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          default_currency?: string | null
+          default_language?: string | null
+          enable_2fa?: boolean | null
+          enable_email_notifications?: boolean | null
+          enable_in_app_notifications?: boolean | null
+          enable_reminders?: boolean | null
+          enable_sms_notifications?: boolean | null
+          enable_technician_rating?: boolean | null
+          erpnext_enabled?: boolean | null
+          google_maps_enabled?: boolean | null
+          id?: string | null
+          lock_sensitive_settings?: boolean | null
+          map_style?: string | null
+          max_execution_time?: number | null
+          notification_templates?: Json | null
+          notification_types?: Json | null
+          primary_color?: string | null
+          require_manager_approval?: boolean | null
+          secondary_color?: string | null
+          session_timeout?: number | null
+          show_footer?: boolean | null
+          show_technicians_on_map?: boolean | null
+          theme_mode?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allow_edit_after_start?: boolean | null
+          allow_self_registration?: boolean | null
+          allow_technician_quotes?: boolean | null
+          app_logo_url?: string | null
+          app_name?: string | null
+          auto_backup_enabled?: boolean | null
+          background_color?: string | null
+          backup_frequency?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_phone?: string | null
+          created_at?: string | null
+          custom_css?: string | null
+          default_currency?: string | null
+          default_language?: string | null
+          enable_2fa?: boolean | null
+          enable_email_notifications?: boolean | null
+          enable_in_app_notifications?: boolean | null
+          enable_reminders?: boolean | null
+          enable_sms_notifications?: boolean | null
+          enable_technician_rating?: boolean | null
+          erpnext_enabled?: boolean | null
+          google_maps_enabled?: boolean | null
+          id?: string | null
+          lock_sensitive_settings?: boolean | null
+          map_style?: string | null
+          max_execution_time?: number | null
+          notification_templates?: Json | null
+          notification_types?: Json | null
+          primary_color?: string | null
+          require_manager_approval?: boolean | null
+          secondary_color?: string | null
+          session_timeout?: number | null
+          show_footer?: boolean | null
+          show_technicians_on_map?: boolean | null
+          theme_mode?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       v_audit_dashboard: {
         Row: {
           action: string | null
@@ -10597,6 +10723,72 @@ export type Database = {
           },
         ]
       }
+      v_projects_public: {
+        Row: {
+          actual_end_date: string | null
+          company_name: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          gallery_url: string | null
+          id: string | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          magicplan_iframe_url: string | null
+          name: string | null
+          progress: number | null
+          project_type: string | null
+          sketch_url: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_end_date?: string | null
+          company_name?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          gallery_url?: string | null
+          id?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          magicplan_iframe_url?: string | null
+          name?: string | null
+          progress?: number | null
+          project_type?: string | null
+          sketch_url?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_end_date?: string | null
+          company_name?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          gallery_url?: string | null
+          id?: string | null
+          latitude?: number | null
+          location?: string | null
+          longitude?: number | null
+          magicplan_iframe_url?: string | null
+          name?: string | null
+          progress?: number | null
+          project_type?: string | null
+          sketch_url?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       v_properties_dashboard: {
         Row: {
           active_requests: number | null
@@ -10714,6 +10906,27 @@ export type Database = {
           month: string | null
           revenue: number | null
           total_requests: number | null
+        }
+        Relationships: []
+      }
+      v_reviews_public: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string | null
+          rating: number | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string | null
+          rating?: number | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string | null
+          rating?: number | null
         }
         Relationships: []
       }
