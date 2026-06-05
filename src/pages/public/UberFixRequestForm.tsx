@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type TabType = "general" | "urgent" | "periodic";
 
-const CLIENTS = ["أبوعوف", "سفن فورتشين", "محمصات الحسيني", "عميل آخر (متنوع)"];
 
 const GENERAL_SERVICE_TYPES = [
   { value: "electrical", label: "كهرباء" },
@@ -240,15 +239,12 @@ export default function UberFixRequestForm() {
           </h1>
           <div className="flex items-center justify-center gap-2 text-muted-foreground flex-wrap">
             <Wrench className="h-5 w-5 text-[#FFB900]" />
-            <span>الصيانة المعمارية المتكاملة للفروع التجارية</span>
+            <span>نقدم حلولاً استثنائية لصيانة المحلات التجارية والسكنية</span>
             <Store className="h-5 w-5 text-[#FFB900]" />
           </div>
-          <div className="inline-flex flex-wrap justify-center gap-4 bg-card px-6 py-3 rounded-full shadow-md border border-[#FFB900]/20">
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> أبوعوف · 350 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> سفن فورتشين · 120 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm"><Store className="h-4 w-4 text-[#FFB900]" /> الحسيني · 60 فرع</span>
-            <span className="flex items-center gap-2 font-semibold text-[#030957] text-sm">⭐ +75 عميل</span>
-          </div>
+          <p className="max-w-2xl mx-auto text-sm md:text-base text-muted-foreground leading-relaxed">
+            فريق متخصص، استجابة سريعة، وجودة تنفيذ مضمونة لجميع أعمال الصيانة الدورية والطارئة لمحلاتك التجارية ووحداتك السكنية.
+          </p>
         </div>
 
         {/* Tabs */}
@@ -330,14 +326,12 @@ export default function UberFixRequestForm() {
                   <Label className="flex items-center gap-2 font-semibold">
                     <Tag className="h-4 w-4 text-[#FFB900]" /> السلسلة / العميل
                   </Label>
-                  <Select value={clientCompany} onValueChange={setClientCompany}>
-                    <SelectTrigger className="rounded-2xl border-2 border-muted bg-muted/30 focus:border-[#FFB900] py-3 px-4">
-                      <SelectValue placeholder="اختر..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CLIENTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    placeholder="اسم الشركة أو السلسلة (اختياري)"
+                    value={clientCompany}
+                    onChange={(e) => setClientCompany(e.target.value)}
+                    className="rounded-2xl border-2 border-muted bg-muted/30 focus:border-[#FFB900] focus:bg-card py-3 px-4 transition-all"
+                  />
                 </div>
 
                 {/* Tab-specific fields */}
