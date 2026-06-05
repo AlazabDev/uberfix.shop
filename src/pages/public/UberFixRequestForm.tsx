@@ -326,14 +326,12 @@ export default function UberFixRequestForm() {
                   <Label className="flex items-center gap-2 font-semibold">
                     <Tag className="h-4 w-4 text-[#FFB900]" /> السلسلة / العميل
                   </Label>
-                  <Select value={clientCompany} onValueChange={setClientCompany}>
-                    <SelectTrigger className="rounded-2xl border-2 border-muted bg-muted/30 focus:border-[#FFB900] py-3 px-4">
-                      <SelectValue placeholder="اختر..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CLIENTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    placeholder="اسم الشركة أو السلسلة (اختياري)"
+                    value={clientCompany}
+                    onChange={(e) => setClientCompany(e.target.value)}
+                    className="rounded-2xl border-2 border-muted bg-muted/30 focus:border-[#FFB900] focus:bg-card py-3 px-4 transition-all"
+                  />
                 </div>
 
                 {/* Tab-specific fields */}
