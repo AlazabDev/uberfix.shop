@@ -17,27 +17,6 @@
     
     <!-- إضافة سياسة الأمان -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-
-    <!-- توحيد الدومين الأساسي: تحويل uberfix.shop / uberfix.site / www إلى uberfix.alazab.com -->
-    <script>
-      (function () {
-        try {
-          var CANONICAL = 'uberfix.alazab.com';
-          var host = window.location.hostname;
-          // استثناءات: لا نحول preview/lovable/localhost/Capacitor/file
-          var skip = /(^|\.)lovable\.(app|dev)$/i.test(host)
-            || /(^|\.)lovableproject\.com$/i.test(host)
-            || host === 'localhost'
-            || host === '127.0.0.1'
-            || window.location.protocol === 'file:'
-            || window.location.protocol === 'capacitor:';
-          var aliases = ['uberfix.shop','www.uberfix.shop','uberfix.site','www.uberfix.site','www.uberfix.alazab.com'];
-          if (!skip && aliases.indexOf(host) !== -1) {
-            window.location.replace('https://' + CANONICAL + window.location.pathname + window.location.search + window.location.hash);
-          }
-        } catch (_) { /* تجاهل أي خطأ في التوجيه */ }
-      })();
-    </script>
     
     <!-- تحسين SEO -->
     <title>UberFix | نظام إدارة طلبات الصيانة المحمول المتكامل</title>
@@ -64,7 +43,7 @@
     <meta name="twitter:image" content="/uf-icon.png" />
     
     <!-- Canonical -->
-    <link rel="canonical" href="https://uberfix.alazab.com/" />
+    <link rel="canonical" href="https://uberfix.shop/" />
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/uf-icon.png" />
