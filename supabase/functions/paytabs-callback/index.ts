@@ -19,14 +19,19 @@ Deno.serve(async (req) => {
     try { payload = JSON.parse(rawBody); } catch { payload = {}; }
     console.log('[paytabs-callback] payload:', rawBody.slice(0, 500));
 
-    // PayTabs HMAC SHA256: sign sorted form-encoded body with server key
-    // Per PayTabs docs, callback signature uses HMAC-SHA256 of the raw body using server_key
-    if (signatureHeader && serverKey) {
-      const expected = await hmacSha256Hex(serverKey, rawBody);
-      if (expected.toLowerCase() !== signatureHeader.toLowerCase()) {
-        console.warn('[paytabs-callback] signature mismatch (expected vs got)', expected, signatureHeader);
-        // We continue but mark suspicious — many PayTabs setups send unsigned for test
-      }
+    // Fail closed: PayTabs server key MUST be configured; signature MUST match.
+    if (!serverKey) {
+      console.error('[paytabs-callback] PAYTABS_SERVER_KEY not configured — refusing callbacks');
+      return json({ error: 'Gateway not configured' }, 503);
+    }
+    if (!signatureHeader) {
+      console.warn('[paytabs-callback] missing signature header');
+      return json({ error: 'Missing signature' }, 401);
+    }
+    const expected = await hmacSha256Hex(serverKey, rawBody);
+    if (expected.toLowerCase() !== signatureHeader.toLowerCase()) {
+      console.warn('[paytabs-callback] signature mismatch');
+      return json({ error: 'Invalid signature' }, 401);
     }
 
     const cartId = payload.cart_id;
