@@ -76,10 +76,27 @@ export function useDashboardStats() {
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
       setError(err as Error);
-      toast({
-        title: "خطأ في تحميل الإحصائيات",
-        description: err instanceof Error ? err.message : "حدث خطأ غير متوقع",
-        variant: "destructive",
+      // Set zeroed stats so the dashboard still renders gracefully for
+      // users who don't have permission to read maintenance_requests
+      // (e.g. customers). Avoid noisy toast on RLS-filtered queries.
+      setStats({
+        pending_requests: 0,
+        today_requests: 0,
+        completed_requests: 0,
+        total_requests: 0,
+        this_month_requests: 0,
+        total_budget: 0,
+        actual_cost: 0,
+        completion_rate: 0,
+        avg_completion_days: 0,
+        high_priority_count: 0,
+        medium_priority_count: 0,
+        low_priority_count: 0,
+        submitted_count: 0,
+        assigned_count: 0,
+        in_progress_count: 0,
+        workflow_completed_count: 0,
+        last_updated: new Date().toISOString(),
       });
     } finally {
       setLoading(false);
