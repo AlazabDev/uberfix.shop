@@ -208,17 +208,20 @@ serve(async (req) => {
 
       // Verify signature
       const appSecret = Deno.env.get("FACEBOOK_APP_SECRET");
-      if (appSecret) {
-        const isValid = await verifySignature(payload, signature, appSecret);
-        if (!isValid) {
-          console.error("Invalid webhook signature - rejecting request");
-          return new Response(JSON.stringify({ error: "Invalid signature" }), { 
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      } else {
-        console.warn("FACEBOOK_APP_SECRET not configured - skipping signature verification");
+      if (!appSecret) {
+        console.error("FACEBOOK_APP_SECRET not configured - rejecting webhook");
+        return new Response(JSON.stringify({ error: "Service misconfigured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const isValid = await verifySignature(payload, signature, appSecret);
+      if (!isValid) {
+        console.error("Invalid webhook signature - rejecting request");
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Parse the webhook payload

@@ -4,8 +4,10 @@ import { brandedHeaderHtml, brandedFooterHtml, BRAND } from "./documentBranding"
 import type { TechnicianRegistrationData } from "@/types/technician-registration";
 
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString("ar-EG") : "—");
+const escHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const v = (s?: string | number | null) =>
-  s === undefined || s === null || s === "" ? '<span style="color:#999;">—</span>' : String(s);
+  s === undefined || s === null || s === "" ? '<span style="color:#999;">—</span>' : escHtml(String(s));
 
 const checkbox = (checked: boolean) =>
   `<span style="display:inline-block;width:14px;height:14px;border:1.5px solid ${BRAND.navy};border-radius:2px;text-align:center;line-height:11px;font-weight:900;color:${BRAND.navy};vertical-align:middle;margin-left:4px;">${checked ? "✓" : ""}</span>`;
