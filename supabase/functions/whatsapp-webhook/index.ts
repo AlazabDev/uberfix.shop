@@ -41,7 +41,10 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
 // التحقق من توقيع Meta
 // ==========================================
 async function verifyWebhookSignature(req: Request, rawBody: string): Promise<boolean> {
-  if (!FACEBOOK_SECRET) return true;
+  if (!FACEBOOK_SECRET) {
+    console.error('FACEBOOK_APP_SECRET not configured - rejecting all webhook events');
+    return false;
+  }
   const signature = req.headers.get('x-hub-signature-256');
   if (!signature) return false;
   try {
