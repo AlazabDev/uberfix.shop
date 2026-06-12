@@ -33,6 +33,14 @@ const AuthCallback = () => {
     const accessToken = hashParams.get('access_token');
     const refreshToken = hashParams.get('refresh_token');
 
+    const {
+      data: { session: existingSession },
+    } = await supabase.auth.getSession();
+
+    if (existingSession?.user) {
+      return true;
+    }
+
     if (code) {
       setMessage('جاري تثبيت جلسة تسجيل الدخول...');
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
