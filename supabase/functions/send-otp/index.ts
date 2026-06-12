@@ -183,9 +183,11 @@ Deno.serve(async (req) => {
       .eq('verified', false);
 
     // Store OTP in database
+    const otpHashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(otp));
+    const otpHash = Array.from(new Uint8Array(otpHashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
     const { error: dbError } = await supabaseClient
       .from('otp_verifications')
-      .insert({ phone, otp_code: otp, expires_at: expiresAt.toISOString(), action });
+      .insert({ phone, otp_code_hash: otpHash, expires_at: expiresAt.toISOString(), action });
 
     if (dbError) throw dbError;
 
