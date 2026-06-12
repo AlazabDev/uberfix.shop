@@ -108,6 +108,19 @@ export default function ConfirmRole() {
         return;
       }
 
+      if (isNewUser && selectedRole === 'customer') {
+        const { error: roleInsertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: user.id,
+            role: 'customer',
+          });
+
+        if (roleInsertError && roleInsertError.code !== '23505') {
+          throw roleInsertError;
+        }
+      }
+
       // إنشاء/تحديث profile بالدور المختار
       const fullName =
         (user.supabaseUser.user_metadata?.full_name as string) ||

@@ -79,6 +79,12 @@ export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isPermissionIssue = (value: unknown) => {
+    const message = value instanceof Error ? value.message : String(value ?? '');
+    const normalized = message.toLowerCase();
+    return normalized.includes('permission denied') || normalized.includes('row-level security') || normalized.includes('rls');
+  };
+
   const fetchProjects = async () => {
     try {
       const { data, error } = await (supabase as any)
@@ -89,11 +95,14 @@ export const useProjects = () => {
       if (error) throw error;
       setProjects((data || []) as Project[]);
     } catch (error: any) {
-      toast({
-        title: 'خطأ في تحميل المشروعات',
-        description: error.message,
-        variant: 'destructive',
-      });
+      setProjects([]);
+      if (!isPermissionIssue(error)) {
+        toast({
+          title: 'خطأ في تحميل المشروعات',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }

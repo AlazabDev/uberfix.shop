@@ -19,6 +19,12 @@ export function useMaintenanceRequests() {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
+  const isPermissionIssue = (value: unknown) => {
+    const message = value instanceof Error ? value.message : String(value ?? '');
+    const normalized = message.toLowerCase();
+    return normalized.includes('permission denied') || normalized.includes('row-level security') || normalized.includes('rls');
+  };
+
   const fetchRequests = async () => {
     try {
       setLoading(true);
@@ -28,11 +34,14 @@ export function useMaintenanceRequests() {
     } catch (err) {
       console.error('Error fetching requests:', err);
       setError(err as Error);
-      toast({
-        title: "خطأ في تحميل الطلبات",
-        description: err instanceof Error ? err.message : "حدث خطأ غير متوقع",
-        variant: "destructive",
-      });
+      setRequests([]);
+      if (!isPermissionIssue(err)) {
+        toast({
+          title: "خطأ في تحميل الطلبات",
+          description: err instanceof Error ? err.message : "حدث خطأ غير متوقع",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

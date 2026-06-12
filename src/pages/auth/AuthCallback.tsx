@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { clearPendingOAuthContext } from '@/lib/roleRedirect';
 
 /**
  * OAuth Callback Handler
@@ -24,11 +25,57 @@ const AuthCallback = () => {
   const handledRef = useRef(false);
   const specialHandledRef = useRef(false);
 
+  const exchangeOAuthSession = async () => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+    const code = queryParams.get('code');
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+
+    const {
+      data: { session: existingSession },
+    } = await supabase.auth.getSession();
+
+    if (existingSession?.user) {
+      return true;
+    }
+
+    if (code) {
+      setMessage('جاري تثبيت جلسة تسجيل الدخول...');
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) {
+        throw exchangeError;
+      }
+      window.history.replaceState({}, document.title, '/auth/callback');
+      return true;
+    }
+
+    if (accessToken && refreshToken) {
+      setMessage('جاري استعادة جلسة تسجيل الدخول...');
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      window.history.replaceState({}, document.title, '/auth/callback');
+      return true;
+    }
+
+    return false;
+  };
+
   // ✅ Step 1: Handle special auth types (recovery, email_change, etc.)
   useEffect(() => {
     if (specialHandledRef.current) return;
 
     const handleSpecialTypes = async () => {
+      await exchangeOAuthSession();
+
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const queryParams = new URLSearchParams(window.location.search);
 
@@ -108,6 +155,7 @@ const AuthCallback = () => {
 
     handleSpecialTypes().catch((err) => {
       console.error('❌ Auth callback error:', err);
+      clearPendingOAuthContext();
       setError(err instanceof Error ? err.message : 'حدث خطأ أثناء المصادقة');
     });
   }, [navigate]);
@@ -121,10 +169,28 @@ const AuthCallback = () => {
     navigate('/auth/confirm-role', { replace: true });
   }, [authLoading, user, navigate]);
 
+  useEffect(() => {
+    if (handledRef.current || authLoading) return;
+
+    const settleSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !handledRef.current) {
+        handledRef.current = true;
+        setMessage('جاري تحديد نوع حسابك...');
+        navigate('/auth/confirm-role', { replace: true });
+      }
+    };
+
+    settleSession().catch((err) => {
+      console.error('❌ Session settle error:', err);
+    });
+  }, [authLoading, navigate]);
+
   // ✅ Step 3: Timeout - if no user after 15 seconds, show error
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!handledRef.current && !specialHandledRef.current) {
+        clearPendingOAuthContext();
         setError('لم يتم العثور على معلومات المصادقة. يرجى المحاولة مرة أخرى.');
       }
     }, 15000);
