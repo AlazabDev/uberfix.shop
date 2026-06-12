@@ -161,6 +161,23 @@ const AuthCallback = () => {
     navigate('/auth/confirm-role', { replace: true });
   }, [authLoading, user, navigate]);
 
+  useEffect(() => {
+    if (handledRef.current || authLoading) return;
+
+    const settleSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !handledRef.current) {
+        handledRef.current = true;
+        setMessage('جاري تحديد نوع حسابك...');
+        navigate('/auth/confirm-role', { replace: true });
+      }
+    };
+
+    settleSession().catch((err) => {
+      console.error('❌ Session settle error:', err);
+    });
+  }, [authLoading, navigate]);
+
   // ✅ Step 3: Timeout - if no user after 15 seconds, show error
   useEffect(() => {
     const timeout = setTimeout(() => {
