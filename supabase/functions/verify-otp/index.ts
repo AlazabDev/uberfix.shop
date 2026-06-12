@@ -68,12 +68,14 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Find valid OTP
+    // Hash submitted OTP and look up by hash
+    const otpHashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(otp));
+    const otpHash = Array.from(new Uint8Array(otpHashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
     const { data: otpRecord, error: otpError } = await supabaseAdmin
       .from('otp_verifications')
       .select('*')
       .eq('phone', phone)
-      .eq('otp_code', otp)
+      .eq('otp_code_hash', otpHash)
       .eq('verified', false)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
