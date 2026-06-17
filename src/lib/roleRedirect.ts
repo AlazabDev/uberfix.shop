@@ -124,6 +124,45 @@ async function ensureProfileForAuthenticatedUser(
   return buildResolvedRole(role);
 }
 
+export async function ensureAuthenticatedUserOnboarding(
+  requestedRole: UserRole = 'customer',
+): Promise<DetectedUserRole> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw userError || new Error('Authentication required');
+  }
+
+  const safeRequestedRole = normalizeRequestedRole(requestedRole) || 'customer';
+  const { data, error } = await (supabase as any).rpc('ensure_current_user_onboarding', {
+    p_requested_role: safeRequestedRole,
+    p_full_name: getSafeProfileName(user, user.email),
+    p_phone: typeof user.user_metadata?.phone === 'string' ? user.user_metadata.phone : null,
+    p_avatar_url:
+      typeof user.user_metadata?.avatar_url === 'string'
+        ? user.user_metadata.avatar_url
+        : typeof user.user_metadata?.picture === 'string'
+          ? user.user_metadata.picture
+          : null,
+  });
+
+  if (error) throw error;
+
+  const firstRow = Array.isArray(data) ? data[0] : data;
+  const roles = ((firstRow?.roles || []) as string[]).filter(Boolean) as UserRole[];
+  const primaryRole = (firstRow?.primary_role as UserRole | undefined) || determinePrimaryRole(roles);
+
+  return {
+    roles: roles.length ? roles : [primaryRole || 'customer'],
+    primaryRole: primaryRole || 'customer',
+    isNewUser: Boolean(firstRow?.is_new_user),
+    redirectPath: ROLE_DASHBOARDS[primaryRole || 'customer'] || DEFAULT_DASHBOARD,
+  };
+}
+
 function readPendingOAuthContext(): PendingOAuthContext | null {
   if (typeof window === 'undefined') return null;
 
@@ -202,24 +241,7 @@ export async function detectUserRole(userId: string, userEmail?: string): Promis
       };
     }
 
-    // إذا لم يوجد في user_roles، تحقق من profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profile?.role && profile.role !== 'owner') {
-      const role = profile.role as UserRole;
-      return {
-        roles: [role],
-        primaryRole: role,
-        isNewUser: false,
-        redirectPath: ROLE_DASHBOARDS[role] || DEFAULT_DASHBOARD,
-      };
-    }
-
-    // مستخدم جديد بدون دور - يحتاج اختيار الدور
+    // لا نقرأ الأدوار من profiles نهائياً: user_roles هو المصدر الأمني الوحيد.
     return {
       roles: [],
       primaryRole: null,
@@ -245,6 +267,11 @@ export async function resolveUserRedirectAfterAuth(
 ): Promise<DetectedUserRole> {
   const detectedRole = await detectUserRole(userId, userEmail);
   if (!detectedRole.isNewUser) {
+    try {
+      await ensureAuthenticatedUserOnboarding(detectedRole.primaryRole || 'customer');
+    } catch (error) {
+      console.error('Failed to refresh authenticated onboarding:', error);
+    }
     clearPendingOAuthContext();
     return detectedRole;
   }
@@ -260,15 +287,9 @@ export async function resolveUserRedirectAfterAuth(
   const preferredRole = normalizeRequestedRole(pendingContext?.requestedRole) || 'customer';
 
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user && user.id === userId) {
-      const ensuredRole = await ensureProfileForAuthenticatedUser(user, userEmail, preferredRole);
-      clearPendingOAuthContext();
-      return ensuredRole;
-    }
+    const ensuredRole = await ensureAuthenticatedUserOnboarding(preferredRole);
+    clearPendingOAuthContext();
+    return ensuredRole;
   } catch (error) {
     console.error('Failed to resolve OAuth onboarding:', error);
   }
