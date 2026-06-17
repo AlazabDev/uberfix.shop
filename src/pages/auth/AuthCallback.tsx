@@ -172,14 +172,14 @@ const AuthCallback = () => {
   // ✅ Step 2: عند توفر user → توجيه إلى شاشة تأكيد الدور
   // (نقوم بالتوجيه لشاشة وسيطة بدل اتخاذ قرار الدور هنا، لمنع الانهيار)
   useEffect(() => {
-    if (handledRef.current || authLoading || !user) return;
+    if (handledRef.current || specialHandledRef.current || authLoading || !user) return;
     handledRef.current = true;
     setMessage('جاري تحديد نوع حسابك...');
     navigate('/auth/confirm-role', { replace: true });
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
-    if (handledRef.current || authLoading) return;
+    if (handledRef.current || specialHandledRef.current || authLoading) return;
 
     const settleSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
