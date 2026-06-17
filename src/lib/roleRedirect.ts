@@ -237,7 +237,7 @@ export async function resolveUserRedirectAfterAuth(
 
   const pendingContext = readPendingOAuthContext();
   const shouldAutoProvision =
-    pendingContext?.intent === 'login' || !!normalizeRequestedRole(pendingContext?.requestedRole);
+    pendingContext?.intent === 'signup' && !!normalizeRequestedRole(pendingContext?.requestedRole);
 
   if (!shouldAutoProvision) {
     return detectedRole;
