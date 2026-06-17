@@ -11300,6 +11300,19 @@ export type Database = {
         Returns: undefined
       }
       current_user_is_owner: { Args: never; Returns: boolean }
+      ensure_current_user_onboarding: {
+        Args: {
+          p_avatar_url?: string
+          p_full_name?: string
+          p_phone?: string
+          p_requested_role?: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: {
+          is_new_user: boolean
+          primary_role: Database["public"]["Enums"]["app_role"]
+          roles: Database["public"]["Enums"]["app_role"][]
+        }[]
+      }
       find_nearest_vendor: {
         Args: {
           request_latitude: number
