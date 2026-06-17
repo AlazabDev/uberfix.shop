@@ -4,9 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck, Users, Wrench, Building2, AlertTriangle, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import {
   detectUserRole,
+  ensureAuthenticatedUserOnboarding,
   getRoleRedirectPath,
   type UserRole,
 } from "@/lib/roleRedirect";
@@ -108,52 +108,14 @@ export default function ConfirmRole() {
         return;
       }
 
-      if (isNewUser && selectedRole === 'customer') {
-        const { error: roleInsertError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: user.id,
-            role: 'customer',
-          });
-
-        if (roleInsertError && roleInsertError.code !== '23505') {
-          throw roleInsertError;
-        }
-      }
-
-      // إنشاء/تحديث profile بالدور المختار
-      const fullName =
-        (user.supabaseUser.user_metadata?.full_name as string) ||
-        (user.supabaseUser.user_metadata?.name as string) ||
-        user.email ||
-        "UberFix User";
-      const avatarUrl =
-        (user.supabaseUser.user_metadata?.avatar_url as string) ||
-        (user.supabaseUser.user_metadata?.picture as string) ||
-        null;
-
-      const profilePayload = {
-        id: user.id,
-        email: user.email || `${user.id}@oauth.local`,
-        name: fullName,
-        avatar_url: avatarUrl,
-        role: selectedRole,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert(profilePayload, { onConflict: "id" });
-
-      if (upsertError) {
-        throw upsertError;
-      }
+      const roleInfo = await ensureAuthenticatedUserOnboarding(selectedRole);
+      const finalRole = roleInfo.primaryRole || 'customer';
 
       toast({
         title: "تم تأكيد نوع الحساب",
-        description: `مرحباً بك كـ ${ROLE_OPTIONS.find((o) => o.role === selectedRole)?.label || selectedRole}`,
+        description: `مرحباً بك كـ ${ROLE_OPTIONS.find((o) => o.role === finalRole)?.label || finalRole}`,
       });
-      navigate(getRoleRedirectPath(selectedRole), { replace: true });
+      navigate(getRoleRedirectPath(finalRole), { replace: true });
     } catch (e: any) {
       console.error("[ConfirmRole] save error", e);
       toast({
