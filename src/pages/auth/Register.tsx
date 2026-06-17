@@ -15,7 +15,7 @@ import { FaFacebook } from "react-icons/fa";
 import { registerFormSchema } from "@/lib/validationSchemas";
 import { secureGoogleSignIn, secureFacebookSignIn } from "@/lib/secureOAuth";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearPendingOAuthContext, savePendingOAuthContext } from "@/lib/roleRedirect";
+import { clearPendingOAuthContext, ensureAuthenticatedUserOnboarding, savePendingOAuthContext } from "@/lib/roleRedirect";
 
 type RegisterFormData = z.infer<typeof registerFormSchema>;
 
@@ -81,6 +81,7 @@ export default function Register() {
             description: "تم إرسال رسالة تأكيد على بريدك الإلكتروني. تحقق من بريدك لتفعيل الحساب.",
           });
         } else {
+          await ensureAuthenticatedUserOnboarding('customer');
           toast({
             title: "تم إنشاء الحساب بنجاح",
             description: "مرحباً بك! سيتم تحويلك إلى لوحة التحكم...",
