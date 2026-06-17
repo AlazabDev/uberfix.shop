@@ -58,7 +58,7 @@ export default function Register() {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            role: selectedRole,
+            requested_role: selectedRole,
             full_name: data.full_name,
             phone: data.phone,
           }
