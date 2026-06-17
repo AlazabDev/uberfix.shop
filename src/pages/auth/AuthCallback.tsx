@@ -38,7 +38,7 @@ const AuthCallback = () => {
     } = await supabase.auth.getSession();
 
     if (existingSession?.user) {
-      return true;
+      return existingSession.user;
     }
 
     if (code) {
@@ -48,7 +48,9 @@ const AuthCallback = () => {
         throw exchangeError;
       }
       window.history.replaceState({}, document.title, '/auth/callback');
-      return true;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) throw userError || new Error('Authentication session was not restored');
+      return userData.user;
     }
 
     if (accessToken && refreshToken) {
@@ -63,10 +65,12 @@ const AuthCallback = () => {
       }
 
       window.history.replaceState({}, document.title, '/auth/callback');
-      return true;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) throw userError || new Error('Authentication session was not restored');
+      return userData.user;
     }
 
-    return false;
+    return null;
   };
 
   // ✅ Step 1: Handle special auth types (recovery, email_change, etc.)
@@ -74,8 +78,6 @@ const AuthCallback = () => {
     if (specialHandledRef.current) return;
 
     const handleSpecialTypes = async () => {
-      await exchangeOAuthSession();
-
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const queryParams = new URLSearchParams(window.location.search);
 
@@ -97,6 +99,8 @@ const AuthCallback = () => {
         setError(errorMsg);
         return;
       }
+
+      const exchangedUser = await exchangeOAuthSession();
 
       // Recovery (password reset)
       if (type === 'recovery') {
@@ -150,7 +154,12 @@ const AuthCallback = () => {
       }
 
       // OAuth flow (Google/Facebook) - tokens in URL are auto-processed by Supabase client
-      // No special handling needed, Step 2 will handle redirect when AuthContext gets the user
+      // توجيه مباشر بعد تثبيت الجلسة لمنع race condition مع AuthContext.
+      if (exchangedUser && !handledRef.current) {
+        handledRef.current = true;
+        setMessage('جاري تحديد نوع حسابك...');
+        navigate('/auth/confirm-role', { replace: true });
+      }
     };
 
     handleSpecialTypes().catch((err) => {
@@ -163,14 +172,14 @@ const AuthCallback = () => {
   // ✅ Step 2: عند توفر user → توجيه إلى شاشة تأكيد الدور
   // (نقوم بالتوجيه لشاشة وسيطة بدل اتخاذ قرار الدور هنا، لمنع الانهيار)
   useEffect(() => {
-    if (handledRef.current || authLoading || !user) return;
+    if (handledRef.current || specialHandledRef.current || authLoading || !user) return;
     handledRef.current = true;
     setMessage('جاري تحديد نوع حسابك...');
     navigate('/auth/confirm-role', { replace: true });
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
-    if (handledRef.current || authLoading) return;
+    if (handledRef.current || specialHandledRef.current || authLoading) return;
 
     const settleSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();

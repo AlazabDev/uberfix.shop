@@ -69,19 +69,8 @@ export const useUserRoles = (): UserRoles => {
         }
       }
 
-      // إذا لم يوجد في user_roles، تحقق من profiles كخطة بديلة
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (profile?.role && profile.role !== 'owner') {
-        setRoles([profile.role as AppRole]);
-      } else {
-        // المستخدم الجديد - الدور الافتراضي هو customer
-        setRoles(['customer']);
-      }
+      // user_roles هو مصدر الصلاحيات الوحيد؛ أي مستخدم جديد يبدأ كعميل فقط.
+      setRoles(['customer']);
     } catch (error) {
       console.error('Error fetching user roles:', error);
       setRoles(['customer']);
@@ -126,18 +115,13 @@ export const useUserRoles = (): UserRoles => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!profile?.role) return false;
+      const activeRoles = isAuthorizedOwner(user.email?.toLowerCase()) ? ['owner' as AppRole] : roles;
+      if (!activeRoles.length) return false;
 
       const { data, error } = await supabase
         .from('role_permissions')
         .select('resource, action')
-        .eq('role', profile.role)
+        .in('role', activeRoles)
         .eq('resource', resource)
         .eq('action', action);
 

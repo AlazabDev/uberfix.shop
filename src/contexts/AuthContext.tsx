@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // 2. THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession }, error }) => {
       if (!isMounted) return;
 
       if (error) {
@@ -86,8 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (currentSession) {
-        setSession(currentSession);
-        setUser(mapSessionToUser(currentSession));
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (!isMounted) return;
+
+        if (userError || !userData.user) {
+          console.error('[Auth] User validation error:', userError?.message || 'Missing user');
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+        } else {
+          const validatedSession: Session = { ...currentSession, user: userData.user };
+          setSession(validatedSession);
+          setUser(mapSessionToUser(validatedSession));
+        }
       }
       setIsLoading(false);
     });

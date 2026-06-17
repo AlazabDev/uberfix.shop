@@ -83,45 +83,43 @@ function getSafeProfileName(user: User, fallbackEmail?: string): string {
   return String(rawName).trim().slice(0, 120);
 }
 
-function getSafeProfileEmail(user: User, fallbackEmail?: string): string {
-  return user.email || fallbackEmail || `${user.id}@oauth.local`;
-}
-
-async function ensureProfileForAuthenticatedUser(
-  user: User,
-  fallbackEmail: string | undefined,
-  role: UserRole,
+export async function ensureAuthenticatedUserOnboarding(
+  requestedRole: UserRole = 'customer',
 ): Promise<DetectedUserRole> {
-  const fullName = getSafeProfileName(user, fallbackEmail);
-  const email = getSafeProfileEmail(user, fallbackEmail);
-  const phone =
-    typeof user.user_metadata?.phone === 'string' ? user.user_metadata.phone : null;
-  const avatarUrl =
-    typeof user.user_metadata?.avatar_url === 'string'
-      ? user.user_metadata.avatar_url
-      : typeof user.user_metadata?.picture === 'string'
-        ? user.user_metadata.picture
-        : null;
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  const profilePayload = {
-    id: user.id,
-    email,
-    name: fullName,
-    phone,
-    avatar_url: avatarUrl,
-    role,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase
-    .from('profiles')
-    .upsert(profilePayload, { onConflict: 'id' });
-
-  if (error) {
-    console.error('Failed to ensure profile after OAuth:', error);
+  if (userError || !user) {
+    throw userError || new Error('Authentication required');
   }
 
-  return buildResolvedRole(role);
+  const safeRequestedRole = normalizeRequestedRole(requestedRole) || 'customer';
+  const { data, error } = await (supabase as any).rpc('ensure_current_user_onboarding', {
+    p_requested_role: safeRequestedRole,
+    p_full_name: getSafeProfileName(user, user.email),
+    p_phone: typeof user.user_metadata?.phone === 'string' ? user.user_metadata.phone : null,
+    p_avatar_url:
+      typeof user.user_metadata?.avatar_url === 'string'
+        ? user.user_metadata.avatar_url
+        : typeof user.user_metadata?.picture === 'string'
+          ? user.user_metadata.picture
+          : null,
+  });
+
+  if (error) throw error;
+
+  const firstRow = Array.isArray(data) ? data[0] : data;
+  const roles = ((firstRow?.roles || []) as string[]).filter(Boolean) as UserRole[];
+  const primaryRole = (firstRow?.primary_role as UserRole | undefined) || determinePrimaryRole(roles);
+
+  return {
+    roles: roles.length ? roles : [primaryRole || 'customer'],
+    primaryRole: primaryRole || 'customer',
+    isNewUser: Boolean(firstRow?.is_new_user),
+    redirectPath: ROLE_DASHBOARDS[primaryRole || 'customer'] || DEFAULT_DASHBOARD,
+  };
 }
 
 function readPendingOAuthContext(): PendingOAuthContext | null {
@@ -202,24 +200,7 @@ export async function detectUserRole(userId: string, userEmail?: string): Promis
       };
     }
 
-    // إذا لم يوجد في user_roles، تحقق من profiles
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profile?.role && profile.role !== 'owner') {
-      const role = profile.role as UserRole;
-      return {
-        roles: [role],
-        primaryRole: role,
-        isNewUser: false,
-        redirectPath: ROLE_DASHBOARDS[role] || DEFAULT_DASHBOARD,
-      };
-    }
-
-    // مستخدم جديد بدون دور - يحتاج اختيار الدور
+    // لا نقرأ الأدوار من profiles نهائياً: user_roles هو المصدر الأمني الوحيد.
     return {
       roles: [],
       primaryRole: null,
@@ -245,13 +226,18 @@ export async function resolveUserRedirectAfterAuth(
 ): Promise<DetectedUserRole> {
   const detectedRole = await detectUserRole(userId, userEmail);
   if (!detectedRole.isNewUser) {
+    try {
+      await ensureAuthenticatedUserOnboarding(detectedRole.primaryRole || 'customer');
+    } catch (error) {
+      console.error('Failed to refresh authenticated onboarding:', error);
+    }
     clearPendingOAuthContext();
     return detectedRole;
   }
 
   const pendingContext = readPendingOAuthContext();
   const shouldAutoProvision =
-    pendingContext?.intent === 'login' || !!normalizeRequestedRole(pendingContext?.requestedRole);
+    pendingContext?.intent === 'signup' && !!normalizeRequestedRole(pendingContext?.requestedRole);
 
   if (!shouldAutoProvision) {
     return detectedRole;
@@ -260,15 +246,9 @@ export async function resolveUserRedirectAfterAuth(
   const preferredRole = normalizeRequestedRole(pendingContext?.requestedRole) || 'customer';
 
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user && user.id === userId) {
-      const ensuredRole = await ensureProfileForAuthenticatedUser(user, userEmail, preferredRole);
-      clearPendingOAuthContext();
-      return ensuredRole;
-    }
+    const ensuredRole = await ensureAuthenticatedUserOnboarding(preferredRole);
+    clearPendingOAuthContext();
+    return ensuredRole;
   } catch (error) {
     console.error('Failed to resolve OAuth onboarding:', error);
   }
