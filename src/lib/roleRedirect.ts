@@ -83,47 +83,6 @@ function getSafeProfileName(user: User, fallbackEmail?: string): string {
   return String(rawName).trim().slice(0, 120);
 }
 
-function getSafeProfileEmail(user: User, fallbackEmail?: string): string {
-  return user.email || fallbackEmail || `${user.id}@oauth.local`;
-}
-
-async function ensureProfileForAuthenticatedUser(
-  user: User,
-  fallbackEmail: string | undefined,
-  role: UserRole,
-): Promise<DetectedUserRole> {
-  const fullName = getSafeProfileName(user, fallbackEmail);
-  const email = getSafeProfileEmail(user, fallbackEmail);
-  const phone =
-    typeof user.user_metadata?.phone === 'string' ? user.user_metadata.phone : null;
-  const avatarUrl =
-    typeof user.user_metadata?.avatar_url === 'string'
-      ? user.user_metadata.avatar_url
-      : typeof user.user_metadata?.picture === 'string'
-        ? user.user_metadata.picture
-        : null;
-
-  const profilePayload = {
-    id: user.id,
-    email,
-    name: fullName,
-    phone,
-    avatar_url: avatarUrl,
-    role,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase
-    .from('profiles')
-    .upsert(profilePayload, { onConflict: 'id' });
-
-  if (error) {
-    console.error('Failed to ensure profile after OAuth:', error);
-  }
-
-  return buildResolvedRole(role);
-}
-
 export async function ensureAuthenticatedUserOnboarding(
   requestedRole: UserRole = 'customer',
 ): Promise<DetectedUserRole> {
