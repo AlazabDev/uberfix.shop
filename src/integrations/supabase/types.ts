@@ -5089,6 +5089,21 @@ export type Database = {
         }
         Relationships: []
       }
+      supcloud_keepalive: {
+        Row: {
+          id: number
+          marker: string
+        }
+        Insert: {
+          id: number
+          marker?: string
+        }
+        Update: {
+          id?: number
+          marker?: string
+        }
+        Relationships: []
+      }
       technician_agreements: {
         Row: {
           conduct_policy_accepted: boolean | null
