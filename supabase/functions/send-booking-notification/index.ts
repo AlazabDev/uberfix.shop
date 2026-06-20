@@ -49,29 +49,30 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Require authentication — endpoint must not be open to anonymous callers
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Public endpoint: clients pass only the booking_id. We re-fetch the row
+    // server-side so attackers cannot trigger admin notifications with arbitrary
+    // content. All interpolated values are HTML-escaped before use.
+    const { booking_id } = await req.json() as { booking_id?: string };
+    if (!booking_id || typeof booking_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(booking_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid booking_id' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-    const supabaseAuth = createClient(
+    const admin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(
-      authHeader.replace('Bearer ', '')
-    );
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    const { data: booking, error: fetchErr } = await admin
+      .from('consultation_bookings')
+      .select('id, full_name, email, phone, service_type, preferred_date, preferred_time, message')
+      .eq('id', booking_id)
+      .maybeSingle();
+    if (fetchErr || !booking) {
+      return new Response(JSON.stringify({ error: 'Booking not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    const booking: BookingRequest = await req.json();
-    console.log("Booking data:", JSON.stringify(booking, null, 2));
+    (booking as any).booking_id = booking.id;
 
     const serviceName = serviceTypeLabels[booking.service_type] || booking.service_type;
     const safe = {
