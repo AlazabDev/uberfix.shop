@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
     const projectRef = (Deno.env.get('SUPABASE_URL') || '').match(/https:\/\/([^.]+)/)?.[1];
     const callbackUrl = `https://${projectRef}.supabase.co/functions/v1/paytabs-callback`;
-    const finalReturnUrl = return_url || `https://uberfix.shop/track/${request_id}/invoice?payment=success`;
+    const finalReturnUrl = return_url || `https://uberfix.alazab.com/track/${request_id}/invoice?payment=success`;
 
     const payload = {
       profile_id: Number(profileId),
