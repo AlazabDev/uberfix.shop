@@ -11,41 +11,62 @@ const escapeHtml = (str: string): string => {
   return div.innerHTML;
 };
 
+const DEFAULT_MAPBOX_STYLE = 'mapbox://styles/mapbox/satellite-streets-v12';
+
 const GlobalMap = () => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markers = useRef<mapboxgl.Marker[]>([]);
+  const spinInterval = useRef<number | null>(null);
+  const resizeObserver = useRef<ResizeObserver | null>(null);
+
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [tokenLoaded, setTokenLoaded] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   const { branches, loading: branchesLoading } = useBranchLocations();
 
-  // جلب المفتاح من Edge Function
+  // Load Mapbox public token. Prefer VITE_MAPBOX_TOKEN, then Edge Function fallback.
   useEffect(() => {
+    let cancelled = false;
+
     const fetchToken = async () => {
       try {
         const token = await getMapboxToken();
+
+        if (cancelled) return;
+
         if (token) {
           setMapboxToken(token);
           setTokenLoaded(true);
+          setRuntimeError(null);
         } else {
           setRuntimeError('مطلوب مفتاح Mapbox صالح لعرض الخريطة.');
         }
-      } catch {
-        setRuntimeError('فشل في تحميل مفتاح الخريطة.');
+      } catch (err) {
+        console.error('[GlobalMap] Failed to load Mapbox token:', err);
+        if (!cancelled) {
+          setRuntimeError('فشل في تحميل مفتاح الخريطة.');
+        }
       }
     };
+
     fetchToken();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const isReady = tokenLoaded && !!mapboxToken && !branchesLoading;
-
-  const mapError = runtimeError;
-  const showLoadingOverlay = !isReady && !runtimeError;
-
+  // Initialize the globe once. Marker updates are handled in a separate effect.
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken || !tokenLoaded) return;
-    if (map.current) return; // prevent re-init
+    if (!mapContainer.current || !mapboxToken || !tokenLoaded || map.current) return;
+
+    if (!mapboxgl.supported()) {
+      setRuntimeError('المتصفح أو كارت الشاشة لا يدعم WebGL المطلوب لتشغيل الخريطة ثلاثية الأبعاد.');
+      return;
+    }
 
     const customStyle = import.meta.env.VITE_MAPBOX_STYLE_URL as string | undefined;
 
@@ -54,18 +75,26 @@ const GlobalMap = () => {
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: customStyle || 'mapbox://styles/mapbox/satellite-streets-v12',
+        style: customStyle || DEFAULT_MAPBOX_STYLE,
         projection: { name: 'globe' },
         zoom: 1.8,
         center: [30, 26],
         pitch: 0,
         attributionControl: false,
+        failIfMajorPerformanceCaveat: false,
       });
     } catch (err) {
       console.error('[GlobalMap] Mapbox init failed:', err);
       setRuntimeError('تعذر تهيئة الخريطة.');
       return;
     }
+
+    map.current.addControl(
+      new mapboxgl.NavigationControl({ visualizePitch: true }),
+      'top-right'
+    );
+
+    map.current.scrollZoom.disable();
 
     map.current.on('error', (e) => {
       console.error('[GlobalMap] Mapbox runtime error:', e?.error || e);
@@ -74,12 +103,11 @@ const GlobalMap = () => {
       }
     });
 
-    map.current.addControl(
-      new mapboxgl.NavigationControl({ visualizePitch: true }),
-      'top-right'
-    );
-
-    map.current.scrollZoom.disable();
+    map.current.on('load', () => {
+      setMapLoaded(true);
+      setRuntimeError(null);
+      map.current?.resize();
+    });
 
     map.current.on('style.load', () => {
       try {
@@ -93,7 +121,8 @@ const GlobalMap = () => {
       } catch (err) {
         console.warn('[GlobalMap] setFog failed (non-fatal):', err);
       }
-      setTimeout(() => map.current?.resize(), 100);
+
+      window.setTimeout(() => map.current?.resize(), 100);
     });
 
     const secondsPerRevolution = 180;
@@ -106,32 +135,69 @@ const GlobalMap = () => {
     map.current.on('mouseup', () => { userInteracting = false; });
     map.current.on('touchend', () => { userInteracting = false; });
 
-    const spinInterval = setInterval(() => {
+    spinInterval.current = window.setInterval(() => {
       if (!map.current) return;
       const zoom = map.current.getZoom();
+
       if (!userInteracting && zoom < maxSpinZoom) {
         let distancePerSecond = 360 / secondsPerRevolution;
         if (zoom > slowSpinZoom) {
           distancePerSecond *= (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
         }
+
         const center = map.current.getCenter();
         center.lng -= distancePerSecond;
         map.current.easeTo({ center, duration: 1000, easing: (n) => n });
       }
     }, 1000);
 
-    // Add markers for branches
+    if (mapContainer.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver.current = new ResizeObserver(() => map.current?.resize());
+      resizeObserver.current.observe(mapContainer.current);
+    }
+
+    return () => {
+      if (spinInterval.current) {
+        window.clearInterval(spinInterval.current);
+        spinInterval.current = null;
+      }
+
+      resizeObserver.current?.disconnect();
+      resizeObserver.current = null;
+
+      markers.current.forEach((marker) => marker.remove());
+      markers.current = [];
+
+      map.current?.remove();
+      map.current = null;
+      setMapLoaded(false);
+    };
+  }, [mapboxToken, tokenLoaded]);
+
+  // Keep branch markers in sync after the map and branch data are both ready.
+  useEffect(() => {
+    if (!map.current || !mapLoaded || branchesLoading) return;
+
+    markers.current.forEach((marker) => marker.remove());
+    markers.current = [];
+
     branches.forEach((branch) => {
       const lat = parseFloat(branch.latitude || '');
       const lng = parseFloat(branch.longitude || '');
-      if (isNaN(lat) || isNaN(lng)) return;
+      if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
       const el = document.createElement('div');
       el.className = 'custom-marker';
-      el.style.width = '40px';
-      el.style.height = '40px';
-      el.style.backgroundImage = `url(${branch.icon || '/icons/branch-icon.png'})`;
+      el.setAttribute('aria-label', branch.branch_name || branch.branch || 'branch location');
+      el.style.width = '42px';
+      el.style.height = '42px';
+      el.style.borderRadius = '9999px';
+      el.style.backgroundColor = '#f5bf23';
+      el.style.border = '2px solid rgba(255,255,255,0.9)';
+      el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
+      el.style.backgroundImage = branch.icon ? `url(${branch.icon})` : 'url(/icons/branch-icon.png)';
       el.style.backgroundSize = 'contain';
+      el.style.backgroundPosition = 'center';
       el.style.backgroundRepeat = 'no-repeat';
       el.style.cursor = 'pointer';
       el.style.transition = 'transform 0.3s ease';
@@ -144,27 +210,30 @@ const GlobalMap = () => {
       });
 
       const safeName = escapeHtml(branch.branch_name || branch.branch || '');
+      const safeType = escapeHtml(branch.branch_type || 'فرع');
+      const safeCity = escapeHtml(branch.city || '');
+
       const popup = new mapboxgl.Popup({
         offset: 25,
         closeButton: false,
         className: 'custom-popup',
       }).setHTML(`
-        <div style="padding: 8px; text-align: center; direction: rtl;">
-          <strong style="color: #f5bf23; font-size: 14px;">${safeName}</strong>
+        <div style="padding: 8px; text-align: center; direction: rtl; min-width: 140px;">
+          <strong style="color: #f5bf23; font-size: 14px; display:block; margin-bottom:4px;">${safeName}</strong>
+          <span style="font-size:12px; color:#666;">${safeType}${safeCity ? ` • ${safeCity}` : ''}</span>
         </div>
       `);
 
-      new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker(el)
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(map.current!);
-    });
 
-    return () => {
-      clearInterval(spinInterval);
-      map.current?.remove();
-    };
-  }, [branches, mapboxToken, tokenLoaded]);
+      markers.current.push(marker);
+    });
+  }, [branches, branchesLoading, mapLoaded]);
+
+  const showLoadingOverlay = (!tokenLoaded || branchesLoading || !mapLoaded) && !runtimeError;
 
   return (
     <section className="relative py-20 bg-background overflow-hidden" style={{ backgroundColor: '#f4f4f4' }}>
@@ -181,13 +250,13 @@ const GlobalMap = () => {
           </p>
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden shadow-elevated animate-scale-in" style={{ height: '600px' }}>
+        <div className="relative rounded-2xl overflow-hidden shadow-elevated animate-scale-in" style={{ height: '600px', minHeight: '600px' }}>
           <div ref={mapContainer} className="absolute inset-0" />
 
-          {mapError && (
+          {runtimeError && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-10">
-              <p className="text-base font-medium text-destructive" dir="rtl">
-                {mapError}
+              <p className="text-base font-medium text-destructive text-center px-6" dir="rtl">
+                {runtimeError}
               </p>
             </div>
           )}
@@ -200,7 +269,7 @@ const GlobalMap = () => {
             </div>
           )}
 
-          {!mapError && !showLoadingOverlay && (
+          {!runtimeError && !showLoadingOverlay && (
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-6 py-3 rounded-full border border-border shadow-lg z-10" dir="rtl">
               <p className="text-sm text-foreground font-medium">
                 🌍 {branches.length} موقع نشط • <span className="text-primary">خدمة 24/7</span>
