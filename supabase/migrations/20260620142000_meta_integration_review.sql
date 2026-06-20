@@ -28,24 +28,28 @@ create index if not exists idx_meta_review_test_runs_action_created
 alter table public.meta_webhook_events enable row level security;
 alter table public.meta_review_test_runs enable row level security;
 
-create policy if not exists "Service role manages meta webhook events"
+drop policy if exists "Service role manages meta webhook events" on public.meta_webhook_events;
+create policy "Service role manages meta webhook events"
   on public.meta_webhook_events
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
 
-create policy if not exists "Authenticated users can read meta webhook events"
+drop policy if exists "Authenticated users can read meta webhook events" on public.meta_webhook_events;
+create policy "Authenticated users can read meta webhook events"
   on public.meta_webhook_events
   for select
   using (auth.role() = 'authenticated');
 
-create policy if not exists "Service role manages meta review test runs"
+drop policy if exists "Service role manages meta review test runs" on public.meta_review_test_runs;
+create policy "Service role manages meta review test runs"
   on public.meta_review_test_runs
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
 
-create policy if not exists "Authenticated users can read meta review test runs"
+drop policy if exists "Authenticated users can read meta review test runs" on public.meta_review_test_runs;
+create policy "Authenticated users can read meta review test runs"
   on public.meta_review_test_runs
   for select
   using (auth.role() = 'authenticated');
