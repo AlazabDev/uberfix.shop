@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
                 amount: tx.amount,
                 currency: tx.currency,
                 tran_ref: tranRef,
-                invoice_url: `https://uberfix.shop/track/${tx.request_id}/invoice?payment=success`,
+                invoice_url: `https://uberfix.alazab.com/track/${tx.request_id}/invoice?payment=success`,
               },
             },
           });

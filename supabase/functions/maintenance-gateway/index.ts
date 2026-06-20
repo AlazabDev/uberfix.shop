@@ -465,7 +465,7 @@ async function handleConsumerAction(
         status: row.status,
         workflow_stage: row.workflow_stage,
         workflow_stage_v2: row.workflow_stage_v2,
-        track_url: `https://uberfix.shop/track/${row.id}`,
+        track_url: `https://uberfix.alazab.com/track/${row.id}`,
         created_at: row.created_at,
         updated_at: row.updated_at,
       }),
@@ -500,7 +500,7 @@ async function handleConsumerAction(
         request_number: row.request_number,
         from_stage: row.workflow_stage_v2,
         to_stage: rpcData,
-        track_url: `https://uberfix.shop/track/${row.id}`,
+        track_url: `https://uberfix.alazab.com/track/${row.id}`,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -802,7 +802,7 @@ Deno.serve(async (req) => {
       success: true,
       request_id: created.id,
       request_number: created.request_number,
-      track_url: `https://uberfix.shop/track/${created.id}`,
+      track_url: `https://uberfix.alazab.com/track/${created.id}`,
       channel: body.channel,
       created_at: created.created_at,
     };

@@ -24,7 +24,7 @@ const TEMPLATES = [
       {
         type: "BUTTONS",
         buttons: [
-          { type: "URL", text: "تتبع الطلب", url: "https://uberfix.shop/track/{{1}}", example: ["https://uberfix.shop/track/abc123"] }
+          { type: "URL", text: "تتبع الطلب", url: "https://uberfix.alazab.com/track/{{1}}", example: ["https://uberfix.alazab.com/track/abc123"] }
         ]
       }
     ]
@@ -44,7 +44,7 @@ const TEMPLATES = [
       {
         type: "BUTTONS",
         buttons: [
-          { type: "URL", text: "تتبع الطلب", url: "https://uberfix.shop/track/{{1}}", example: ["https://uberfix.shop/track/abc123"] }
+          { type: "URL", text: "تتبع الطلب", url: "https://uberfix.alazab.com/track/{{1}}", example: ["https://uberfix.alazab.com/track/abc123"] }
         ]
       }
     ]
@@ -64,7 +64,7 @@ const TEMPLATES = [
       {
         type: "BUTTONS",
         buttons: [
-          { type: "URL", text: "متابعة مباشرة", url: "https://uberfix.shop/track/{{1}}", example: ["https://uberfix.shop/track/abc123"] }
+          { type: "URL", text: "متابعة مباشرة", url: "https://uberfix.alazab.com/track/{{1}}", example: ["https://uberfix.alazab.com/track/abc123"] }
         ]
       }
     ]
@@ -84,7 +84,7 @@ const TEMPLATES = [
       {
         type: "BUTTONS",
         buttons: [
-          { type: "URL", text: "اعتماد الإغلاق", url: "https://uberfix.shop/track/{{1}}", example: ["https://uberfix.shop/track/abc123"] }
+          { type: "URL", text: "اعتماد الإغلاق", url: "https://uberfix.alazab.com/track/{{1}}", example: ["https://uberfix.alazab.com/track/abc123"] }
         ]
       }
     ]
@@ -104,7 +104,7 @@ const TEMPLATES = [
       {
         type: "BUTTONS",
         buttons: [
-          { type: "URL", text: "عرض الفاتورة", url: "https://uberfix.shop/track/{{1}}", example: ["https://uberfix.shop/track/abc123"] }
+          { type: "URL", text: "عرض الفاتورة", url: "https://uberfix.alazab.com/track/{{1}}", example: ["https://uberfix.alazab.com/track/abc123"] }
         ]
       }
     ]
