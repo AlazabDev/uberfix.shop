@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
@@ -21,6 +22,15 @@ interface BookingRequest {
   booking_id: string;
 }
 
+function escHtml(input: unknown): string {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const serviceTypeLabels: Record<string, string> = {
   'maintenance': 'صيانة عامة',
   'ac': 'تكييف وتبريد',
@@ -39,10 +49,41 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Require authentication — endpoint must not be open to anonymous callers
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(
+      authHeader.replace('Bearer ', '')
+    );
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const booking: BookingRequest = await req.json();
     console.log("Booking data:", JSON.stringify(booking, null, 2));
 
     const serviceName = serviceTypeLabels[booking.service_type] || booking.service_type;
+    const safe = {
+      full_name: escHtml(booking.full_name),
+      email: escHtml(booking.email),
+      phone: escHtml(booking.phone),
+      preferred_date: escHtml(booking.preferred_date),
+      preferred_time: escHtml(booking.preferred_time),
+      message: booking.message ? escHtml(booking.message) : '',
+      booking_id: escHtml(booking.booking_id),
+      serviceName: escHtml(serviceName),
+    };
     
     // Send email to admin
     console.log("Sending email to admin...");
