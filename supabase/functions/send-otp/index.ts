@@ -166,8 +166,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit OTP
+    const otpRand = new Uint32Array(1);
+    crypto.getRandomValues(otpRand);
+    const otp = String(100000 + (otpRand[0] % 900000)).padStart(6, '0');
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const supabaseClient = createClient(

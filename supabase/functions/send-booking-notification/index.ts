@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const WHATSAPP_ACCESS_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN");
@@ -21,6 +22,15 @@ interface BookingRequest {
   booking_id: string;
 }
 
+function escHtml(input: unknown): string {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const serviceTypeLabels: Record<string, string> = {
   'maintenance': 'صيانة عامة',
   'ac': 'تكييف وتبريد',
@@ -39,17 +49,49 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const booking: BookingRequest = await req.json();
-    console.log("Booking data:", JSON.stringify(booking, null, 2));
+    // Public endpoint: clients pass only the booking_id. We re-fetch the row
+    // server-side so attackers cannot trigger admin notifications with arbitrary
+    // content. All interpolated values are HTML-escaped before use.
+    const { booking_id } = await req.json() as { booking_id?: string };
+    if (!booking_id || typeof booking_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(booking_id)) {
+      return new Response(JSON.stringify({ error: 'Invalid booking_id' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const { data: booking, error: fetchErr } = await admin
+      .from('consultation_bookings')
+      .select('id, full_name, email, phone, service_type, preferred_date, preferred_time, message')
+      .eq('id', booking_id)
+      .maybeSingle();
+    if (fetchErr || !booking) {
+      return new Response(JSON.stringify({ error: 'Booking not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    (booking as any).booking_id = booking.id;
 
     const serviceName = serviceTypeLabels[booking.service_type] || booking.service_type;
+    const safe = {
+      full_name: escHtml(booking.full_name),
+      email: escHtml(booking.email),
+      phone: escHtml(booking.phone),
+      preferred_date: escHtml(booking.preferred_date),
+      preferred_time: escHtml(booking.preferred_time),
+      message: booking.message ? escHtml(booking.message) : '',
+      booking_id: escHtml(booking.booking_id),
+      serviceName: escHtml(serviceName),
+    };
     
     // Send email to admin
     console.log("Sending email to admin...");
     const emailResponse = await resend.emails.send({
       from: "UberFix <onboarding@resend.dev>",
       to: ["admin@alazab.com"],
-      subject: `📅 طلب حجز استشارة جديد - ${booking.full_name}`,
+      subject: `📅 طلب حجز استشارة جديد - ${safe.full_name}`,
       html: `
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -77,39 +119,39 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div class="content">
               <div style="text-align: center; margin-bottom: 20px;">
-                <span class="badge">${serviceName}</span>
+                <span class="badge">${safe.serviceName}</span>
               </div>
               
               <div class="info-row">
                 <span class="info-label">👤 الاسم:</span>
-                <span class="info-value">${booking.full_name}</span>
+                <span class="info-value">${safe.full_name}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📧 البريد:</span>
-                <span class="info-value">${booking.email}</span>
+                <span class="info-value">${safe.email}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📱 الهاتف:</span>
-                <span class="info-value">${booking.phone}</span>
+                <span class="info-value">${safe.phone}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📅 التاريخ:</span>
-                <span class="info-value">${booking.preferred_date}</span>
+                <span class="info-value">${safe.preferred_date}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">🕐 الوقت:</span>
-                <span class="info-value">${booking.preferred_time}</span>
+                <span class="info-value">${safe.preferred_time}</span>
               </div>
               
               ${booking.message ? `
                 <div class="message-box">
                   <strong>💬 الرسالة:</strong>
-                  <p style="margin: 10px 0 0 0;">${booking.message}</p>
+                  <p style="margin: 10px 0 0 0;">${safe.message}</p>
                 </div>
               ` : ''}
               
               <div style="margin-top: 25px; text-align: center;">
-                <p style="color: #666;">رقم الحجز: <strong>${booking.booking_id}</strong></p>
+                <p style="color: #666;">رقم الحجز: <strong>${safe.booking_id}</strong></p>
               </div>
             </div>
             <div class="footer">
@@ -132,15 +174,15 @@ const handler = async (req: Request): Promise<Response> => {
       
       const whatsappMessage = `🔔 *طلب حجز استشارة جديد*
 
-👤 *الاسم:* ${booking.full_name}
-📧 *البريد:* ${booking.email}
-📱 *الهاتف:* ${booking.phone}
-🔧 *الخدمة:* ${serviceName}
-📅 *التاريخ:* ${booking.preferred_date}
-🕐 *الوقت:* ${booking.preferred_time}
-${booking.message ? `\n💬 *الرسالة:* ${booking.message}` : ''}
+👤 *الاسم:* ${safe.full_name}
+📧 *البريد:* ${safe.email}
+📱 *الهاتف:* ${safe.phone}
+🔧 *الخدمة:* ${safe.serviceName}
+📅 *التاريخ:* ${safe.preferred_date}
+🕐 *الوقت:* ${safe.preferred_time}
+${booking.message ? `\n💬 *الرسالة:* ${safe.message}` : ''}
 
-📋 *رقم الحجز:* ${booking.booking_id}`;
+📋 *رقم الحجز:* ${safe.booking_id}`;
 
       try {
         const whatsappResponse = await fetch(
