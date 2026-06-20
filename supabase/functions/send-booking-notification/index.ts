@@ -90,7 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "UberFix <onboarding@resend.dev>",
       to: ["admin@alazab.com"],
-      subject: `📅 طلب حجز استشارة جديد - ${booking.full_name}`,
+      subject: `📅 طلب حجز استشارة جديد - ${safe.full_name}`,
       html: `
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -118,39 +118,39 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div class="content">
               <div style="text-align: center; margin-bottom: 20px;">
-                <span class="badge">${serviceName}</span>
+                <span class="badge">${safe.serviceName}</span>
               </div>
               
               <div class="info-row">
                 <span class="info-label">👤 الاسم:</span>
-                <span class="info-value">${booking.full_name}</span>
+                <span class="info-value">${safe.full_name}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📧 البريد:</span>
-                <span class="info-value">${booking.email}</span>
+                <span class="info-value">${safe.email}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📱 الهاتف:</span>
-                <span class="info-value">${booking.phone}</span>
+                <span class="info-value">${safe.phone}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">📅 التاريخ:</span>
-                <span class="info-value">${booking.preferred_date}</span>
+                <span class="info-value">${safe.preferred_date}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">🕐 الوقت:</span>
-                <span class="info-value">${booking.preferred_time}</span>
+                <span class="info-value">${safe.preferred_time}</span>
               </div>
               
               ${booking.message ? `
                 <div class="message-box">
                   <strong>💬 الرسالة:</strong>
-                  <p style="margin: 10px 0 0 0;">${booking.message}</p>
+                  <p style="margin: 10px 0 0 0;">${safe.message}</p>
                 </div>
               ` : ''}
               
               <div style="margin-top: 25px; text-align: center;">
-                <p style="color: #666;">رقم الحجز: <strong>${booking.booking_id}</strong></p>
+                <p style="color: #666;">رقم الحجز: <strong>${safe.booking_id}</strong></p>
               </div>
             </div>
             <div class="footer">
@@ -173,15 +173,15 @@ const handler = async (req: Request): Promise<Response> => {
       
       const whatsappMessage = `🔔 *طلب حجز استشارة جديد*
 
-👤 *الاسم:* ${booking.full_name}
-📧 *البريد:* ${booking.email}
-📱 *الهاتف:* ${booking.phone}
-🔧 *الخدمة:* ${serviceName}
-📅 *التاريخ:* ${booking.preferred_date}
-🕐 *الوقت:* ${booking.preferred_time}
-${booking.message ? `\n💬 *الرسالة:* ${booking.message}` : ''}
+👤 *الاسم:* ${safe.full_name}
+📧 *البريد:* ${safe.email}
+📱 *الهاتف:* ${safe.phone}
+🔧 *الخدمة:* ${safe.serviceName}
+📅 *التاريخ:* ${safe.preferred_date}
+🕐 *الوقت:* ${safe.preferred_time}
+${booking.message ? `\n💬 *الرسالة:* ${safe.message}` : ''}
 
-📋 *رقم الحجز:* ${booking.booking_id}`;
+📋 *رقم الحجز:* ${safe.booking_id}`;
 
       try {
         const whatsappResponse = await fetch(
