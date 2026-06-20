@@ -4,12 +4,12 @@
 # ========================================
 
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm v11
+RUN corepack enable && corepack prepare pnpm@11 --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
