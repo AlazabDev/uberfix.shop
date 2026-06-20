@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { publicRoutes } from "./routes/publicRoutes.config";
 import { protectedRoutes } from "./routes/routes.config";
@@ -14,6 +14,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { UFBotWidget } from "@/components/ufbot/UFBotWidget";
 
 import "./index.css";
+
+const MetaReviewCenter = lazy(() => import("@/pages/admin/MetaReviewCenter"));
 
 // Loading component
 const PageLoader = () => (
@@ -53,6 +55,9 @@ function AppContent() {
         <ScrollToTop />
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            <Route path="/meta-review" element={<MetaReviewCenter />} />
+            <Route path="/admin/meta-review" element={<MetaReviewCenter />} />
+
             {/* Public Routes - لا تتطلب تسجيل دخول */}
             {publicRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={route.element} />
