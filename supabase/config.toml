@@ -76,6 +76,10 @@ verify_jwt = false
 verify_jwt = false
 # Public access - returns public Mapbox token, protected by origin validation and rate limiting
 
+[functions.instagram-webhook]
+verify_jwt = false
+# Public Meta Instagram webhook endpoint; GET verification uses INSTAGRAM_VERIFY_TOKEN / META_WEBHOOK_VERIFY_TOKEN.
+
 [functions.send-maintenance-notification]
 verify_jwt = false
 # Called by DB trigger (auto_notify_on_status_change) with anon key - internal auth check in code
@@ -138,121 +142,3 @@ verify_jwt = true
 
 # ========================================
 # PUBLIC FUNCTIONS FOR QR/OTP (verify_jwt=false)
-# These need to be public but have internal validation
-# ========================================
-
-[functions.get-property-for-qr]
-verify_jwt = false
-# Public QR scanning - but function has rate limiting and only returns safe data
-
-[functions.get-default-company-branch]
-verify_jwt = false
-# Public helper returning only IDs (company_id, branch_id)
-
-[functions.submit-public-request]
-verify_jwt = false
-# Public QR request submission - has rate limiting and input validation
-
-[functions.send-otp]
-verify_jwt = false
-# Public OTP sending - has internal rate limiting
-
-[functions.verify-otp]
-verify_jwt = false
-# Public OTP verification - has internal rate limiting
-
-# ========================================
-# WEBHOOK ENDPOINTS (verify_jwt=false)
-# External services call these - signature verification inside function
-# ========================================
-
-[functions.twilio-delivery-status]
-verify_jwt = false
-# Twilio callback - validates request internally
-
-[functions.receive-twilio-message]
-verify_jwt = false
-# Twilio incoming message webhook - should validate Twilio signature internally
-
-[functions.twilio-fallback]
-verify_jwt = false
-# Twilio error fallback
-
-[functions.whatsapp-webhook]
-verify_jwt = false
-# Meta WhatsApp webhook - validates x-hub-signature-256 internally
-
-[functions.meta-deauthorize]
-verify_jwt = false
-# Meta deauthorization callback - validates x-hub-signature-256 internally
-
-[functions.meta-delete-data]
-verify_jwt = false
-# Meta data deletion callback - validates x-hub-signature-256 internally
-
-[functions.send-booking-notification]
-verify_jwt = false
-# Public booking form - has input validation
-
-[functions.facebook-leads-webhook]
-verify_jwt = false
-# Meta Lead Ads webhook - validates x-hub-signature-256 internally
-
-[functions.whatsapp-templates]
-verify_jwt = true
-# WhatsApp templates management - requires auth
-
-[functions.whatsapp-templates-webhook]
-verify_jwt = false
-# Meta webhook for template status updates - validates x-hub-signature-256 internally
-
-[functions.whatsapp-flow]
-verify_jwt = false
-# WhatsApp Flow data exchange endpoint - uses RSA/AES encryption internally
-
-[functions.jotform-webhook]
-verify_jwt = false
-# JotForm webhook - receives form submissions, creates maintenance requests
-
-[functions.jotform-sync]
-verify_jwt = true
-# Syncs request status changes back to JotForm submissions
-
-[functions.submit-uberfix-templates]
-verify_jwt = true
-# Admin-only: submits WhatsApp templates to Meta
-
-[functions.query-maintenance-requests]
-verify_jwt = false
-# Public API endpoint for querying maintenance requests (JotForm, external tools)
-
-[functions.maintenance-gateway]
-verify_jwt = false
-# Unified API Gateway for all maintenance request channels
-# Security: called internally by other edge functions + externally with rate limiting
-
-# ========================================
-# UBERFIX API GATEWAY (api.uberfix.alazab.com)
-# ========================================
-
-[functions.api-oauth-token]
-verify_jwt = false
-# OAuth2 client_credentials endpoint — public per RFC 6749, validates client_id/secret in code
-
-[functions.api-webhook-dispatcher]
-verify_jwt = false
-# Internal dispatcher — requires service-role bearer in code (never called by browsers)
-
-# ========================================
-# PAYTABS PAYMENT GATEWAY
-# ========================================
-
-[functions.paytabs-create-payment]
-verify_jwt = false
-# Public — called from PublicInvoice page (no auth required for customer payment)
-# Validates request_id ownership via invoice lookup
-
-[functions.paytabs-callback]
-verify_jwt = false
-# Server-to-server IPN from PayTabs — validates signature internally
-
