@@ -159,7 +159,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
               </Avatar>
               <div className="hidden md:block text-right">
                 <p className="text-sm font-semibold text-foreground">{getFullName()}</p>
-                <p className="text-xs text-muted-foreground">{userData?.role || "..."}</p>
+                <p className="text-xs text-muted-foreground">{primaryRoleLabel || "..."}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -180,7 +180,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
                   <p className="text-xs leading-none text-muted-foreground">
                     {userData?.email || "..."}
                   </p>
-                  <span className="text-xs text-primary font-medium">{userData?.role || "..."}</span>
+                  <span className="text-xs text-primary font-medium">{primaryRoleLabel || "..."}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
