@@ -13,7 +13,7 @@
 
 import { Hono } from 'npm:hono@4.6.14';
 import { McpServer, StreamableHttpTransport } from 'npm:mcp-lite@0.10.0';
-import { z } from 'npm:zod@3.23.8';
+import { z } from 'npm:zod@4.4.3';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 const GATEWAY_BASE = 'https://zrrffsjbfkphridqyais.supabase.co/functions/v1';
