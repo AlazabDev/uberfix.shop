@@ -80,6 +80,10 @@ verify_jwt = false
 verify_jwt = false
 # Public Meta Instagram webhook endpoint; GET verification uses INSTAGRAM_VERIFY_TOKEN / META_WEBHOOK_VERIFY_TOKEN.
 
+[functions.meta-webhook]
+verify_jwt = false
+# Unified public Meta webhook endpoint for Instagram, Facebook Page, Leads, WhatsApp, and Business events.
+
 [functions.send-maintenance-notification]
 verify_jwt = false
 # Called by DB trigger (auto_notify_on_status_change) with anon key - internal auth check in code
@@ -119,30 +123,3 @@ verify_jwt = true
 
 [functions.background-jobs]
 verify_jwt = true
-
-[functions.cache-service]
-verify_jwt = true
-
-[functions.get-users]
-verify_jwt = true
-
-[functions.import-gallery-images]
-verify_jwt = true
-
-[functions.process-approval]
-verify_jwt = true
-
-[functions.push-subscribe]
-verify_jwt = true
-
-[functions.send-invoice]
-verify_jwt = true
-
-[functions.safe-update]
-verify_jwt = true
-
-[functions.sla-manager]
-verify_jwt = true
-
-# ========================================
-# PUBLIC FUNCTIONS FOR QR/OTP (verify_jwt=false)
