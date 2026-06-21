@@ -84,6 +84,10 @@ verify_jwt = false
 verify_jwt = false
 # Called by DB trigger (auto_notify_on_status_change) with anon key - internal auth check in code
 
+[functions.mcp]
+verify_jwt = false
+# Public MCP server endpoint - authenticates via x-api-key (BOT_API_KEY) like bot-gateway
+
 [functions.send-twilio-message]
 verify_jwt = true
 # SMS only - WhatsApp uses send-whatsapp-meta
