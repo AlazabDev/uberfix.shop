@@ -15,6 +15,8 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationsList } from "@/components/notifications/NotificationsList";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useUserRoles } from "@/hooks/useUserRoles";
+import { ROLE_LABELS, ROLE_HIERARCHY, type AppRole } from "@/config/owners";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -32,6 +34,16 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const { roles } = useUserRoles();
+
+  // Highest-priority role label from user_roles (single source of truth)
+  const primaryRoleLabel = (() => {
+    if (!roles || roles.length === 0) return "";
+    const sorted = [...roles].sort(
+      (a, b) => ROLE_HIERARCHY.indexOf(a as AppRole) - ROLE_HIERARCHY.indexOf(b as AppRole)
+    );
+    return ROLE_LABELS[sorted[0] as AppRole] || sorted[0];
+  })();
 
   const fetchUserData = async () => {
     try {
@@ -40,7 +52,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("first_name, last_name, avatar_url, role")
+        .select("first_name, last_name, avatar_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -49,10 +61,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
         firstName: profile?.first_name || "مستخدم",
         lastName: profile?.last_name || "",
         avatarUrl: profile?.avatar_url || null,
-        role: profile?.role === "admin" ? "مسؤول" : 
-              profile?.role === "manager" ? "مدير" :
-              profile?.role === "staff" ? "موظف" :
-              profile?.role === "vendor" ? "فني" : "عميل"
+        role: "" // populated reactively from user_roles via primaryRoleLabel
       });
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -150,7 +159,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
               </Avatar>
               <div className="hidden md:block text-right">
                 <p className="text-sm font-semibold text-foreground">{getFullName()}</p>
-                <p className="text-xs text-muted-foreground">{userData?.role || "..."}</p>
+                <p className="text-xs text-muted-foreground">{primaryRoleLabel || "..."}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -171,7 +180,7 @@ export const Header = ({ onMenuToggle }: HeaderProps) => {
                   <p className="text-xs leading-none text-muted-foreground">
                     {userData?.email || "..."}
                   </p>
-                  <span className="text-xs text-primary font-medium">{userData?.role || "..."}</span>
+                  <span className="text-xs text-primary font-medium">{primaryRoleLabel || "..."}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
