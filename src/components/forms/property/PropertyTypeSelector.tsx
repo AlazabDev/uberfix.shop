@@ -44,7 +44,7 @@ export function PropertyTypeSelector({
   onCategoryChange,
 }: PropertyTypeSelectorProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 gap-3 sm:gap-4">
       {categories.map((cat) => {
         const Icon = cat.icon;
         const isSelected = selectedCategory === cat.id;
@@ -53,48 +53,53 @@ export function PropertyTypeSelector({
           <Card
             key={cat.id}
             className={cn(
-              "cursor-pointer transition-all duration-200 hover:shadow-md border-2",
+              "cursor-pointer transition-all duration-200 hover:shadow-md border-2 relative",
               isSelected
                 ? `${cat.borderColor} ${cat.bgColor}`
                 : "border-border hover:border-muted-foreground/30"
             )}
             onClick={() => onCategoryChange(cat.id)}
           >
-            <CardContent className="p-4 flex items-center gap-4">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center gap-2">
               <div
                 className={cn(
-                  "p-3 rounded-lg",
+                  "p-2.5 sm:p-3 rounded-lg",
                   isSelected ? cat.bgColor : "bg-muted"
                 )}
               >
                 <Icon
                   className={cn(
-                    "h-6 w-6",
+                    "h-5 w-5 sm:h-6 sm:w-6",
                     isSelected ? cat.color : "text-muted-foreground"
                   )}
                 />
               </div>
-              <div className="flex-1">
-                <h3
-                  className={cn(
-                    "font-semibold",
-                    isSelected ? cat.color : "text-foreground"
-                  )}
-                >
-                  {cat.label}
-                </h3>
-                <p className="text-sm text-muted-foreground">{cat.description}</p>
-              </div>
-              <div
+              <h3
                 className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                  isSelected ? cat.borderColor : "border-muted-foreground/30"
+                  "font-semibold text-sm sm:text-base",
+                  isSelected ? cat.color : "text-foreground"
                 )}
               >
-                {isSelected && (
-                  <div className={cn("w-2.5 h-2.5 rounded-full", cat.color.replace("text-", "bg-"))} />
-                )}
-              </div>
+                {cat.label}
+              </h3>
+              <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug">
+                {cat.description}
+              </p>
+              {isSelected && (
+                <div
+                  className={cn(
+                    "absolute top-2 left-2 w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    cat.borderColor
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      cat.color.replace("text-", "bg-")
+                    )}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         );
