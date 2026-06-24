@@ -98,7 +98,7 @@ export async function handleBot(req: Request): Promise<Response> {
       consumer_type: consumerId ? 'api_consumer' : 'app',
       user_agent: req.headers.get('user-agent'),
       request_body: JSON.stringify({ action, payload: { ...payload, client_phone: payload.client_phone ? '***' : undefined } }),
-    }).catch(e => console.error('Log insert error:', e));
+    }).then(({ error }) => { if (error) console.error('Log insert error:', error); });
 
     let result: any;
 
