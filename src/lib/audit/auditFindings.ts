@@ -42,7 +42,7 @@ export const AUDIT_FINDINGS: AuditFinding[] = [
   {
     id: "MR-CRT-001",
     title:
-      "تجاوز maintenance-gateway عند الإنشاء من داخل التطبيق المُصادَق",
+      "تجاوز gateway عند الإنشاء من داخل التطبيق المُصادَق",
     severity: "critical",
     area: "create_request",
     locations: [
@@ -51,12 +51,12 @@ export const AUDIT_FINDINGS: AuditFinding[] = [
       "src/services/maintenanceCrud.ts",
     ],
     risk:
-      "قواعد المشروع تنص على أن كل إنشاء طلب يجب أن يمر عبر maintenance-gateway. " +
+      "قواعد المشروع تنص على أن كل إنشاء طلب يجب أن يمر عبر gateway. " +
       "النموذج الداخلي يستدعي createRequest الذي يكتب مباشرة على جدول maintenance_requests، " +
       "ما يكسر توحيد الترقيم والتسجيل في audit_logs والإشعارات الأولى للعميل.",
     recommendation:
       "تحويل createMaintenanceRequest في src/services/maintenanceCrud.ts ليستدعي " +
-      "supabase.functions.invoke('maintenance-gateway', { body: { channel: 'internal', ... } }) " +
+      "supabase.functions.invoke('gateway', { body: { channel: 'internal', ... } }) " +
       "بدل INSERT المباشر، مع الإبقاء على نفس واجهة الـ hook.",
   },
   {
@@ -324,7 +324,7 @@ export const API_CONTRACTS: ApiContract[] = [
     expectedPayload:
       "{ property_id?, client_name, client_phone, service_type, description, location?, lat?, lng? }",
     expectedResponse:
-      "{ success: true, request_id, request_number } (يمر داخلياً عبر maintenance-gateway)",
+      "{ success: true, request_id, request_number } (يمر داخلياً عبر gateway)",
     contractStatus: "ok",
     notes:
       "Wrapper عام صحيح. مطلوب توثيق قواعد rate-limiting ومدة TTL في الواجهة.",
