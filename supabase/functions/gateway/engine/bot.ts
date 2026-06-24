@@ -164,9 +164,9 @@ async function handleCreateRequest(supabase: any, supabaseUrl: string, serviceKe
     return { success: false, error: 'Missing required fields: client_name, client_phone, location, title, description' };
   }
 
-  // Route through maintenance-gateway for unified tracking
+  // Route through unified maintenance engine for unified tracking
   try {
-    const gatewayResp = await fetch(`${supabaseUrl}/functions/v1/maintenance-gateway`, {
+    const mreq = new Request(`${supabaseUrl}/functions/v1/gateway`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -191,6 +191,7 @@ async function handleCreateRequest(supabase: any, supabaseUrl: string, serviceKe
       }),
     });
 
+    const gatewayResp = await handleMaintenance(mreq);
     const gatewayResult = await gatewayResp.json();
 
     if (gatewayResp.ok && gatewayResult.id) {
