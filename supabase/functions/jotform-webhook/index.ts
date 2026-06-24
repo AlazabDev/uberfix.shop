@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     const serviceLabel = SERVICE_LABELS[serviceType] || serviceType;
 
     // ─── Route through Unified Gateway ─────────────────────────
-    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('maintenance-gateway', {
+    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('gateway', {
       body: {
         channel: 'jotform',
         client_name: clientName,

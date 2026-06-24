@@ -21,7 +21,7 @@ const OAUTH_TOKEN = `curl -X POST "${SUPABASE_URL}/functions/v1/api-oauth-token"
 #   "scope": "requests:read requests:write"
 # }`;
 
-const API_KEY_CALL = `curl -X POST "${SUPABASE_URL}/functions/v1/maintenance-gateway/requests" \\
+const API_KEY_CALL = `curl -X POST "${SUPABASE_URL}/functions/v1/gateway/requests" \\
   -H "X-API-Key: uf_YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
@@ -32,7 +32,7 @@ const API_KEY_CALL = `curl -X POST "${SUPABASE_URL}/functions/v1/maintenance-gat
     "address": "Cairo, Maadi"
   }'`;
 
-const OAUTH_CALL = `curl -X POST "${SUPABASE_URL}/functions/v1/maintenance-gateway/requests" \\
+const OAUTH_CALL = `curl -X POST "${SUPABASE_URL}/functions/v1/gateway/requests" \\
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: $(uuidgen)" \\
