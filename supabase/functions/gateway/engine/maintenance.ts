@@ -1,9 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { corsHeaders } from '../_shared/cors.ts';
-import { rateLimit, createRateLimitResponse } from '../_shared/rateLimiter.ts';
-import { verifyGatewayToken, hasScope, type GatewayTokenPayload } from '../_shared/jwt-gateway.ts';
-import { hashRequest, checkIdempotency, reserveIdempotency, storeIdempotentResponse } from '../_shared/idempotency.ts';
-import { cacheIncr } from '../_shared/redis.ts';
+import { corsHeaders } from '../../_shared/cors.ts';
+import { rateLimit, createRateLimitResponse } from '../../_shared/rateLimiter.ts';
+import { verifyGatewayToken, hasScope, type GatewayTokenPayload } from '../../_shared/jwt-gateway.ts';
+import { hashRequest, checkIdempotency, reserveIdempotency, storeIdempotentResponse } from '../../_shared/idempotency.ts';
+import { cacheIncr } from '../../_shared/redis.ts';
 
 /**
  * 🌐 Unified Maintenance Gateway (API Gateway)
@@ -559,7 +559,7 @@ async function handleConsumerAction(
 
 // ─── Main Handler ────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+export async function handleMaintenance(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -870,4 +870,4 @@ Deno.serve(async (req) => {
 
     return errorResponse('Internal server error', 'حدث خطأ داخلي', 500);
   }
-});
+}

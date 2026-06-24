@@ -23,13 +23,11 @@ import { McpServer, StreamableHttpTransport } from 'npm:mcp-lite@0.10.0';
 import { z } from 'npm:zod@4.4.3';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { corsHeaders } from '../_shared/cors.ts';
+import { handleMaintenance } from './engine/maintenance.ts';
+import { handleBot } from './engine/bot.ts';
 
-// ─── Internal upstream (Business Engine modules — kept temporarily as
-// internal-only functions; will be inlined in phase 2). ────────────────
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? 'https://zrrffsjbfkphridqyais.supabase.co';
 const INTERNAL_BASE = `${SUPABASE_URL}/functions/v1`;
-const MAINTENANCE_ENGINE_URL = `${INTERNAL_BASE}/maintenance-gateway`;
-const BOT_ENGINE_URL = `${INTERNAL_BASE}/bot-gateway`;
 
 // ─── Per-request context ─────────────────────────────────────────────
 interface ReqCtx {
@@ -40,18 +38,23 @@ interface ReqCtx {
 const reqStorage = new AsyncLocalStorage<ReqCtx>();
 const ctx = (): ReqCtx => reqStorage.getStore() ?? { apiKey: '', authHeader: '', requestId: '' };
 
-// ─── Helper: forward to internal engine ──────────────────────────────
-async function forward(url: string, body: unknown) {
+// ─── Helper: invoke an in-process engine handler ─────────────────────
+async function invokeEngine(
+  engine: 'maintenance' | 'bot',
+  body: unknown,
+): Promise<{ status: number; body: any }> {
   const { apiKey, authHeader } = ctx();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['x-api-key'] = apiKey;
   if (authHeader) headers['Authorization'] = authHeader;
-  // Always include anon as apikey fallback so internal functions can boot supabase client
-  const anon = Deno.env.get('SUPABASE_ANON_KEY');
-  if (anon && !headers['Authorization']) headers['Authorization'] = `Bearer ${anon}`;
-  if (anon) headers['apikey'] = anon;
 
-  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  const req = new Request(`${INTERNAL_BASE}/gateway`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  const res = engine === 'maintenance' ? await handleMaintenance(req) : await handleBot(req);
   const text = await res.text();
   try { return { status: res.status, body: JSON.parse(text) }; }
   catch { return { status: res.status, body: { raw: text } }; }
@@ -81,7 +84,7 @@ mcp.tool('create_maintenance_request', {
     channel: z.string().default('api').optional(),
   }),
   handler: async (args) => {
-    const r = await forward(MAINTENANCE_ENGINE_URL, { channel: args.channel ?? 'api', ...args });
+    const r = await invokeEngine('maintenance', { channel: args.channel ?? 'api', ...args });
     return asText(r.body);
   },
 });
@@ -95,7 +98,7 @@ mcp.tool('transition_request_stage', {
     reason: z.string().optional(),
   }),
   handler: async (args) => {
-    const r = await forward(MAINTENANCE_ENGINE_URL, {
+    const r = await invokeEngine('maintenance', {
       channel: 'api', action: 'transition_stage', client_name: 'mcp', ...args,
     });
     return asText(r.body);
@@ -106,7 +109,7 @@ mcp.tool('get_request_status', {
   description: 'استعلام عن حالة طلب (Status Update).',
   inputSchema: z.object({ request_id: z.string().optional(), request_number: z.string().optional() }),
   handler: async (args) => {
-    const r = await forward(MAINTENANCE_ENGINE_URL, {
+    const r = await invokeEngine('maintenance', {
       channel: 'api', action: 'get_status', client_name: 'mcp', ...args,
     });
     return asText(r.body);
@@ -121,7 +124,7 @@ mcp.tool('cancel_request', {
     reason: z.string(),
   }),
   handler: async (args) => {
-    const r = await forward(MAINTENANCE_ENGINE_URL, {
+    const r = await invokeEngine('maintenance', {
       channel: 'api', action: 'cancel', client_name: 'mcp', ...args,
     });
     return asText(r.body);
@@ -136,7 +139,7 @@ mcp.tool('add_request_note', {
     note: z.string(),
   }),
   handler: async (args) => {
-    const r = await forward(MAINTENANCE_ENGINE_URL, {
+    const r = await invokeEngine('maintenance', {
       channel: 'api', action: 'add_note', client_name: 'mcp', ...args,
     });
     return asText(r.body);
@@ -149,7 +152,7 @@ const botTool = (name: string, desc: string, schema: z.ZodTypeAny, action: strin
     description: desc,
     inputSchema: schema,
     handler: async (args) => {
-      const r = await forward(BOT_ENGINE_URL, {
+      const r = await invokeEngine('bot', {
         action, payload: args, metadata: { source: 'mcp-core' },
       });
       return asText(r.body);
@@ -219,20 +222,15 @@ app.get('/', (c) => c.json({
 // ─── REST router ─────────────────────────────────────────────────────
 app.post('/', async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  // Detect format:
-  //  - {channel,...} → maintenance engine
-  //  - {action, payload} → bot/catalog engine
   const isMaintenance = typeof body?.channel === 'string';
-  const target = isMaintenance ? MAINTENANCE_ENGINE_URL : BOT_ENGINE_URL;
-  const r = await forward(target, body);
+  const r = await invokeEngine(isMaintenance ? 'maintenance' : 'bot', body);
   return c.json(r.body, r.status as 200, corsHeaders);
 });
 
 app.post('/rest', async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const isMaintenance = typeof body?.channel === 'string';
-  const target = isMaintenance ? MAINTENANCE_ENGINE_URL : BOT_ENGINE_URL;
-  const r = await forward(target, body);
+  const r = await invokeEngine(isMaintenance ? 'maintenance' : 'bot', body);
   return c.json(r.body, r.status as 200, corsHeaders);
 });
 
