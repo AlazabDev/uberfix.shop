@@ -139,7 +139,9 @@ export interface QuoteRequestPayload {
 
 // ============= Core caller =============
 
-const BOT_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-gateway`;
+// ⚠️ Routed through the UNIFIED GATEWAY (single entry point).
+// The unified gateway dispatches {action,payload} bodies to the catalog/bot engine internally.
+const BOT_GATEWAY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gateway`;
 
 async function callBotGateway<T = any>(
   request: BotGatewayRequest,

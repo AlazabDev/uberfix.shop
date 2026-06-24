@@ -111,7 +111,7 @@ export default function QuoteRequestForm() {
         additionalNotes ? `ملاحظات: ${additionalNotes}` : '',
       ].filter(Boolean).join('\n');
 
-      const { data, error } = await supabase.functions.invoke('maintenance-gateway', {
+      const { data, error } = await supabase.functions.invoke('gateway', {
         body: {
           channel: 'public_form',
           client_name: fullName.trim(),

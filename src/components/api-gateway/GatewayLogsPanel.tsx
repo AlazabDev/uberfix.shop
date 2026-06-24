@@ -64,7 +64,7 @@ export function GatewayLogsPanel() {
           <CardTitle className="flex items-center gap-2">
             <ScrollText className="h-5 w-5" />سجل البوابة
           </CardTitle>
-          <CardDescription>آخر 200 طلب مرّ عبر maintenance-gateway / bot-gateway</CardDescription>
+          <CardDescription>آخر 200 طلب مرّ عبر البوابة الموحّدة (gateway)</CardDescription>
         </div>
         <div className="flex gap-2">
           <Input value={filter} onChange={e => setFilter(e.target.value)}

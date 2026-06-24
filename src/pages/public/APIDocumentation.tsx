@@ -113,7 +113,7 @@ Content-Type: application/json`}
             <div className="bg-muted p-4 rounded-lg mt-4">
               <p className="font-semibold mb-2">maintenance-gateway Example</p>
               <pre className="text-sm overflow-x-auto m-0">
-{`curl -X POST "https://zrrffsjbfkphridqyais.supabase.co/functions/v1/maintenance-gateway" \\
+{`curl -X POST "https://zrrffsjbfkphridqyais.supabase.co/functions/v1/gateway" \\
   -H "x-api-key: {api_key}" \\
   -H "Content-Type: application/json" \\
   -d '{

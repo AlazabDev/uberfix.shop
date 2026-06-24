@@ -55,7 +55,7 @@ const MaintenanceGateway = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const gatewayUrl = `https://zrrffsjbfkphridqyais.supabase.co/functions/v1/maintenance-gateway`;
+  const gatewayUrl = `https://zrrffsjbfkphridqyais.supabase.co/functions/v1/gateway`;
 
   const fetchData = async () => {
     setLoading(true);
