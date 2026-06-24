@@ -196,7 +196,8 @@ const transport = new StreamableHttpTransport();
 const mcpHandler = transport.bind(mcp);
 
 // ─── App ─────────────────────────────────────────────────────────────
-const app = new Hono();
+// Supabase invokes us at the path `/gateway/...`, so mount routes under that prefix.
+const app = new Hono().basePath('/gateway');
 
 app.options('/*', () => new Response('ok', { headers: corsHeaders }));
 
