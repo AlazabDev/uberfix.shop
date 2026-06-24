@@ -1,11 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { corsHeaders } from '../../_shared/cors.ts';
+import { handleMaintenance } from './maintenance.ts';
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   plumbing: "سباكة", electrical: "كهرباء", ac: "تكييف", painting: "دهانات",
@@ -28,7 +23,7 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-serve(async (req) => {
+export async function handleBot(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -160,7 +155,7 @@ serve(async (req) => {
     console.error('Bot Gateway error:', error);
     return jsonResponse({ success: false, error: 'Internal server error' }, 500);
   }
-});
+}
 
 async function handleCreateRequest(supabase: any, supabaseUrl: string, serviceKey: string, payload: any, metadata?: any) {
   const { client_name, client_phone, client_email, location, service_type, title, description, priority, latitude, longitude } = payload;
