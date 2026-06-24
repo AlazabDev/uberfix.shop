@@ -95,7 +95,7 @@ export function IntegrationDocsPanel() {
           دليل التكامل
         </CardTitle>
         <CardDescription>
-          البوابة الموحّدة: <code dir="ltr">maintenance-gateway</code>. تدعم API Key و OAuth2 client_credentials.
+          البوابة الموحّدة: <code dir="ltr">/functions/v1/gateway</code>. تدعم API Key و JWT.
         </CardDescription>
       </CardHeader>
       <CardContent>
