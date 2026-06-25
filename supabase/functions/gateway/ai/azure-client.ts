@@ -3,7 +3,9 @@
  * Handles Chat Completions + Assistants (Threads/Runs) + simple SSE streaming.
  */
 
-const ENDPOINT = (Deno.env.get('AZURE_OPENAI_ENDPOINT') ?? '').replace(/\/+$/, '');
+const RAW_ENDPOINT = (Deno.env.get('AZURE_OPENAI_ENDPOINT') ?? '').replace(/\/+$/, '');
+// Normalize: accept resource root OR a URL already containing /openai/<anything>.
+const ENDPOINT = RAW_ENDPOINT.replace(/\/openai(\/v\d+)?$/i, '');
 const API_KEY  = Deno.env.get('AZURE_OPENAI_API_KEY') ?? '';
 const API_VER  = Deno.env.get('AZURE_OPENAI_API_VERSION') ?? '2024-10-21';
 
