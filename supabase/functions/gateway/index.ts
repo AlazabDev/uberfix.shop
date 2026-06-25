@@ -25,6 +25,10 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { corsHeaders } from '../_shared/cors.ts';
 import { handleMaintenance } from './engine/maintenance.ts';
 import { handleBot } from './engine/bot.ts';
+import {
+  handleAiHealth, handleAiAgent, handleAiChat, handleAiStream,
+  handleAiClassify, handleAiSummarize,
+} from './engine/ai.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? 'https://zrrffsjbfkphridqyais.supabase.co';
 const INTERNAL_BASE = `${SUPABASE_URL}/functions/v1`;
@@ -247,6 +251,14 @@ app.all('/mcp/*', async (c) => {
   for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
   return new Response(res.body, { status: res.status, headers });
 });
+
+// ─── AI Layer (Azure OpenAI) ─────────────────────────────────────────
+app.get('/ai/health',      (c) => handleAiHealth(c.req.raw));
+app.post('/ai/agent',      (c) => handleAiAgent(c.req.raw));
+app.post('/ai/chat',       (c) => handleAiChat(c.req.raw));
+app.post('/ai/stream',     (c) => handleAiStream(c.req.raw));
+app.post('/ai/classify',   (c) => handleAiClassify(c.req.raw));
+app.post('/ai/summarize',  (c) => handleAiSummarize(c.req.raw));
 
 // ─── Server entry ────────────────────────────────────────────────────
 Deno.serve((req) => {
