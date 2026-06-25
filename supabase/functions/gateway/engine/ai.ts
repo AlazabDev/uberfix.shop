@@ -41,6 +41,7 @@ export async function handleAiHealth(_req: Request): Promise<Response> {
     configured: AZURE.configured,
     endpoint: AZURE.endpoint ? AZURE.endpoint.replace(/^(https?:\/\/)([^.]+)/, '$1***') : null,
     apiVersion: AZURE.apiVersion,
+    mode: AZURE.mode,
     agent: !!AZURE.agentId,
     model_deployment: AZURE.modelDeployment || null,
     agent_deployment: AZURE.agentDeployment || null,
