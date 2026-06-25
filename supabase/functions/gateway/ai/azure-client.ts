@@ -3,29 +3,66 @@
  * Handles Chat Completions + Assistants (Threads/Runs) + simple SSE streaming.
  */
 
-const RAW_ENDPOINT = (Deno.env.get('AZURE_OPENAI_ENDPOINT') ?? '').replace(/\/+$/, '');
-// Normalize: accept resource root OR a URL already containing /openai/<anything>.
-const ENDPOINT = RAW_ENDPOINT.replace(/\/openai(\/v\d+)?$/i, '');
-const API_KEY  = Deno.env.get('AZURE_OPENAI_API_KEY') ?? '';
+// Accept both new (AZ_MODEL_*) and legacy (AZURE_OPENAI_*) secret names.
+const RAW_ENDPOINT = (
+  Deno.env.get('AZ_MODEL_ENDPOINT') ??
+  Deno.env.get('AZURE_OPENAI_ENDPOINT') ??
+  ''
+).replace(/\/+$/, '');
+const API_KEY =
+  Deno.env.get('AZ_MODEL_API_KEY') ??
+  Deno.env.get('AZURE_OPENAI_API_KEY') ??
+  '';
+
+// Normalize endpoint:
+//   - strip trailing /responses, /chat/completions, /embeddings  (the Foundry "Get code" pastes these)
+//   - keep /openai/v1 when present  → triggers V1 (Foundry) mode
+//   - strip /openai or /openai/vN otherwise → classic resource root
+let NORMALIZED = RAW_ENDPOINT
+  .replace(/\/(responses|chat\/completions|embeddings|completions)$/i, '');
+const IS_V1 = /\/openai\/v1$/i.test(NORMALIZED);
+if (!IS_V1) {
+  NORMALIZED = NORMALIZED.replace(/\/openai(\/v\d+)?$/i, '');
+}
+const ENDPOINT = NORMALIZED;
 const API_VER  = Deno.env.get('AZURE_OPENAI_API_VERSION') ?? '2024-10-21';
 
 export const AZURE = {
   endpoint: ENDPOINT,
   apiVersion: API_VER,
-  agentId: Deno.env.get('AZURE_OPENAI_AGENT_ID') ?? '',
-  agentDeployment: Deno.env.get('AZURE_OPENAI_AGENT_DEPLOYMENT') ?? '',
-  modelDeployment: Deno.env.get('AZURE_OPENAI_MODEL_DEPLOYMENT') ?? '',
+  mode: (IS_V1 ? 'v1' : 'classic') as 'v1' | 'classic',
+  agentId:
+    Deno.env.get('AZ_AGENT_ID') ??
+    Deno.env.get('AZURE_OPENAI_AGENT_ID') ??
+    '',
+  agentDeployment:
+    Deno.env.get('AZ_AGENT_DEPLOYMENT') ??
+    Deno.env.get('AZURE_OPENAI_AGENT_DEPLOYMENT') ??
+    '',
+  modelDeployment:
+    Deno.env.get('AZ_MODEL_DEPLOYMENT') ??
+    Deno.env.get('AZURE_OPENAI_MODEL_DEPLOYMENT') ??
+    '',
   configured: !!(ENDPOINT && API_KEY),
 };
 
 function headers(extra: Record<string, string> = {}): HeadersInit {
-  return { 'api-key': API_KEY, 'Content-Type': 'application/json', ...extra };
+  // Foundry v1 also accepts `api-key`, but Bearer is the documented default.
+  const auth: Record<string, string> = AZURE.mode === 'v1'
+    ? { Authorization: `Bearer ${API_KEY}`, 'api-key': API_KEY }
+    : { 'api-key': API_KEY };
+  return { ...auth, 'Content-Type': 'application/json', ...extra };
 }
 
-async function req(path: string, init: RequestInit & { query?: Record<string,string> } = {}) {
+async function req(
+  pathClassic: string,
+  pathV1: string,
+  init: RequestInit & { query?: Record<string,string> } = {},
+) {
   if (!AZURE.configured) throw new Error('Azure OpenAI not configured');
+  const path = AZURE.mode === 'v1' ? pathV1 : pathClassic;
   const url = new URL(`${ENDPOINT}${path}`);
-  url.searchParams.set('api-version', API_VER);
+  if (AZURE.mode === 'classic') url.searchParams.set('api-version', API_VER);
   for (const [k, v] of Object.entries(init.query ?? {})) url.searchParams.set(k, v);
   const res = await fetch(url, { ...init, headers: { ...headers(), ...(init.headers ?? {}) } });
   if (!res.ok) {
@@ -50,9 +87,13 @@ export interface ChatOptions {
 
 export async function chatCompletion(opts: ChatOptions): Promise<any> {
   const dep = opts.deployment || AZURE.modelDeployment;
-  const res = await req(`/openai/deployments/${dep}/chat/completions`, {
+  const res = await req(
+    `/openai/deployments/${dep}/chat/completions`,
+    `/chat/completions`,
+    {
     method: 'POST',
     body: JSON.stringify({
+      ...(AZURE.mode === 'v1' ? { model: dep } : {}),
       messages: opts.messages,
       temperature: opts.temperature ?? 0.3,
       max_tokens: opts.max_tokens,
@@ -66,9 +107,13 @@ export async function chatCompletion(opts: ChatOptions): Promise<any> {
 
 export async function chatCompletionStream(opts: ChatOptions): Promise<Response> {
   const dep = opts.deployment || AZURE.modelDeployment;
-  return req(`/openai/deployments/${dep}/chat/completions`, {
+  return req(
+    `/openai/deployments/${dep}/chat/completions`,
+    `/chat/completions`,
+    {
     method: 'POST',
     body: JSON.stringify({
+      ...(AZURE.mode === 'v1' ? { model: dep } : {}),
       messages: opts.messages,
       temperature: opts.temperature ?? 0.3,
       max_tokens: opts.max_tokens,
@@ -80,12 +125,12 @@ export async function chatCompletionStream(opts: ChatOptions): Promise<Response>
 
 // ─── Assistants (Agent) API ──────────────────────────────────────────
 export async function createThread(): Promise<any> {
-  const r = await req(`/openai/threads`, { method: 'POST', body: '{}' });
+  const r = await req(`/openai/threads`, `/threads`, { method: 'POST', body: '{}' });
   return r.json();
 }
 
 export async function addMessage(threadId: string, content: string): Promise<any> {
-  const r = await req(`/openai/threads/${threadId}/messages`, {
+  const r = await req(`/openai/threads/${threadId}/messages`, `/threads/${threadId}/messages`, {
     method: 'POST',
     body: JSON.stringify({ role: 'user', content }),
   });
@@ -96,17 +141,20 @@ export async function startRun(threadId: string, opts: { instructions?: string; 
   const body: any = { assistant_id: opts.assistantId || AZURE.agentId };
   if (opts.instructions) body.instructions = opts.instructions;
   if (opts.tools) body.tools = opts.tools;
-  const r = await req(`/openai/threads/${threadId}/runs`, { method: 'POST', body: JSON.stringify(body) });
+  const r = await req(`/openai/threads/${threadId}/runs`, `/threads/${threadId}/runs`, { method: 'POST', body: JSON.stringify(body) });
   return r.json();
 }
 
 export async function getRun(threadId: string, runId: string): Promise<any> {
-  const r = await req(`/openai/threads/${threadId}/runs/${runId}`, { method: 'GET' });
+  const r = await req(`/openai/threads/${threadId}/runs/${runId}`, `/threads/${threadId}/runs/${runId}`, { method: 'GET' });
   return r.json();
 }
 
 export async function submitToolOutputs(threadId: string, runId: string, outputs: { tool_call_id: string; output: string }[]): Promise<any> {
-  const r = await req(`/openai/threads/${threadId}/runs/${runId}/submit_tool_outputs`, {
+  const r = await req(
+    `/openai/threads/${threadId}/runs/${runId}/submit_tool_outputs`,
+    `/threads/${threadId}/runs/${runId}/submit_tool_outputs`,
+    {
     method: 'POST',
     body: JSON.stringify({ tool_outputs: outputs }),
   });
@@ -114,6 +162,6 @@ export async function submitToolOutputs(threadId: string, runId: string, outputs
 }
 
 export async function listMessages(threadId: string, limit = 10): Promise<any> {
-  const r = await req(`/openai/threads/${threadId}/messages`, { method: 'GET', query: { limit: String(limit) } });
+  const r = await req(`/openai/threads/${threadId}/messages`, `/threads/${threadId}/messages`, { method: 'GET', query: { limit: String(limit) } });
   return r.json();
 }
