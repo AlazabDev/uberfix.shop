@@ -241,6 +241,110 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_sessions: {
+        Row: {
+          channel: string
+          completion_tokens: number
+          consumer_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          metadata: Json
+          model: string
+          prompt_tokens: number
+          request_id: string | null
+          status: string
+          thread_id: string | null
+          tool_calls: Json
+          total_tokens: number
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          completion_tokens?: number
+          consumer_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json
+          model: string
+          prompt_tokens?: number
+          request_id?: string | null
+          status?: string
+          thread_id?: string | null
+          tool_calls?: Json
+          total_tokens?: number
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          completion_tokens?: number
+          consumer_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json
+          model?: string
+          prompt_tokens?: number
+          request_id?: string | null
+          status?: string
+          thread_id?: string | null
+          tool_calls?: Json
+          total_tokens?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_sessions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "api_consumers_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_consumer_id_fkey"
+            columns: ["consumer_id"]
+            isOneToOne: false
+            referencedRelation: "v_api_consumers_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       annual_grand_winners: {
         Row: {
           award_year: number
@@ -9682,6 +9786,20 @@ export type Database = {
           specialization?: string | null
           status?: string | null
           total_reviews?: number | null
+        }
+        Relationships: []
+      }
+      v_ai_usage_dashboard: {
+        Row: {
+          channel: string | null
+          completion_tokens: number | null
+          day: string | null
+          errors: number | null
+          model: string | null
+          prompt_tokens: number | null
+          sessions: number | null
+          tool_invocations: number | null
+          total_tokens: number | null
         }
         Relationships: []
       }
