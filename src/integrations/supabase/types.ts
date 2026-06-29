@@ -407,7 +407,7 @@ export type Database = {
       api_consumers: {
         Row: {
           allowed_origins: string[] | null
-          api_key: string
+          api_key: string | null
           api_key_hash: string | null
           api_key_prefix: string | null
           auth_type: string
@@ -432,7 +432,7 @@ export type Database = {
         }
         Insert: {
           allowed_origins?: string[] | null
-          api_key?: string
+          api_key?: string | null
           api_key_hash?: string | null
           api_key_prefix?: string | null
           auth_type?: string
@@ -457,7 +457,7 @@ export type Database = {
         }
         Update: {
           allowed_origins?: string[] | null
-          api_key?: string
+          api_key?: string | null
           api_key_hash?: string | null
           api_key_prefix?: string | null
           auth_type?: string
