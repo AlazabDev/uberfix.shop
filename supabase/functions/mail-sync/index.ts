@@ -1,7 +1,17 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { ImapFlow } from 'npm:imapflow@1.0.164';
-import { simpleParser } from 'npm:mailparser@3.7.1';
+
+console.log('[mail-sync] module init: loading imapflow...');
+let ImapFlow: any;
+let simpleParser: any;
+try {
+  ({ ImapFlow } = await import('npm:imapflow@1.0.164'));
+  console.log('[mail-sync] imapflow loaded');
+  ({ simpleParser } = await import('npm:mailparser@3.7.1'));
+  console.log('[mail-sync] mailparser loaded');
+} catch (e) {
+  console.error('[mail-sync] import failed:', (e as Error).message);
+}
 
 /**
  * mail-sync: pulls new messages from Migadu IMAP into mail_messages cache.
