@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,12 +34,23 @@ const Inbox = () => {
     messages, isLoading, unreadCount,
     sync, isSyncing, send, isSending,
     markRead, toggleStar, remove,
+    fetchBody, isFetchingBody,
   } = useMail(folder);
 
   const handleSelect = (m: MailMessage) => {
     setSelected(m);
     if (!m.is_read && folder === 'INBOX') markRead(m.id, true);
   };
+
+  // Auto-load body if not cached
+  useEffect(() => {
+    if (selected && !selected.body_text && !selected.body_html) {
+      fetchBody(selected.id).then((data) => {
+        setSelected((prev) => prev ? { ...prev, body_text: data.body_text, body_html: data.body_html } : prev);
+      }).catch(() => { /* toast handled */ });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   const handleReply = () => {
     if (!selected) return;
@@ -183,10 +194,16 @@ const Inbox = () => {
                   </div>
                 </div>
                 <ScrollArea className="flex-1 p-4">
-                  {selected.body_html ? (
+                  {isFetchingBody && !selected.body_html && !selected.body_text ? (
+                    <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin ml-2" /> جاري تحميل محتوى الرسالة...
+                    </div>
+                  ) : selected.body_html ? (
                     <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: selected.body_html }} />
-                  ) : (
+                  ) : selected.body_text ? (
                     <pre className="whitespace-pre-wrap text-sm font-sans">{selected.body_text}</pre>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">(لا يوجد محتوى)</p>
                   )}
                 </ScrollArea>
               </div>

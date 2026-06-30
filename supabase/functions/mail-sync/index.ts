@@ -73,56 +73,49 @@ Deno.serve(async (req) => {
       await client.connect();
       console.log('[mail-sync] connected');
       const lock = await client.getMailboxLock(folder);
-      console.log('[mail-sync] mailbox locked, fetching');
+      console.log('[mail-sync] mailbox locked, fetching envelopes');
       try {
-        const range = `${lastUid + 1}:*`;
+        const status = await client.status(folder, { uidNext: true, messages: true });
+        const uidNext = (status as any).uidNext ?? lastUid + 1;
+        const startUid = Math.max(lastUid + 1, uidNext - 50); // last 50 envelopes only on first run
+        const range = `${startUid}:*`;
+        const CAP = 50;
         for await (const msg of client.fetch(range, {
           uid: true,
           envelope: true,
           internalDate: true,
-          source: true,
           flags: true,
           size: true,
         }, { uid: true })) {
           if (!msg.uid || msg.uid <= lastUid) continue;
-
-          let parsed: any = null;
-          try {
-            if (msg.source) parsed = await simpleParser(msg.source as Uint8Array);
-          } catch (_) { /* ignore parse errors */ }
-
           const env = msg.envelope ?? {};
           const from = env.from?.[0];
-          const text: string = parsed?.text ?? '';
-          const html: string = parsed?.html || parsed?.textAsHtml || '';
-          const preview = (text || html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 200);
-          const hasAtt = Array.isArray(parsed?.attachments) && parsed.attachments.length > 0;
           const flags = msg.flags ? Array.from(msg.flags as Set<string>) : [];
-
           await admin.from('mail_messages').upsert({
             account,
             folder,
             uid: msg.uid,
-            message_id: env.messageId ?? parsed?.messageId ?? null,
+            message_id: env.messageId ?? null,
             from_addr: from?.address ?? null,
             from_name: from?.name ?? null,
             to_addrs: (env.to ?? []).map((a: any) => ({ address: a.address, name: a.name })),
             cc_addrs: (env.cc ?? []).map((a: any) => ({ address: a.address, name: a.name })),
             subject: env.subject ?? '(بدون موضوع)',
-            preview,
-            body_text: text || null,
-            body_html: html || null,
-            has_attachments: hasAtt,
+            preview: null,
             is_read: flags.includes('\\Seen'),
             is_starred: flags.includes('\\Flagged'),
             is_sent: false,
             internal_date: msg.internalDate ? new Date(msg.internalDate as Date).toISOString() : new Date().toISOString(),
             raw_size: msg.size ?? null,
           }, { onConflict: 'account,folder,uid' });
-
           if (msg.uid > maxUid) maxUid = msg.uid;
           imported++;
-          if (imported >= 100) break; // safety cap per run
+          if (imported % 10 === 0) {
+            await admin.from('mail_sync_state').upsert({
+              account, folder, last_uid: maxUid, last_synced_at: new Date().toISOString(), last_error: null,
+            }, { onConflict: 'account,folder' });
+          }
+          if (imported >= CAP) break;
         }
       } finally {
         lock.release();
