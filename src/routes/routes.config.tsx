@@ -116,6 +116,7 @@ const WhatsAppMaintenanceFormPage = lazy(
 const WhatsAppFlowManager = lazy(
   () => import("@/pages/whatsapp/WhatsAppFlowManager")
 );
+const WaHub = lazy(() => import("@/pages/whatsapp/WaHub"));
 const NotificationCenterPage = lazy(
   () => import("@/pages/notifications/NotificationCenterPage")
 );
@@ -239,6 +240,7 @@ export const protectedRoutes = [
   // Messages & Notifications
   { path: "/dashboard/notification-center", element: <NotificationCenterPage />, withLayout: true },
   { path: "/whatsapp", element: <WhatsAppMessages />, withLayout: true },
+  { path: "/wa-hub", element: <WaHub />, withLayout: true },
   { path: "/whatsapp/maintenance-form", element: <WhatsAppMaintenanceFormPage />, withLayout: true },
   { path: "/message-logs", element: <MessageLogs />, withLayout: true },
   { path: "/dashboard/whatsapp/templates", element: <WhatsAppTemplatesPage />, withLayout: true },
