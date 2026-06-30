@@ -3025,6 +3025,102 @@ export type Database = {
           },
         ]
       }
+      mail_messages: {
+        Row: {
+          account: string
+          body_html: string | null
+          body_text: string | null
+          cc_addrs: Json | null
+          created_at: string
+          folder: string
+          from_addr: string | null
+          from_name: string | null
+          has_attachments: boolean | null
+          id: string
+          internal_date: string | null
+          is_read: boolean | null
+          is_sent: boolean | null
+          is_starred: boolean | null
+          message_id: string | null
+          preview: string | null
+          raw_size: number | null
+          subject: string | null
+          thread_id: string | null
+          to_addrs: Json | null
+          uid: number | null
+        }
+        Insert: {
+          account?: string
+          body_html?: string | null
+          body_text?: string | null
+          cc_addrs?: Json | null
+          created_at?: string
+          folder?: string
+          from_addr?: string | null
+          from_name?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          internal_date?: string | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          is_starred?: boolean | null
+          message_id?: string | null
+          preview?: string | null
+          raw_size?: number | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addrs?: Json | null
+          uid?: number | null
+        }
+        Update: {
+          account?: string
+          body_html?: string | null
+          body_text?: string | null
+          cc_addrs?: Json | null
+          created_at?: string
+          folder?: string
+          from_addr?: string | null
+          from_name?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          internal_date?: string | null
+          is_read?: boolean | null
+          is_sent?: boolean | null
+          is_starred?: boolean | null
+          message_id?: string | null
+          preview?: string | null
+          raw_size?: number | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addrs?: Json | null
+          uid?: number | null
+        }
+        Relationships: []
+      }
+      mail_sync_state: {
+        Row: {
+          account: string
+          folder: string
+          last_error: string | null
+          last_synced_at: string | null
+          last_uid: number
+        }
+        Insert: {
+          account: string
+          folder: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          last_uid?: number
+        }
+        Update: {
+          account?: string
+          folder?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          last_uid?: number
+        }
+        Relationships: []
+      }
       maintenance_contracts: {
         Row: {
           auto_renew: boolean | null
