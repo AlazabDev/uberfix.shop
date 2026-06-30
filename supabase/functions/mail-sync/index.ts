@@ -13,8 +13,10 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization') ?? '';
+    const cronSecret = Deno.env.get('MAIL_CRON_SECRET') ?? '';
+    const provided = req.headers.get('x-cron-secret') ?? '';
+    const isCron = cronSecret.length > 0 && provided === cronSecret;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const isCron = authHeader.includes(serviceKey);
 
     if (!isCron) {
       if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
