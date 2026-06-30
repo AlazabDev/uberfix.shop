@@ -105,6 +105,18 @@ export function useMail(folder: MailFolder) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mail'] }),
   });
 
+  const fetchBody = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke('mail-fetch-body', {
+        body: { messageId: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { body_text: string | null; body_html: string | null };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['mail'] }),
+  });
+
   return {
     messages: messagesQuery.data ?? [],
     isLoading: messagesQuery.isLoading,
@@ -116,5 +128,7 @@ export function useMail(folder: MailFolder) {
     markRead: (id: string, read = true) => updateFlags.mutate({ id, patch: { is_read: read } }),
     toggleStar: (id: string, starred: boolean) => updateFlags.mutate({ id, patch: { is_starred: !starred } }),
     remove: (id: string) => deleteMessage.mutate(id),
+    fetchBody: fetchBody.mutateAsync,
+    isFetchingBody: fetchBody.isPending,
   };
 }
