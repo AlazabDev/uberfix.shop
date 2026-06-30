@@ -68,9 +68,12 @@ Deno.serve(async (req) => {
     let maxUid = lastUid;
     let errorMsg: string | null = null;
 
+    console.log('[mail-sync] connecting to IMAP', lastUid);
     try {
       await client.connect();
+      console.log('[mail-sync] connected');
       const lock = await client.getMailboxLock(folder);
+      console.log('[mail-sync] mailbox locked, fetching');
       try {
         const range = `${lastUid + 1}:*`;
         for await (const msg of client.fetch(range, {
