@@ -12,22 +12,22 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get('Authorization') ?? '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const cronSecret = Deno.env.get('MAIL_CRON_SECRET') ?? '';
+    const providedCron = req.headers.get('x-cron-secret') ?? '';
+    const isCron = cronSecret.length > 0 && providedCron === cronSecret;
 
-    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
-    const token = authHeader.replace('Bearer ', '');
-    const sb = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-    const { data: claimsData } = await sb.auth.getClaims(token);
-    const claims = claimsData?.claims;
-    if (!claims) return json({ error: 'Unauthorized' }, 401);
-    const isServiceRole = claims.role === 'service_role';
-
-    if (!isServiceRole) {
+    if (!isCron) {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+      const sb = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claimsData } = await sb.auth.getClaims(authHeader.replace('Bearer ', ''));
+      const claims = claimsData?.claims;
+      if (!claims?.sub) return json({ error: 'Unauthorized' }, 401);
       const admin0 = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey);
       const { data: roles } = await admin0.from('user_roles').select('role').eq('user_id', claims.sub);
       const rs = (roles ?? []).map((r: any) => r.role);
