@@ -18,9 +18,13 @@ const GlobalMapGoogle: React.FC = () => {
     (async () => {
       try {
         await loadGoogleMaps();
-        if (cancelled || !mapRef.current || mapInstance.current) return;
         const g = (window as any).google;
-        mapInstance.current = new g.maps.Map(mapRef.current, {
+        // With loading=async the Maps API loads libraries on demand.
+        const { Map } = await g.maps.importLibrary('maps');
+        const { Marker } = await g.maps.importLibrary('marker');
+        if (cancelled || !mapRef.current || mapInstance.current) return;
+        (window as any).__gmapsMarker = Marker;
+        mapInstance.current = new Map(mapRef.current, {
           center: { lat: 26.8206, lng: 30.8025 }, // Egypt
           zoom: 6,
           mapId: getGoogleMapsId() || undefined,
@@ -46,6 +50,7 @@ const GlobalMapGoogle: React.FC = () => {
   useEffect(() => {
     if (!ready || !mapInstance.current || branchesLoading) return;
     const g = (window as any).google;
+    const Marker = (window as any).__gmapsMarker || g.maps.Marker;
     markersRef.current.forEach((m) => m.setMap?.(null));
     markersRef.current = [];
     const bounds = new g.maps.LatLngBounds();
@@ -53,7 +58,7 @@ const GlobalMapGoogle: React.FC = () => {
       const lat = parseFloat(b.latitude || '');
       const lng = parseFloat(b.longitude || '');
       if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-      const marker = new g.maps.Marker({
+      const marker = new Marker({
         position: { lat, lng },
         map: mapInstance.current,
         title: b.branch_name || b.branch || 'branch',
