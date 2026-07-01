@@ -36,7 +36,7 @@ const lazyWithRetry = <T,>(factory: () => Promise<T>) =>
     })
   );
 
-const GlobalMap = lazyWithRetry(() => import("@/components/GlobalMap"));
+const GlobalMap = lazyWithRetry(() => import("@/components/GlobalMapGoogle"));
 
 // Loading fallback for map
 const MapLoadingFallback = () => {
