@@ -18,13 +18,16 @@ const GlobalMapGoogle: React.FC = () => {
     (async () => {
       try {
         await loadGoogleMaps();
+        // With loading=async, google.maps.Map may not be ready immediately after script load.
+        // Poll briefly until the constructor exists.
+        const start = Date.now();
+        while (!(window as any).google?.maps?.Map && Date.now() - start < 8000) {
+          await new Promise((r) => setTimeout(r, 100));
+        }
         const g = (window as any).google;
-        // With loading=async the Maps API loads libraries on demand.
-        const { Map } = await g.maps.importLibrary('maps');
-        const { Marker } = await g.maps.importLibrary('marker');
+        if (!g?.maps?.Map) throw new Error('Google Maps failed to initialize');
         if (cancelled || !mapRef.current || mapInstance.current) return;
-        (window as any).__gmapsMarker = Marker;
-        mapInstance.current = new Map(mapRef.current, {
+        mapInstance.current = new g.maps.Map(mapRef.current, {
           center: { lat: 26.8206, lng: 30.8025 }, // Egypt
           zoom: 6,
           mapId: getGoogleMapsId() || undefined,
@@ -50,7 +53,6 @@ const GlobalMapGoogle: React.FC = () => {
   useEffect(() => {
     if (!ready || !mapInstance.current || branchesLoading) return;
     const g = (window as any).google;
-    const Marker = (window as any).__gmapsMarker || g.maps.Marker;
     markersRef.current.forEach((m) => m.setMap?.(null));
     markersRef.current = [];
     const bounds = new g.maps.LatLngBounds();
@@ -58,7 +60,7 @@ const GlobalMapGoogle: React.FC = () => {
       const lat = parseFloat(b.latitude || '');
       const lng = parseFloat(b.longitude || '');
       if (Number.isNaN(lat) || Number.isNaN(lng)) return;
-      const marker = new Marker({
+      const marker = new g.maps.Marker({
         position: { lat, lng },
         map: mapInstance.current,
         title: b.branch_name || b.branch || 'branch',
