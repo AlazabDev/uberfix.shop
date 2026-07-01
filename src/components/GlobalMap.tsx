@@ -68,14 +68,14 @@ const GlobalMap = () => {
       return;
     }
 
-    const customStyle = import.meta.env.VITE_MAPBOX_STYLE_URL as string | undefined;
-
+    // Force a known-good public Mapbox style. Custom styles from env caused
+    // silent tile failures (load fires but no tiles render → blank blue globe).
     try {
       mapboxgl.accessToken = mapboxToken;
 
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: customStyle || DEFAULT_MAPBOX_STYLE,
+        style: DEFAULT_MAPBOX_STYLE,
         projection: { name: 'globe' },
         zoom: 1.8,
         center: [30, 26],
@@ -98,7 +98,8 @@ const GlobalMap = () => {
 
     map.current.on('error', (e) => {
       console.error('[GlobalMap] Mapbox runtime error:', e?.error || e);
-      if (!map.current?.isStyleLoaded()) {
+      const msg = String(e?.error?.message || e?.error || '');
+      if (msg.includes('style') || msg.includes('401') || msg.includes('403') || msg.includes('404')) {
         setRuntimeError('حدث خطأ أثناء تحميل الخريطة. يرجى المحاولة لاحقًا.');
       }
     });
