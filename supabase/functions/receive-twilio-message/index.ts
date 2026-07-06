@@ -28,7 +28,21 @@ Deno.serve(async (req) => {
     // Get Twilio credentials for signature verification
     const twilioCredentials = getTwilioCredentials(false);
     
-    if (twilioCredentials?.authToken) {
+    if (!twilioCredentials?.authToken) {
+      console.error('❌ Twilio auth token not configured - rejecting webhook (cannot verify signature)');
+      await logVerificationFailure(supabase, 'twilio', {
+        ip: req.headers.get('x-forwarded-for') || undefined,
+        userAgent: req.headers.get('user-agent') || undefined,
+        path: '/receive-twilio-message',
+        reason: 'TWILIO auth token not configured'
+      }).catch(() => {});
+      return new Response(
+        JSON.stringify({ error: 'Service unavailable - signature verification not configured' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    {
       // Verify Twilio signature
       const webhookUrl = `${supabaseUrl}/functions/v1/receive-twilio-message`;
       const isValid = await verifyTwilioSignature(req.clone(), twilioCredentials.authToken, webhookUrl);
@@ -51,8 +65,6 @@ Deno.serve(async (req) => {
       }
       
       console.log('✅ Twilio signature verified successfully');
-    } else {
-      console.warn('⚠️ Twilio auth token not configured - skipping signature verification');
     }
 
     // Parse form data from Twilio webhook
