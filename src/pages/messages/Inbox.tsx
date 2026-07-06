@@ -23,6 +23,7 @@ import {
 import { useMail, MailFolder, MailMessage } from '@/hooks/useMail';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import DOMPurify from 'dompurify';
 
 const Inbox = () => {
   const [folder, setFolder] = useState<MailFolder>('INBOX');
@@ -199,7 +200,17 @@ const Inbox = () => {
                       <Loader2 className="h-5 w-5 animate-spin ml-2" /> جاري تحميل محتوى الرسالة...
                     </div>
                   ) : selected.body_html ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: selected.body_html }} />
+                    <div
+                      className="prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(selected.body_html, {
+                          ALLOWED_TAGS: ['p','a','b','strong','em','i','u','ul','ol','li','br','span','div','table','thead','tbody','tr','td','th','h1','h2','h3','h4','h5','h6','blockquote','pre','code','hr','img'],
+                          ALLOWED_ATTR: ['href','style','title','alt','src','target','rel'],
+                          FORBID_TAGS: ['script','style','iframe','object','embed','form','input'],
+                          FORBID_ATTR: ['onerror','onload','onclick','onmouseover'],
+                        }),
+                      }}
+                    />
                   ) : selected.body_text ? (
                     <pre className="whitespace-pre-wrap text-sm font-sans">{selected.body_text}</pre>
                   ) : (
