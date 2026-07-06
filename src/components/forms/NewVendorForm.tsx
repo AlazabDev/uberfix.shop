@@ -88,7 +88,7 @@ export const NewVendorForm = ({ onClose, onSuccess }: NewVendorFormProps) => {
 
       const { error } = await supabase
         .from('vendors')
-        .insert([vendorData]);
+        .insert([vendorData as any]);
 
       if (error) {
         console.error('Supabase error:', error);

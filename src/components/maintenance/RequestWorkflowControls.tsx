@@ -50,7 +50,7 @@ export function RequestWorkflowControls({ request, onUpdate }: RequestWorkflowCo
 
       const { error } = await supabase
         .from('maintenance_requests')
-        .update(updates)
+        .update(updates as any)
         .eq('id', request.id);
 
       if (error) throw error;

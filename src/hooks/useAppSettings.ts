@@ -87,7 +87,7 @@ export function useAppSettings() {
     mutationFn: async (updates: Partial<AppSettings>) => {
       const { data, error } = await supabase
         .from("app_settings")
-        .update(updates)
+        .update(updates as any)
         .eq("id", settings?.id)
         .select()
         .maybeSingle();
