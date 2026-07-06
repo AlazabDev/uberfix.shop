@@ -16,7 +16,17 @@ interface InvoiceEmailRequest {
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+function escHtml(input: unknown): string {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -24,11 +34,51 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authentication: require a valid Bearer JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Authorization: only privileged roles may send invoice emails
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userData.user.id);
+    const allowed = new Set(['admin', 'manager', 'staff', 'finance', 'accounting', 'owner']);
+    const hasRole = (roles || []).some((r: { role: string }) => allowed.has(r.role));
+    if (!hasRole) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { invoice_id, recipient_email, recipient_name }: InvoiceEmailRequest = await req.json();
 
     if (!invoice_id || !recipient_email) {
       return new Response(
         JSON.stringify({ error: "invoice_id and recipient_email are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // Basic email format validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient_email) || recipient_email.length > 254) {
+      return new Response(
+        JSON.stringify({ error: "Invalid recipient_email" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -59,17 +109,17 @@ const handler = async (req: Request): Promise<Response> => {
         <div style="padding: 20px; background: #f9fafb;">
           <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <h2 style="color: #0b1e36; margin-top: 0;">معلومات الفاتورة</h2>
-            <p><strong>رقم الفاتورة:</strong> ${invoice.invoice_number}</p>
+            <p><strong>رقم الفاتورة:</strong> ${escHtml(invoice.invoice_number)}</p>
             <p><strong>تاريخ الإصدار:</strong> ${new Date(invoice.issue_date).toLocaleDateString('ar-EG')}</p>
             <p><strong>تاريخ الاستحقاق:</strong> ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('ar-EG') : '-'}</p>
-            <p><strong>الحالة:</strong> ${invoice.status === 'paid' ? 'مدفوعة' : invoice.status === 'pending' ? 'قيد الانتظار' : invoice.status}</p>
+            <p><strong>الحالة:</strong> ${invoice.status === 'paid' ? 'مدفوعة' : invoice.status === 'pending' ? 'قيد الانتظار' : escHtml(invoice.status)}</p>
           </div>
           
           <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <h2 style="color: #0b1e36; margin-top: 0;">العميل</h2>
-            <p><strong>الاسم:</strong> ${invoice.customer_name}</p>
-            ${invoice.customer_email ? `<p><strong>البريد:</strong> ${invoice.customer_email}</p>` : ''}
-            ${invoice.customer_phone ? `<p><strong>الهاتف:</strong> ${invoice.customer_phone}</p>` : ''}
+            <p><strong>الاسم:</strong> ${escHtml(invoice.customer_name)}</p>
+            ${invoice.customer_email ? `<p><strong>البريد:</strong> ${escHtml(invoice.customer_email)}</p>` : ''}
+            ${invoice.customer_phone ? `<p><strong>الهاتف:</strong> ${escHtml(invoice.customer_phone)}</p>` : ''}
           </div>
           
           ${invoice.invoice_items && invoice.invoice_items.length > 0 ? `
@@ -87,10 +137,10 @@ const handler = async (req: Request): Promise<Response> => {
                 <tbody>
                   ${invoice.invoice_items.map((item: any) => `
                     <tr>
-                      <td style="padding: 10px; border: 1px solid #e5e7eb;">${item.service_name}</td>
-                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">${item.unit_price} ${invoice.currency}</td>
-                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">${item.total_price} ${invoice.currency}</td>
+                      <td style="padding: 10px; border: 1px solid #e5e7eb;">${escHtml(item.service_name)}</td>
+                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center;">${escHtml(item.quantity)}</td>
+                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">${escHtml(item.unit_price)} ${escHtml(invoice.currency)}</td>
+                      <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">${escHtml(item.total_price)} ${escHtml(invoice.currency)}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -99,13 +149,13 @@ const handler = async (req: Request): Promise<Response> => {
           ` : ''}
           
           <div style="background: #0b1e36; color: white; padding: 20px; border-radius: 8px; text-align: center;">
-            <h2 style="margin: 0;">الإجمالي: ${invoice.amount} ${invoice.currency}</h2>
+            <h2 style="margin: 0;">الإجمالي: ${escHtml(invoice.amount)} ${escHtml(invoice.currency)}</h2>
           </div>
           
           ${invoice.notes ? `
             <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
               <h3 style="color: #0b1e36; margin-top: 0;">ملاحظات</h3>
-              <p>${invoice.notes}</p>
+              <p>${escHtml(invoice.notes)}</p>
             </div>
           ` : ''}
         </div>
@@ -121,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     const result = await resend.emails.send({
       from: 'UberFix Invoices <invoices@tx.uberfix.shop>',
       to: [recipient_email],
-      subject: `فاتورة رقم ${invoice.invoice_number} - UberFix`,
+      subject: `فاتورة رقم ${String(invoice.invoice_number).replace(/[\r\n]/g, '')} - UberFix`,
       html: invoiceHtml
     });
 
