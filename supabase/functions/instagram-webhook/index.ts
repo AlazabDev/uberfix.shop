@@ -33,9 +33,9 @@ const timingSafeEqual = (a: string, b: string): boolean => {
 
 const verifyMetaSignature = async (req: Request, rawBody: string): Promise<boolean> => {
   if (!META_APP_SECRET) {
-    // Keep production flexible while the app is being connected; configure META_APP_SECRET before public launch.
-    console.warn("META_APP_SECRET / FACEBOOK_APP_SECRET not configured; accepting Instagram webhook without signature verification");
-    return true;
+    // Fail closed: never accept webhook events when the signing secret is missing.
+    console.error("META_APP_SECRET / FACEBOOK_APP_SECRET not configured; rejecting Instagram webhook");
+    return false;
   }
 
   const signature = req.headers.get("x-hub-signature-256") || "";
