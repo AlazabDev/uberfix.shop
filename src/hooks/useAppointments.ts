@@ -143,7 +143,7 @@ export const useAppointments = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id)
         .select()
         .maybeSingle();
