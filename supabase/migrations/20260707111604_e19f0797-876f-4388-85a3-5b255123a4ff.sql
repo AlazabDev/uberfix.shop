@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.public_get_invoice_by_request(uuid) TO anon, authenticated;
