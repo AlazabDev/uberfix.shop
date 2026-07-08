@@ -5,7 +5,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, MessageSquare, X, Send, Mic, Volume2, VolumeX, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { useTTS } from "@/hooks/useTTS";
 import ReactMarkdown from "react-markdown";
 
@@ -44,8 +43,7 @@ export function UFBotWidget() {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { speak, stop, isSpeaking, speakingMessageId } = useTTS();
+  const { speak, isSpeaking, speakingMessageId } = useTTS();
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
