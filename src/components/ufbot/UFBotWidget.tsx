@@ -427,22 +427,22 @@ export function UFBotWidget() {
                 </button>
               </div>
             )}
-            <div className="relative flex items-center bg-white rounded-full border border-black/10 shadow-sm gap-1 px-1.5 py-1">
+            <div className="relative flex items-center bg-white rounded-full border border-black/10 shadow-sm gap-1 pl-1 pr-3 py-1">
               <Button
                 onClick={() => sendMessage()}
                 disabled={(!input.trim() && !pendingAttachment) || isLoading}
                 size="icon"
-                className="shrink-0 rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#1a1b3a] h-7 w-7 disabled:opacity-50"
+                className="shrink-0 rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#1a1b3a] h-8 w-8 disabled:opacity-50"
                 aria-label="إرسال"
               >
-                <Send className="h-3.5 w-3.5 -scale-x-100" />
+                <Send className="h-4 w-4 -scale-x-100" />
               </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder={isRecording ? "🎤 جاري الاستماع..." : "اكتب رسالتك..."}
-                className="flex-1 h-8 text-sm bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none placeholder:text-muted-foreground/70 px-1"
+                className="flex-1 h-8 text-sm bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none placeholder:text-muted-foreground/60 px-2 text-right"
                 disabled={isLoading}
               />
               <input
@@ -456,26 +456,26 @@ export function UFBotWidget() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading || isLoading}
-                className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-[#1a1b3a] hover:bg-black/5 transition-colors disabled:opacity-50"
+                className="shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground/70 hover:text-[#1a1b3a] transition-colors disabled:opacity-50"
                 aria-label="إرفاق ملف"
                 title="إرفاق ملف"
               >
-                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
               </button>
               <button
                 type="button"
                 onClick={toggleVoiceRecording}
                 disabled={isLoading}
                 className={cn(
-                  "shrink-0 h-8 w-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50",
+                  "shrink-0 h-6 w-6 rounded-full flex items-center justify-center transition-colors disabled:opacity-50",
                   isRecording
                     ? "bg-red-500 text-white animate-pulse"
-                    : "text-muted-foreground hover:text-[#1a1b3a] hover:bg-black/5"
+                    : "text-muted-foreground/70 hover:text-[#1a1b3a]"
                 )}
                 aria-label={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
                 title={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
               >
-                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground text-center mt-2">مدعوم بالذكاء الاصطناعي - قد يخطئ أحياناً</p>
