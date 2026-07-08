@@ -1,14 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText } from "lucide-react";
+import { Download, Eye, FileText, CreditCard, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { openWhatsApp } from "@/config/whatsapp";
 
 interface InvoiceCardProps {
   invoice: {
     id: string;
     invoice_number: string;
     customer_name: string;
+    customer_phone?: string;
     amount: number;
     currency: string;
     issue_date: string;
@@ -19,6 +24,33 @@ interface InvoiceCardProps {
 }
 
 export function InvoiceCard({ invoice, onView, onDownload }: InvoiceCardProps) {
+  const [sending, setSending] = useState(false);
+  const { toast } = useToast();
+
+  const handleSendPaymentLink = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('paytabs-create-payment', {
+        body: { invoice_id: invoice.id },
+      });
+      if (error) throw error;
+      const url: string | undefined = data?.payment_url || data?.redirect_url;
+      if (!url) throw new Error('لم يتم استلام رابط الدفع');
+
+      const msg = `فاتورة #${invoice.invoice_number}\nالمبلغ: ${invoice.amount.toLocaleString('ar-EG')} ${invoice.currency}\nللدفع الآمن عبر PayTabs:\n${url}`;
+      if (invoice.customer_phone) {
+        openWhatsApp(invoice.customer_phone, msg);
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: 'تم نسخ رابط الدفع', description: 'لا يوجد رقم عميل — تم نسخ الرابط للحافظة' });
+      }
+    } catch (e: any) {
+      toast({ title: 'تعذر إنشاء رابط الدفع', description: e?.message || 'حدث خطأ', variant: 'destructive' });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
@@ -98,6 +130,17 @@ export function InvoiceCard({ invoice, onView, onDownload }: InvoiceCardProps) {
             تحميل
           </Button>
         </div>
+        {invoice.status !== 'paid' && (
+          <Button
+            size="sm"
+            className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
+            onClick={handleSendPaymentLink}
+            disabled={sending}
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <CreditCard className="h-4 w-4 ml-2" />}
+            إرسال رابط الدفع للعميل
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
