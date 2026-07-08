@@ -331,6 +331,34 @@ export default function PublicInvoice() {
 
   return (
     <PublicShell subtitle="الفاتورة" maxWidth="3xl">
+      {/* Prominent Pay Now banner - only for unpaid invoices */}
+      {invoice.status !== 'paid' && (
+        <div className="mb-4 print:hidden">
+          <Card className="border-2 border-[#FFB900] shadow-lg">
+            <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-[#030957]/5 to-[#FFB900]/10">
+              <div className="text-center sm:text-right">
+                <p className="text-sm text-muted-foreground mb-1">إجمالي المستحق</p>
+                <p className="text-3xl font-extrabold text-[#030957]">
+                  {invoice.amount.toLocaleString('ar-EG')} {invoice.currency || 'ج.م'}
+                </p>
+              </div>
+              <Button
+                size="lg"
+                onClick={handlePayNow}
+                disabled={paying}
+                className="w-full sm:w-auto bg-gradient-to-r from-[#FFB900] to-[#FFA500] text-[#030957] font-extrabold text-lg px-8 py-6 hover:opacity-90 shadow-lg"
+              >
+                {paying ? (
+                  <><Loader2 className="h-5 w-5 animate-spin ml-2" /> جاري التحويل للدفع...</>
+                ) : (
+                  <><CreditCard className="h-6 w-6 ml-2" /> ادفع الآن بأمان عبر PayTabs</>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Action Bar - hidden on print */}
       <div className="mb-4 print:hidden">
         <Card>

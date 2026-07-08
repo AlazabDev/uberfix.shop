@@ -370,6 +370,102 @@ async function sendNotifications(
   }
 }
 
+// ─── Auto-register customer from phone number ────────────────────────
+// Ensures every client_phone that arrives via the gateway becomes a real
+// auth user + profile row so the request can be attributed to a real
+// user_id (client-XXX placeholder until they log in and update it).
+async function ensureCustomerAccount(
+  supabaseAdmin: any,
+  rawPhone: string,
+  providedName: string | null,
+  providedEmail: string | null,
+): Promise<string | null> {
+  try {
+    // Normalize to +20... via DB function (single source of truth)
+    const { data: normRes } = await supabaseAdmin.rpc('normalize_eg_phone', { p: rawPhone });
+    const phone = (normRes as string | null) || rawPhone;
+    if (!phone || phone.length < 8) return null;
+
+    // 1) Search auth.users for this phone
+    const cleanPhone = phone.replace(/\+/g, '');
+    const phoneEmail = `phone_${cleanPhone}@uberfix.local`;
+
+    let userId: string | null = null;
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 200,
+    });
+    if (existingUsers?.users) {
+      const found = existingUsers.users.find(
+        (u: any) => u.email === phoneEmail || u.phone === phone || u.phone === cleanPhone,
+      );
+      if (found) userId = found.id;
+    }
+
+    // 2) Create auth user if missing
+    if (!userId) {
+      const tempPassword = crypto.randomUUID() + crypto.randomUUID();
+      const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: phoneEmail,
+        phone: phone,
+        password: tempPassword,
+        email_confirm: true,
+        phone_confirm: true,
+        user_metadata: {
+          full_name: providedName || null,
+          phone,
+          role: 'customer',
+          auth_method: 'auto_from_maintenance_request',
+          is_placeholder: !providedName,
+        },
+      });
+      if (createErr) {
+        console.warn('ensureCustomerAccount: createUser failed:', createErr);
+        return null;
+      }
+      userId = newUser.user.id;
+    }
+
+    if (!userId) return null;
+
+    // 3) Upsert profile row (placeholder if no name)
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, is_placeholder, full_name')
+      .eq('auth_user_id', userId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      let placeholderName = providedName;
+      if (!placeholderName) {
+        const { data: nameRes } = await supabaseAdmin.rpc('next_client_placeholder_name');
+        placeholderName = (nameRes as string) || `client-${Date.now().toString().slice(-4)}`;
+      }
+      await supabaseAdmin.from('profiles').insert({
+        id: userId,
+        auth_user_id: userId,
+        full_name: placeholderName,
+        name: placeholderName,
+        phone,
+        email: providedEmail || phoneEmail,
+        role: 'customer',
+        is_placeholder: !providedName,
+      });
+    } else if (providedName && existingProfile.is_placeholder) {
+      // If they later submit with a real name, upgrade the placeholder
+      await supabaseAdmin
+        .from('profiles')
+        .update({ full_name: providedName, is_placeholder: false })
+        .eq('id', existingProfile.id);
+    }
+
+    return userId;
+  } catch (e) {
+    console.warn('ensureCustomerAccount failed (non-fatal):', e);
+    return null;
+  }
+}
+
 // ─── Consumer-scoped Actions (transition / get_status / cancel / add_note) ─
 
 async function resolveTargetRequest(
@@ -737,6 +833,21 @@ export async function handleMaintenance(req: Request): Promise<Response> {
 
     // Track which API consumer created this request for scope-limited operations later.
     if (consumer) requestData.created_via_consumer_id = consumer.id;
+
+    // ─── Auto-register customer from phone (before insert so we can attribute) ─
+    let autoUserId: string | null = null;
+    if (clientPhone) {
+      autoUserId = await ensureCustomerAccount(
+        supabaseAdmin,
+        clientPhone,
+        // If the caller passed a real name (not the "زائر" fallback), use it
+        clientName && clientName !== 'زائر' ? clientName : null,
+        clientEmail || null,
+      );
+      if (autoUserId) {
+        requestData.created_by = autoUserId;
+      }
+    }
 
     const { data: created, error: createError } = await supabaseAdmin
       .from('maintenance_requests')

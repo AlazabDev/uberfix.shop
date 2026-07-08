@@ -4439,6 +4439,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_user_id: string | null
           avatar_url: string | null
           company_id: string | null
           created_at: string | null
@@ -4450,6 +4451,7 @@ export type Database = {
           id: string
           iframe_key: string | null
           is_deleted: boolean | null
+          is_placeholder: boolean
           last_modified_by: string | null
           last_name: string | null
           link_3d: string | null
@@ -4465,6 +4467,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          auth_user_id?: string | null
           avatar_url?: string | null
           company_id?: string | null
           created_at?: string | null
@@ -4476,6 +4479,7 @@ export type Database = {
           id?: string
           iframe_key?: string | null
           is_deleted?: boolean | null
+          is_placeholder?: boolean
           last_modified_by?: string | null
           last_name?: string | null
           link_3d?: string | null
@@ -4491,6 +4495,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          auth_user_id?: string | null
           avatar_url?: string | null
           company_id?: string | null
           created_at?: string | null
@@ -4502,6 +4507,7 @@ export type Database = {
           id?: string
           iframe_key?: string | null
           is_deleted?: boolean | null
+          is_placeholder?: boolean
           last_modified_by?: string | null
           last_name?: string | null
           link_3d?: string | null
@@ -12027,6 +12033,8 @@ export type Database = {
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
+      next_client_placeholder_name: { Args: never; Returns: string }
+      normalize_eg_phone: { Args: { p: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       public_get_invoice_by_request: {
         Args: { p_request_id: string }
