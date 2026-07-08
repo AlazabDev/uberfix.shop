@@ -1,135 +1,105 @@
-
 # خطة إعادة بناء نظام المصادقة من الصفر
 
-## 1) لماذا الحذف الكامل؟
+## 1) طرق الدخول المعتمدة (6 طرق)
 
-النظام الحالي متشعّب ومتضارب:
-- `AuthContext` + `AuthWrapper` + `ProtectedRoute` + `secureOAuth` + `facebook-auth-sync` + `PhoneOTPLogin` + `send-otp` + `verify-otp` + `auth-callback` + مسارات متعددة (`/auth/callback`, `/auth`, `/login`).
-- تدفقات متداخلة: Google OAuth + Facebook مخصّص + Email/Password + Phone OTP + منطق "placeholder users".
-- Session Race Conditions بين `getSession()` و `onAuthStateChange` و `getUser()` (استدعاء 4 مرات في callback واحد كما يظهر في auth-logs).
-- Facebook يمر عبر Edge Function مخصص بدلاً من Supabase OAuth القياسي → مصدر رئيسي للأخطاء.
-- منطق `is_placeholder` + `auto-register-customer` مضاف حديثاً زاد التعقيد.
+| # | الطريقة | الاستخدام | التنفيذ |
+|---|---------|-----------|---------|
+| 1 | Phone OTP عبر Twilio Verify | العملاء | Supabase `signInWithOtp({ phone })` مع Twilio Verify Provider في لوحة Supabase |
+| 2 | Email + Password + SMTP | المصدر الأساسي | `signInWithPassword` + `signUp` + Reset Password عبر SMTP المخصص |
+| 3 | Azure AD OAuth | الموظفون | `signInWithOAuth({ provider: 'azure' })` |
+| 4 | Google OAuth | عام | `signInWithOAuth({ provider: 'google' })` |
+| 5 | WhatsApp OTP | بديل SMS | Edge Function مخصص يرسل OTP عبر WhatsApp Cloud API → يتحقق عبر `verifyOtp` مخصص أو magic link مولّد بـ admin API |
+| 6 | Facebook OAuth | عام | `signInWithOAuth({ provider: 'facebook' })` |
 
-**القرار:** حذف كل شيء متعلق بالمصادقة والبدء من قالب Supabase Auth القياسي البسيط.
+**ملاحظة WhatsApp OTP**: لا يوجد Provider رسمي في Supabase لـ WhatsApp. الحل: Edge Function `send-whatsapp-otp` + `verify-whatsapp-otp` يستخدم `supabaseAdmin.auth.admin.generateLink({ type: 'magiclink' })` لإنشاء جلسة بعد التحقق من الكود. جدول `whatsapp_otp` بسيط (phone, code_hash, expires_at, attempts).
 
----
+## 2) الملفات المحذوفة (Root Cleanup)
 
-## 2) الملفات التي ستُحذف
-
-### Frontend
-- `src/contexts/AuthContext.tsx` (سيُعاد كتابته)
+**Frontend:**
+- `src/contexts/AuthContext.tsx` (الحالي المعقد)
 - `src/components/auth/AuthWrapper.tsx`
-- `src/components/auth/PhoneOTPLogin.tsx`
-- `src/components/auth/*` (كل ملفات المصادقة القديمة)
+- `src/components/auth/PhoneOTPLogin.tsx` وكل مكونات auth القديمة
 - `src/lib/secureOAuth.ts`
 - `src/lib/facebook-login-debug.ts`
-- `src/pages/auth/*` القديمة (Login, Register, Callback, ForgotPassword...)
-- `src/routes/ProtectedRoute.tsx` (يُعاد بشكل مبسّط)
+- `src/routes/ProtectedRoute.tsx` (سيُعاد بناؤه مبسّط)
+- كل صفحات auth الحالية في `src/pages/auth/*`
 
-### Edge Functions
-- `supabase/functions/auth-callback/`
+**Edge Functions:**
 - `supabase/functions/facebook-auth-sync/`
+- `supabase/functions/auth-callback/`
 - `supabase/functions/send-otp/`
 - `supabase/functions/verify-otp/`
-- `supabase/functions/auto-register-customer/` (إن وُجد)
+- `supabase/functions/auto-register-customer/`
 
-### DB (Migration)
-- إفراغ جدول `otp_verifications` (يبقى الجدول للاستخدام المستقبلي إن لزم)
-- إزالة أي triggers/functions مرتبطة بإنشاء حسابات تلقائية من `maintenance_requests`
-- الإبقاء على `profiles` و `user_roles` كما هي (مطلوبة للـ RBAC)
+**Database (Migration):**
+- `DROP TABLE public.otp_verifications`
+- `DROP TABLE public.facebook_users`
+- `DROP FUNCTION` أي trigger/function لـ auto-register أو placeholder users
+- الإبقاء على: `profiles`, `user_roles`, `has_role()`
 
----
+## 3) البنية الجديدة (بسيطة ونظيفة)
 
-## 3) البنية الجديدة (بسيطة، موحّدة، قوية)
-
-### التدفقات المدعومة (3 فقط)
-1. **Email + Password** — `signUp` / `signInWithPassword` / `resetPasswordForEmail`
-2. **Google OAuth** — عبر Supabase القياسي `signInWithOAuth({ provider: 'google' })`
-3. **Phone OTP** — عبر Supabase المدمج `signInWithOtp({ phone })` + `verifyOtp` — بدون Edge Functions مخصصة، Supabase يتولى WhatsApp/SMS عبر Twilio/MessageBird المكوّن في لوحة Supabase Auth.
-
-**ملغى:** Facebook Login (كان مصدر أعطال متكررة — يمكن إعادته لاحقاً كخطوة منفصلة).
-**ملغى:** OTP المخصص عبر WhatsApp API الخاص بنا (نستخدم Supabase الرسمي).
-**ملغى:** placeholder users من `maintenance_requests` (طلبات الضيوف تبقى `client_phone` نصياً فقط، وعند تسجيل الدخول بنفس الرقم لأول مرة نربطها).
-
-### الملفات الجديدة
-
-```
+```text
 src/
 ├── contexts/
-│   └── AuthContext.tsx           # مصدر واحد — onAuthStateChange + getSession فقط
+│   └── AuthContext.tsx          (~80 سطر، Session + User فقط)
 ├── hooks/
-│   └── useAuth.ts                # useAuth + useAuthReady + useRole
-├── pages/auth/
-│   ├── Login.tsx                 # Tabs: Email | Google | Phone
-│   ├── Register.tsx              # Email + Password فقط
-│   ├── ResetPassword.tsx         # طلب رابط إعادة تعيين
-│   ├── UpdatePassword.tsx        # /reset-password بعد الضغط على الرابط
-│   └── Callback.tsx              # /auth/callback — يستقبل OAuth ثم يعيد التوجيه
+│   └── useAuth.ts               (يستدعي useContext)
 ├── routes/
-│   └── ProtectedRoute.tsx        # يعتمد على useAuthReady فقط
+│   └── ProtectedRoute.tsx       (~30 سطر، redirect للـ /auth إن لا يوجد session)
+├── pages/auth/
+│   ├── Login.tsx                (تبويبات: Email | Phone | WhatsApp | OAuth)
+│   ├── Register.tsx             (Email + Password فقط، الباقي auto)
+│   ├── ResetPassword.tsx        (طلب رابط)
+│   ├── UpdatePassword.tsx       (بعد النقر على الرابط، /reset-password)
+│   └── Callback.tsx             (/auth/callback لكل OAuth)
 └── lib/
-    └── roleRedirect.ts           # يبقى كما هو
+    └── roleRedirect.ts          (يبقى كما هو)
+
+supabase/functions/
+├── send-whatsapp-otp/           (جديد)
+└── verify-whatsapp-otp/         (جديد، ينشئ magic link ويرد بالجلسة)
 ```
 
-### AuthContext (تصميم مبسّط)
+## 4) قواعد ذهبية
 
-```typescript
-- state: { user, session, isReady }
-- listener: onAuthStateChange أولاً، ثم getSession
-- لا نستدعي getUser داخل الـ listener (سبب race condition)
-- signOut موحّد
-```
+- **مصدر واحد للحقيقة**: `AuthContext` يستخدم `onAuthStateChange` **فقط** + `getSession()` مرة واحدة عند التحميل. لا مكالمات `getUser()` متعددة.
+- **لا race conditions**: setState داخل listener فقط.
+- **RLS**: كل شيء عبر `auth.uid()` من الجلسة الرسمية.
+- **profiles**: trigger واحد `handle_new_user()` ينشئ profile عند `INSERT` في `auth.users`.
+- **user_roles**: دور `customer` افتراضي للجميع، الموظفون يُرفعون يدويًا من الإدارة.
 
-### RLS & Profiles
-- Trigger `handle_new_user` على `auth.users` INSERT يُنشئ صف في `profiles` تلقائياً (موجود — نتحقق فقط).
-- `user_roles` يبقى كما هو مع `has_role()` security definer.
+## 5) الإعدادات المطلوبة في لوحة Supabase (يقوم بها المستخدم)
 
----
+قبل التنفيذ:
+1. **Twilio Verify**: تفعيل Phone Provider في Authentication → Providers (Twilio Verify + Account SID + Auth Token + Service SID)
+2. **SMTP**: Authentication → Emails → SMTP Settings (host, port, user, pass, from)
+3. **Azure**: تسجيل App في Azure Portal → Client ID + Secret → تفعيل Azure Provider
+4. **Google**: Client ID + Secret من Google Cloud Console → تفعيل Google Provider
+5. **Facebook**: App ID + Secret من Meta for Developers → تفعيل Facebook Provider
+6. **WhatsApp**: WHATSAPP_ACCESS_TOKEN + WHATSAPP_PHONE_NUMBER_ID كـ Edge Function Secrets
 
-## 4) خطة التنفيذ (مرحلتان)
+Redirect URL موحد لكل OAuth: `https://<domain>/auth/callback`
 
-### المرحلة أ — الحذف والتنظيف (Migration واحد + حذف ملفات)
-1. Migration:
-   - `DELETE FROM otp_verifications;`
-   - إزالة trigger `trg_auto_register_client` إن وُجد
-   - إزالة function `auto_register_customer` إن وُجدت
-2. حذف Edge Functions القديمة (5 دوال).
-3. حذف ملفات Frontend القديمة (~12 ملف).
+## 6) خطة التنفيذ بالخطوات
 
-### المرحلة ب — البناء الجديد
-1. `AuthContext.tsx` جديد (~80 سطر).
-2. `useAuth.ts` hook (~40 سطر).
-3. صفحات `Login/Register/ResetPassword/UpdatePassword/Callback`.
-4. `ProtectedRoute.tsx` مبسّط.
-5. تحديث `App.tsx` لتسجيل المسارات الجديدة (`/login`, `/register`, `/reset-password`, `/auth/callback`).
-6. اختبار كل تدفق يدوياً.
+1. **Migration**: DROP جداول/functions القديمة + إعادة إنشاء trigger `handle_new_user` نظيف
+2. **حذف الملفات** المذكورة أعلاه (`rm -rf`)
+3. **بناء `AuthContext` الجديد** (~80 سطر)
+4. **بناء صفحات auth** الخمسة الجديدة بتصميم موحد يحافظ على الهوية البصرية الحالية
+5. **بناء `ProtectedRoute`** المبسّط
+6. **بناء Edge Functions** لـ WhatsApp OTP (اثنتان فقط)
+7. **تحديث `App.tsx`** بالمسارات الجديدة
+8. **اختبار كل طريقة دخول** بشكل منفصل
 
----
+## 7) تفاصيل تقنية (للمرجعية)
 
-## 5) ما سيبقى دون تغيير
-- `profiles`, `user_roles`, `has_role()` — RBAC كامل.
-- `roleRedirect.ts` — منطق التوجيه بعد الدخول.
-- كل شيء خارج نطاق المصادقة (Maintenance, Invoices, Vendors, ...).
-
----
-
-## 6) المخاطر والتخفيفات
-| المخاطرة | التخفيف |
-|---|---|
-| المستخدمون الحاليون يفقدون جلساتهم | مقبول — سيسجّلون دخول مرة أخرى بنفس الإيميل/Google. الحسابات في `auth.users` تبقى. |
-| Phone OTP يحتاج تكوين Twilio في لوحة Supabase | يُفعّل من `Auth > Providers > Phone` بمفاتيح Twilio (متوفرة كـ secrets). |
-| Facebook Login مفقود مؤقتاً | ملاحظة صريحة للمستخدم — يُضاف كخطوة لاحقة إن لزم. |
-| مسارات قديمة (`/auth`, إلخ) قد تُشير إليها روابط | إعادة توجيه من المسارات القديمة إلى `/login`. |
+- Session storage: `localStorage` (default Supabase)
+- Callback route عام (بدون AuthWrapper) لأنه يعالج tokens في URL hash
+- `/reset-password` عام أيضًا
+- كل طرق OAuth تستخدم نفس `redirectTo: window.location.origin + '/auth/callback'`
+- WhatsApp OTP: كود 6 أرقام، صلاحية 10 دقائق، rate limit 5 محاولات/10 دقائق، تخزين hash فقط (SHA-256)
 
 ---
 
-## 7) الموافقة المطلوبة قبل البدء
-
-يرجى تأكيد النقاط التالية:
-
-1. ✅ **حذف Facebook Login مؤقتاً** — موافق؟
-2. ✅ **استخدام Supabase Phone OTP الرسمي** بدلاً من WhatsApp API الخاص بنا — موافق؟ (يتطلب تفعيل Twilio في لوحة Supabase)
-3. ✅ **إلغاء نظام placeholder users** — طلبات الضيوف تبقى بـ `client_phone` نصياً حتى يسجّل العميل بنفسه — موافق؟
-4. ✅ **الاحتفاظ بجدول `profiles` و `user_roles`** كما هي — موافق؟
-
-بعد تأكيدك على النقاط الأربع، أبدأ التنفيذ فوراً (المرحلة أ ثم ب في نفس الرد).
+**هل توافق على هذه الخطة للبدء بالتنفيذ الفوري؟** بعد الموافقة سأبدأ بـ Migration ثم الحذف ثم البناء في نفس الجلسة.
