@@ -339,7 +339,23 @@ export function UFBotWidget() {
                           <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
                             <ReactMarkdown>{message.content}</ReactMarkdown>
                           </div>
-                        ) : message.content}
+                        ) : (
+                          <div className="space-y-1.5">
+                            {message.attachment && (
+                              message.attachment.type.startsWith('image/') ? (
+                                <a href={message.attachment.url} target="_blank" rel="noopener noreferrer" className="block">
+                                  <img src={message.attachment.url} alt={message.attachment.name} className="rounded-md max-h-40 w-auto" />
+                                </a>
+                              ) : (
+                                <a href={message.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-black/10 rounded-md px-2 py-1 text-xs hover:bg-black/15">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span className="truncate">{message.attachment.name}</span>
+                                </a>
+                              )
+                            )}
+                            {message.content && !message.content.startsWith('📎') && <div>{message.content}</div>}
+                          </div>
+                        )}
                       </div>
                       {message.role === 'assistant' && message.id !== '1' && (
                         <button
