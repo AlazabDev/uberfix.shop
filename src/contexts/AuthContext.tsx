@@ -3,10 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * AuthContext - مصدر واحد للحقيقة لحالة المصادقة
- * 
- * يعتمد فقط على Supabase session (Google OAuth + Email/Password)
- * Facebook يمر عبر facebook-auth-sync Edge Function لإنشاء Supabase session
+ * AuthContext — مصدر واحد للحقيقة.
+ * القاعدة الذهبية: onAuthStateChange فقط + getSession مرة واحدة. لا race conditions.
  */
 
 export interface AuthUser {
@@ -14,7 +12,7 @@ export interface AuthUser {
   email?: string;
   name?: string;
   avatarUrl?: string;
-  provider: 'google' | 'facebook' | 'email' | 'phone';
+  provider: 'google' | 'facebook' | 'azure' | 'email' | 'phone' | 'whatsapp';
   supabaseUser: User;
   emailConfirmed: boolean;
 }
@@ -31,17 +29,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function mapSessionToUser(session: Session): AuthUser {
   const u = session.user;
-  const provider = u.app_metadata?.provider as string;
-  
-  let mappedProvider: AuthUser['provider'] = 'email';
-  if (provider === 'google') mappedProvider = 'google';
-  else if (provider === 'facebook') mappedProvider = 'facebook';
-  else if (provider === 'phone') mappedProvider = 'phone';
+  const provider = (u.app_metadata?.provider as string) || 'email';
+  const supportedProviders: AuthUser['provider'][] = ['google', 'facebook', 'azure', 'email', 'phone', 'whatsapp'];
+  const mappedProvider = (supportedProviders.includes(provider as AuthUser['provider'])
+    ? provider
+    : 'email') as AuthUser['provider'];
 
   return {
     id: u.id,
     email: u.email,
-    name: u.user_metadata?.full_name || u.user_metadata?.name || u.email,
+    name: u.user_metadata?.full_name || u.user_metadata?.name || u.email || u.phone,
     avatarUrl: u.user_metadata?.avatar_url || u.user_metadata?.picture,
     provider: mappedProvider,
     supabaseUser: u,
@@ -55,76 +52,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    // 1. Set up auth state listener FIRST (Supabase best practice)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        if (!isMounted) return;
-
-        if (newSession) {
-          setSession(newSession);
-          setUser(mapSessionToUser(newSession));
-        } else {
-          setSession(null);
-          setUser(null);
-        }
-        setIsLoading(false);
-      }
-    );
-
-    // 2. THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession }, error }) => {
-      if (!isMounted) return;
-
-      if (error) {
-        console.error('[Auth] Session error:', error.message);
-        // Invalid/expired session - clean up
-        if (error.message.includes('invalid') || error.message.includes('expired')) {
-          supabase.auth.signOut();
-        }
-      }
-
-      if (currentSession) {
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (!isMounted) return;
-
-        if (userError || !userData.user) {
-          console.error('[Auth] User validation error:', userError?.message || 'Missing user');
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-        } else {
-          const validatedSession: Session = { ...currentSession, user: userData.user };
-          setSession(validatedSession);
-          setUser(mapSessionToUser(validatedSession));
-        }
-      }
+    // 1) Listener FIRST — Supabase best practice
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession ? mapSessionToUser(newSession) : null);
       setIsLoading(false);
     });
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    // 2) Then read current session (once)
+    supabase.auth.getSession().then(({ data: { session: current } }) => {
+      setSession(current);
+      setUser(current ? mapSessionToUser(current) : null);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    // Clean up any legacy Facebook session data
-    try { localStorage.removeItem('facebook_session'); } catch (_e) { /* safe to ignore */ }
     setUser(null);
     setSession(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isLoading,
-      isAuthenticated: !!user,
-      signOut,
-    }}>
+    <AuthContext.Provider value={{ user, session, isLoading, isAuthenticated: !!user, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -132,8 +84,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
