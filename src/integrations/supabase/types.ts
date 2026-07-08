@@ -2385,42 +2385,6 @@ export type Database = {
           },
         ]
       }
-      facebook_users: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          facebook_id: string
-          id: string
-          last_login_at: string | null
-          name: string
-          picture_url: string | null
-          supabase_user_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          facebook_id: string
-          id?: string
-          last_login_at?: string | null
-          name: string
-          picture_url?: string | null
-          supabase_user_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          facebook_id?: string
-          id?: string
-          last_login_at?: string | null
-          name?: string
-          picture_url?: string | null
-          supabase_user_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       gallery_images: {
         Row: {
           category: string
@@ -3960,39 +3924,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      otp_verifications: {
-        Row: {
-          action: string | null
-          created_at: string | null
-          expires_at: string
-          id: string
-          otp_code_hash: string | null
-          phone: string
-          verified: boolean | null
-          verified_at: string | null
-        }
-        Insert: {
-          action?: string | null
-          created_at?: string | null
-          expires_at: string
-          id?: string
-          otp_code_hash?: string | null
-          phone: string
-          verified?: boolean | null
-          verified_at?: string | null
-        }
-        Update: {
-          action?: string | null
-          created_at?: string | null
-          expires_at?: string
-          id?: string
-          otp_code_hash?: string | null
-          phone?: string
-          verified?: boolean | null
-          verified_at?: string | null
-        }
-        Relationships: []
       }
       outbound_message_events: {
         Row: {
@@ -8691,6 +8622,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_otp: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          phone: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          phone: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
       workflow_transitions: {
         Row: {
           created_at: string
@@ -12033,7 +11997,6 @@ export type Database = {
         | { Args: { uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
-      next_client_placeholder_name: { Args: never; Returns: string }
       normalize_eg_phone: { Args: { p: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       public_get_invoice_by_request: {
