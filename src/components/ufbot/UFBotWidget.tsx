@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, MessageSquare, X, Send, Mic, Volume2, VolumeX, Headphones } from "lucide-react";
+import { MessageCircle, MessageSquare, X, Send, Mic, MicOff, Volume2, VolumeX, Headphones, Paperclip, Loader2, FileText, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useTTS } from "@/hooks/useTTS";
+import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -13,6 +14,7 @@ interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  attachment?: { url: string; name: string; type: string };
 }
 
 const UFBOT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ufbot`;
@@ -41,6 +43,11 @@ export function UFBotWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { speak, isSpeaking, speakingMessageId } = useTTS();
@@ -50,6 +57,85 @@ export function UFBotWidget() {
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
+
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      try { recognitionRef.current?.stop?.(); } catch { /* ignore */ }
+    };
+  }, []);
+
+  const toggleVoiceRecording = () => {
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast({ title: "غير مدعوم", description: "متصفحك لا يدعم التعرف على الصوت. استخدم Chrome أو Edge.", variant: "destructive" });
+      return;
+    }
+    if (isRecording) {
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      setIsRecording(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = 'ar-EG';
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e: any) => {
+      let transcript = '';
+      for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+      setInput(transcript);
+    };
+    rec.onend = () => {
+      setIsRecording(false);
+      // Auto-send if we have text and voice tab
+      setTimeout(() => {
+        setInput((current) => {
+          if (current.trim() && activeTab === 'voice') {
+            sendMessage(current);
+            return '';
+          }
+          return current;
+        });
+      }, 100);
+    };
+    rec.onerror = (e: any) => {
+      setIsRecording(false);
+      if (e.error !== 'aborted' && e.error !== 'no-speech') {
+        toast({ title: "خطأ", description: "تعذر تشغيل الميكروفون", variant: "destructive" });
+      }
+    };
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      setIsRecording(true);
+    } catch {
+      setIsRecording(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "حجم كبير", description: "الحد الأقصى 10 ميغابايت", variant: "destructive" });
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'bin';
+      const path = `ufbot/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data, error } = await supabase.storage.from('chat-files').upload(path, file, { contentType: file.type });
+      if (error || !data) throw error;
+      const { data: urlData } = supabase.storage.from('chat-files').getPublicUrl(data.path);
+      setPendingAttachment({ url: urlData.publicUrl, name: file.name, type: file.type });
+      toast({ title: "تم الرفع", description: file.name });
+    } catch {
+      toast({ title: "فشل الرفع", description: "تعذر رفع الملف", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const streamChat = async (allMessages: { role: string; content: string }[]) => {
     const resp = await fetch(UFBOT_URL, {
@@ -113,23 +199,31 @@ export function UFBotWidget() {
 
   const sendMessage = async (text?: string) => {
     const message = (text || input).trim();
-    if (!message || isLoading) return;
+    if ((!message && !pendingAttachment) || isLoading) return;
 
     setShowQuickActions(false);
+    const attachment = pendingAttachment;
     const userMsg: Message = {
       id: Date.now().toString(),
-      content: message,
+      content: message || (attachment ? `📎 ${attachment.name}` : ''),
       role: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
+      attachment: attachment || undefined,
     };
 
     setMessages(prev => [...prev, userMsg]);
     setInput('');
+    setPendingAttachment(null);
     setIsLoading(true);
 
     const chatHistory = [...messages, userMsg]
       .filter(m => m.id !== '1')
-      .map(m => ({ role: m.role, content: m.content }));
+      .map(m => ({
+        role: m.role,
+        content: m.attachment
+          ? `${m.content}\n[مرفق: ${m.attachment.name} - ${m.attachment.url}]`
+          : m.content,
+      }));
 
     try {
       await streamChat(chatHistory);
@@ -245,7 +339,23 @@ export function UFBotWidget() {
                           <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
                             <ReactMarkdown>{message.content}</ReactMarkdown>
                           </div>
-                        ) : message.content}
+                        ) : (
+                          <div className="space-y-1.5">
+                            {message.attachment && (
+                              message.attachment.type.startsWith('image/') ? (
+                                <a href={message.attachment.url} target="_blank" rel="noopener noreferrer" className="block">
+                                  <img src={message.attachment.url} alt={message.attachment.name} className="rounded-md max-h-40 w-auto" />
+                                </a>
+                              ) : (
+                                <a href={message.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 bg-black/10 rounded-md px-2 py-1 text-xs hover:bg-black/15">
+                                  <FileText className="h-3.5 w-3.5" />
+                                  <span className="truncate">{message.attachment.name}</span>
+                                </a>
+                              )
+                            )}
+                            {message.content && !message.content.startsWith('📎') && <div>{message.content}</div>}
+                          </div>
+                        )}
                       </div>
                       {message.role === 'assistant' && message.id !== '1' && (
                         <button
@@ -299,24 +409,74 @@ export function UFBotWidget() {
 
           {/* Input */}
           <div className="px-3 pt-2 pb-3 bg-[#f5f4ef] border-t border-black/5">
-            <div className="relative flex items-center bg-white rounded-full border border-black/10 shadow-sm">
+            {/* Pending attachment preview */}
+            {pendingAttachment && (
+              <div className="mb-2 flex items-center gap-2 bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-xs">
+                {pendingAttachment.type.startsWith('image/') ? (
+                  <ImageIcon className="h-3.5 w-3.5 text-[#1a1b3a] shrink-0" />
+                ) : (
+                  <FileText className="h-3.5 w-3.5 text-[#1a1b3a] shrink-0" />
+                )}
+                <span className="flex-1 truncate text-[#1a1b3a]">{pendingAttachment.name}</span>
+                <button
+                  onClick={() => setPendingAttachment(null)}
+                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  aria-label="إزالة"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            <div className="relative flex items-center bg-white rounded-full border border-black/10 shadow-sm gap-1 px-1.5 py-1">
               <Button
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || isLoading}
+                disabled={(!input.trim() && !pendingAttachment) || isLoading}
                 size="icon"
-                className="shrink-0 rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#1a1b3a] h-8 w-8 ml-1.5 disabled:opacity-60"
+                className="shrink-0 rounded-full bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#1a1b3a] h-7 w-7 disabled:opacity-50"
                 aria-label="إرسال"
               >
-                <Send className="h-4 w-4 -scale-x-100" />
+                <Send className="h-3.5 w-3.5 -scale-x-100" />
               </Button>
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder="اكتب رسالتك..."
-                className="flex-1 text-sm bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none placeholder:text-muted-foreground/70"
+                placeholder={isRecording ? "🎤 جاري الاستماع..." : "اكتب رسالتك..."}
+                className="flex-1 h-8 text-sm bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none placeholder:text-muted-foreground/70 px-1"
                 disabled={isLoading}
               />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isLoading}
+                className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-[#1a1b3a] hover:bg-black/5 transition-colors disabled:opacity-50"
+                aria-label="إرفاق ملف"
+                title="إرفاق ملف"
+              >
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={toggleVoiceRecording}
+                disabled={isLoading}
+                className={cn(
+                  "shrink-0 h-8 w-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-50",
+                  isRecording
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "text-muted-foreground hover:text-[#1a1b3a] hover:bg-black/5"
+                )}
+                aria-label={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
+                title={isRecording ? "إيقاف التسجيل" : "تسجيل صوتي"}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
             </div>
             <p className="text-[10px] text-muted-foreground text-center mt-2">مدعوم بالذكاء الاصطناعي - قد يخطئ أحياناً</p>
           </div>
