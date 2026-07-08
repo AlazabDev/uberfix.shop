@@ -60,7 +60,7 @@ export default function UserManagement() {
   const checkAdminAccess = async (): Promise<boolean> => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      window.location.href = '/auth/login';
+      window.location.href = '/login';
       return false;
     }
     const { data: roles } = await supabase

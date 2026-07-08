@@ -339,7 +339,7 @@ export default function MaintenanceMirror() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/maintenance/requests/${row.id}`);
+            navigate(`/requests/${row.id}`);
           }}
           className="p-1.5 rounded hover:bg-primary/10 text-primary"
           title="عرض التفاصيل"
@@ -411,7 +411,7 @@ export default function MaintenanceMirror() {
         onExportCsv={handleExportCsv}
         onExportPdf={handleExportPdf}
         pageSize={50}
-        onRowClick={(row) => navigate(`/maintenance/requests/${row.id}`)}
+        onRowClick={(row) => navigate(`/requests/${row.id}`)}
       />
     </div>
   );

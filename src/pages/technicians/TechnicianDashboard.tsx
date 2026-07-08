@@ -210,7 +210,7 @@ export default function TechnicianDashboard() {
             <p className="text-muted-foreground mb-6">
               للأسف، تم رفض طلب التسجيل. يمكنك التواصل مع الدعم لمعرفة السبب.
             </p>
-            <Button onClick={() => navigate("/support")} variant="outline" size="lg" className="w-full">
+            <Button onClick={() => navigate("/faq")} variant="outline" size="lg" className="w-full">
               التواصل مع الدعم
             </Button>
           </CardContent>
