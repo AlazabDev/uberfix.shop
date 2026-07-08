@@ -1855,7 +1855,7 @@ const Testing = () => {
         </CardHeader>
         <CardContent>
           <Button 
-            onClick={() => navigate('/lifecycle-testing')}
+            onClick={() => navigate('/testing')}
             size="lg"
             className="w-full md:w-auto"
           >

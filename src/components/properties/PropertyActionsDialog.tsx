@@ -90,7 +90,7 @@ export function PropertyActionsDialog({
             <Button
               className="w-full justify-start gap-3 h-12 bg-primary hover:bg-primary/90 text-primary-foreground"
               onClick={() => {
-                navigate(`/requests/new?propertyId=${propertyId}`);
+                navigate(`/maintenance/create?propertyId=${propertyId}`);
                 onOpenChange(false);
               }}
             >
