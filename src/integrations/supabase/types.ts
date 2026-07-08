@@ -4125,6 +4125,169 @@ export type Database = {
           },
         ]
       }
+      payment_audit_log: {
+        Row: {
+          action: string
+          actor: string
+          created_at: string
+          details: Json
+          id: string
+          new_status: string | null
+          old_status: string | null
+          payment_id: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          payment_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          new_status?: string | null
+          old_status?: string | null
+          payment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_audit_log_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          confidence: number
+          created_at: string
+          device_id: string
+          id: string
+          matched_payment_id: string | null
+          notification_text: string | null
+          notification_title: string | null
+          package_name: string | null
+          parsed_amount: number | null
+          parsed_reference: string | null
+          parsed_sender_phone: string | null
+          payload: Json
+          provider: string
+          raw_text: string
+          received_at: string
+          status: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          matched_payment_id?: string | null
+          notification_text?: string | null
+          notification_title?: string | null
+          package_name?: string | null
+          parsed_amount?: number | null
+          parsed_reference?: string | null
+          parsed_sender_phone?: string | null
+          payload?: Json
+          provider: string
+          raw_text: string
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          matched_payment_id?: string | null
+          notification_text?: string | null
+          notification_title?: string | null
+          package_name?: string | null
+          parsed_amount?: number | null
+          parsed_reference?: string | null
+          parsed_sender_phone?: string | null
+          payload?: Json
+          provider?: string
+          raw_text?: string
+          received_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_matched_payment_id_fkey"
+            columns: ["matched_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payment_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_intents: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_claimed_paid: boolean
+          customer_name: string | null
+          customer_phone: string | null
+          entity_id: string
+          entity_type: string
+          expires_at: string | null
+          id: string
+          method: string | null
+          paid_at: string | null
+          payment_code: string
+          payment_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          customer_claimed_paid?: boolean
+          customer_name?: string | null
+          customer_phone?: string | null
+          entity_id: string
+          entity_type: string
+          expires_at?: string | null
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          payment_code: string
+          payment_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_claimed_paid?: boolean
+          customer_name?: string | null
+          customer_phone?: string | null
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string | null
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          payment_code?: string
+          payment_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount: number
