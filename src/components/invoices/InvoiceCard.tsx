@@ -6,7 +6,6 @@ import { ar } from "date-fns/locale";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { openWhatsApp } from "@/config/whatsapp";
 
 interface InvoiceCardProps {
   invoice: {
