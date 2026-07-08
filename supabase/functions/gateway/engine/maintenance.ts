@@ -834,6 +834,21 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     // Track which API consumer created this request for scope-limited operations later.
     if (consumer) requestData.created_via_consumer_id = consumer.id;
 
+    // ─── Auto-register customer from phone (before insert so we can attribute) ─
+    let autoUserId: string | null = null;
+    if (clientPhone) {
+      autoUserId = await ensureCustomerAccount(
+        supabaseAdmin,
+        clientPhone,
+        // If the caller passed a real name (not the "زائر" fallback), use it
+        clientName && clientName !== 'زائر' ? clientName : null,
+        clientEmail || null,
+      );
+      if (autoUserId) {
+        requestData.created_by = autoUserId;
+      }
+    }
+
     const { data: created, error: createError } = await supabaseAdmin
       .from('maintenance_requests')
       .insert([requestData])
