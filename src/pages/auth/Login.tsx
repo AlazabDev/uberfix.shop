@@ -143,18 +143,19 @@ export default function Login() {
     const { data, error } = await supabase.functions.invoke('verify-whatsapp-otp', {
       body: { phone: normalizePhone(phone), code: otp },
     });
-    if (error || !data?.session) {
+    if (error || !data?.token_hash) {
       setIsLoading(false);
       toast({ title: "رمز غير صحيح", description: error?.message || data?.error || "الرمز خاطئ أو منتهي", variant: "destructive" });
       return;
     }
-    const { error: setErr } = await supabase.auth.setSession({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
+    // Establish session by verifying the server-issued magic-link token hash
+    const { error: verifyErr } = await supabase.auth.verifyOtp({
+      token_hash: data.token_hash,
+      type: 'magiclink',
     });
     setIsLoading(false);
-    if (setErr) {
-      toast({ title: "فشل بدء الجلسة", description: setErr.message, variant: "destructive" });
+    if (verifyErr) {
+      toast({ title: "فشل بدء الجلسة", description: verifyErr.message, variant: "destructive" });
     }
   };
 
