@@ -39,7 +39,8 @@ export function InvoiceCard({ invoice, onView, onDownload }: InvoiceCardProps) {
 
       const msg = `فاتورة #${invoice.invoice_number}\nالمبلغ: ${invoice.amount.toLocaleString('ar-EG')} ${invoice.currency}\nللدفع الآمن عبر PayTabs:\n${url}`;
       if (invoice.customer_phone) {
-        openWhatsApp(invoice.customer_phone, msg);
+        const phone = invoice.customer_phone.replace(/[^\d]/g, '');
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
       } else {
         await navigator.clipboard.writeText(url);
         toast({ title: 'تم نسخ رابط الدفع', description: 'لا يوجد رقم عميل — تم نسخ الرابط للحافظة' });
