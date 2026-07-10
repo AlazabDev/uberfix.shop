@@ -53,14 +53,12 @@ const Testing = () => {
     { name: "مكونات النماذج", status: 'pending' },
     
     // اختبارات الخدمات
-    { name: "خدمات الخرائط", status: 'pending' },
     { name: "خدمة الإشعارات", status: 'pending' },
     { name: "المحادثة الذكية (Chatbot)", status: 'pending' },
     { name: "التحديث في الزمن الفعلي", status: 'pending' },
     { name: "خدمة البريد الإلكتروني", status: 'pending' },
     
     // اختبارات Edge Functions
-    { name: "Edge Function - Chatbot", status: 'pending' },
     { name: "Edge Function - إرسال الإشعارات", status: 'pending' },
     { name: "Edge Function - إرسال الفواتير", status: 'pending' },
     
