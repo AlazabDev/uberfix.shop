@@ -18,7 +18,7 @@ import { AppLauncher } from "./AppLauncher";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -36,6 +36,29 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const lastScrollY = useRef(0);
+
+  // Dynamic header: hide on scroll down, show on scroll up
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const y = el.scrollTop;
+      const diff = y - lastScrollY.current;
+      if (y < 80) {
+        setHeaderVisible(true);
+      } else if (diff > 6) {
+        setHeaderVisible(false);
+      } else if (diff < -6) {
+        setHeaderVisible(true);
+      }
+      lastScrollY.current = y;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   const fetchUserData = async () => {
     try {
@@ -104,8 +127,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         <RoleBasedSidebar />
         
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Header with trigger and user menu */}
-          <header className="h-14 flex items-center border-b border-border px-3 sm:px-4 bg-card/95 backdrop-blur-sm sticky top-0 z-30 shadow-sm standalone-header">
+          {/* Header with trigger and user menu — hides on scroll down, shows on scroll up */}
+          <header
+            className={`h-14 flex items-center border-b border-border px-3 sm:px-4 bg-card/95 backdrop-blur-sm sticky top-0 z-30 shadow-sm standalone-header transition-transform duration-300 ease-in-out ${
+              headerVisible ? "translate-y-0" : "-translate-y-full"
+            }`}
+          >
             <SidebarTrigger className="ml-2 touch-target tap-highlight-none" />
             
             <div className="flex-1 flex items-center justify-between min-w-0">
@@ -209,7 +236,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </header>
           
           {/* Page content */}
-          <main className="flex-1 overflow-auto scroll-mobile">
+          <main ref={mainRef} className="flex-1 overflow-auto scroll-mobile">
             <div className="container mx-auto p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl">
               {children}
             </div>
