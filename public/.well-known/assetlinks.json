@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.alazab.uberfix",
+      "sha256_cert_fingerprints": [
+        "73:B0:BD:85:6E:ED:18:C4:1C:FA:0B:C5:84:2A:29:4F:3E:21:5C:CB:F2:BE:F3:FE:53:6C:0A:28:5D:14:D6:45"
+      ]
+    }
+  }
+]
