@@ -8,6 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { testLogger, TestLog } from "@/lib/testLogger";
 
+// Extract readable error message from any error shape (Error, PostgrestError, plain object)
+function getErrMsg(e: unknown): string {
+  if (!e) return 'خطأ غير معروف';
+  if (typeof e === 'string') return e;
+  if (e instanceof Error) return e.message;
+  const anyE = e as { message?: string; error_description?: string; hint?: string; code?: string; details?: string };
+  return anyE.message || anyE.error_description || anyE.details || anyE.hint || (anyE.code ? `code: ${anyE.code}` : JSON.stringify(e));
+}
+
 interface TestResult {
   name: string;
   status: 'pending' | 'running' | 'success' | 'error' | 'warning';
@@ -139,7 +148,7 @@ const Testing = () => {
       }
     } catch (error) {
       const duration = Date.now() - start;
-      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
+      const errorMsg = getErrMsg(error);
       
       testLogger.log({
         test_name: 'اتصال قاعدة البيانات',
@@ -183,7 +192,7 @@ const Testing = () => {
       }
     } catch (error) {
       const duration = Date.now() - start;
-      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
+      const errorMsg = getErrMsg(error);
       
       testLogger.log({
         test_name: 'المصادقة والتسجيل',
@@ -225,7 +234,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في طلبات الصيانة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في طلبات الصيانة: ${getErrMsg(error)}` 
       });
     }
   };
@@ -252,7 +261,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في العقارات: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في العقارات: ${getErrMsg(error)}` 
       });
     }
   };
@@ -279,7 +288,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الموردين: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الموردين: ${getErrMsg(error)}` 
       });
     }
   };
@@ -436,7 +445,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في النسخ الاحتياطي: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في النسخ الاحتياطي: ${getErrMsg(error)}` 
       });
     }
   };
@@ -534,7 +543,7 @@ const Testing = () => {
       const duration = Date.now() - start;
       updateTestResult(index, {
         status: 'error',
-        message: `خطأ في نظام الإشعارات: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
+        message: `خطأ في نظام الإشعارات: ${getErrMsg(error)}`,
         duration
       });
     }
@@ -607,7 +616,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في التحديث في الزمن الفعلي: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في التحديث في الزمن الفعلي: ${getErrMsg(error)}` 
       });
     }
   };
@@ -650,7 +659,7 @@ const Testing = () => {
       }
     } catch (error) {
       const duration = Date.now() - start;
-      const errorMsg = error instanceof Error ? error.message : 'خطأ غير معروف';
+      const errorMsg = getErrMsg(error);
       
       testLogger.log({
         test_name: 'RLS Policies',
@@ -752,7 +761,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الصلاحيات: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الصلاحيات: ${getErrMsg(error)}` 
       });
     }
   };
@@ -795,7 +804,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الجلسة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الجلسة: ${getErrMsg(error)}` 
       });
     }
   };
@@ -827,7 +836,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في سير العمل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في سير العمل: ${getErrMsg(error)}` 
       });
     }
   };
@@ -862,7 +871,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في QR: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في QR: ${getErrMsg(error)}` 
       });
     }
   };
@@ -890,7 +899,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في المشاريع: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في المشاريع: ${getErrMsg(error)}` 
       });
     }
   };
@@ -919,7 +928,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في صفحة الهبوط: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في صفحة الهبوط: ${getErrMsg(error)}` 
       });
     }
   };
@@ -946,7 +955,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في Dashboard: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في Dashboard: ${getErrMsg(error)}` 
       });
     }
   };
@@ -968,7 +977,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في صفحة الدخول: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في صفحة الدخول: ${getErrMsg(error)}` 
       });
     }
   };
@@ -998,7 +1007,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الإعدادات: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الإعدادات: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1075,7 +1084,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الجداول: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الجداول: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1097,7 +1106,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في النماذج: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في النماذج: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1119,7 +1128,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, {
         status: 'warning',
-        message: `تعذر التحقق من خدمة البريد في بيئة الاختبار: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+        message: `تعذر التحقق من خدمة البريد في بيئة الاختبار: ${getErrMsg(error)}`
       });
     }
   };
@@ -1201,7 +1210,7 @@ const Testing = () => {
       const duration = Date.now() - start;
       updateTestResult(index, {
         status: 'error',
-        message: `خطأ في Edge Function: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`,
+        message: `خطأ في Edge Function: ${getErrMsg(error)}`,
         duration
       });
     }
@@ -1220,7 +1229,7 @@ const Testing = () => {
         duration
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
+      const errorMessage = getErrMsg(error);
 
       updateTestResult(index, {
         status: 'warning',
@@ -1401,7 +1410,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الاستجابة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الاستجابة: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1421,7 +1430,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الحزمة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الحزمة: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1443,7 +1452,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في الموبايل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في الموبايل: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1656,7 +1665,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في المعالجة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في المعالجة: ${getErrMsg(error)}` 
       });
     }
   };
@@ -1681,7 +1690,7 @@ const Testing = () => {
     } catch (error) {
       updateTestResult(index, { 
         status: 'error', 
-        message: `خطأ في التقارير: ${error instanceof Error ? error.message : 'خطأ غير معروف'}` 
+        message: `خطأ في التقارير: ${getErrMsg(error)}` 
       });
     }
   };
