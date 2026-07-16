@@ -103,8 +103,12 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("x-hub-signature-256");
 
-    // Verify signature in production
-    if (FACEBOOK_APP_SECRET && !(await verifySignature(body, signature))) {
+    // Fail closed: reject if signing secret is missing or signature invalid
+    if (!FACEBOOK_APP_SECRET) {
+      console.error("[Webhook] FACEBOOK_APP_SECRET not configured — refusing request");
+      return new Response("Misconfigured", { status: 500 });
+    }
+    if (!(await verifySignature(body, signature))) {
       console.error("[Webhook] Invalid signature");
       return new Response("Invalid signature", { status: 401 });
     }

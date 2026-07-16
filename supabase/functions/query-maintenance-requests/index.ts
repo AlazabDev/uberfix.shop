@@ -51,6 +51,15 @@ async function validateJWT(req: Request): Promise<{ valid: boolean; userId?: str
   return { valid: true, userId: user.id };
 }
 
+async function isStaff(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .in("role", ["admin", "manager", "staff", "owner", "dispatcher"]);
+  return Array.isArray(data) && data.length > 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -64,6 +73,8 @@ Deno.serve(async (req) => {
     // === Authentication: require either x-api-key OR valid JWT ===
     const apiKey = req.headers.get("x-api-key");
     let authenticated = false;
+    let callerUserId: string | null = null;
+    let callerIsStaff = false;
 
     if (apiKey) {
       const apiKeyResult = await validateApiKey(supabase, apiKey);
@@ -74,6 +85,8 @@ Deno.serve(async (req) => {
         });
       }
       authenticated = true;
+      // API-key callers are trusted integrations (server-to-server)
+      callerIsStaff = true;
     } else {
       const jwtResult = await validateJWT(req);
       if (!jwtResult.valid) {
@@ -83,6 +96,8 @@ Deno.serve(async (req) => {
         });
       }
       authenticated = true;
+      callerUserId = jwtResult.userId ?? null;
+      callerIsStaff = callerUserId ? await isStaff(supabase, callerUserId) : false;
     }
 
     if (!authenticated) {
@@ -111,13 +126,24 @@ Deno.serve(async (req) => {
       .select("id, request_number, title, description, status, workflow_stage, priority, service_type, location, estimated_cost, actual_cost, created_at, updated_at")
       .order("created_at", { ascending: false });
 
+    // Non-staff JWT callers may only see their own requests
+    if (!callerIsStaff) {
+      if (!callerUserId) {
+        return new Response(JSON.stringify({ success: false, error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      query = query.eq("created_by", callerUserId);
+    }
+
     // Apply filters
     if (filters.status) query = query.eq("status", filters.status as any);
     if (filters.priority) query = query.eq("priority", filters.priority as any);
     if (filters.workflow_stage) query = query.eq("workflow_stage", filters.workflow_stage as any);
     if (filters.request_number) query = query.eq("request_number", filters.request_number);
-    if (filters.client_phone) query = query.eq("client_phone", filters.client_phone);
-    if (filters.client_name) query = query.ilike("client_name", `%${filters.client_name}%`);
+    if (callerIsStaff && filters.client_phone) query = query.eq("client_phone", filters.client_phone);
+    if (callerIsStaff && filters.client_name) query = query.ilike("client_name", `%${filters.client_name}%`);
     if (filters.id) query = query.eq("id", filters.id);
     
     // Pagination

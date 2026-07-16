@@ -144,26 +144,53 @@ serve(async (req) => {
 
     // Fetch live data for authenticated users
     let liveDataContext = '';
-    if (userId && userRole) {
-      const { data: requests, count: reqCount } = await supabase
-        .from('maintenance_requests')
-        .select('id, title, status, priority, created_at', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .limit(10);
+    if (userId) {
+      // Verify staff role via user_roles (never trust profiles.role)
+      const { data: staffRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .in('role', ['admin', 'manager', 'staff', 'owner', 'dispatcher']);
+      const isStaff = Array.isArray(staffRoles) && staffRoles.length > 0;
 
-      if (requests?.length) {
-        liveDataContext += `\n## بيانات طلبات الصيانة الحية (آخر 10):\n`;
-        liveDataContext += `إجمالي الطلبات: ${reqCount}\n`;
-        requests.forEach(r => {
-          liveDataContext += `- ${r.title} | الحالة: ${r.status} | الأولوية: ${r.priority || 'عادي'}\n`;
-        });
+      if (isStaff) {
+        // Staff: global view
+        const { data: requests, count: reqCount } = await supabase
+          .from('maintenance_requests')
+          .select('id, title, status, priority, created_at', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (requests?.length) {
+          liveDataContext += `\n## بيانات طلبات الصيانة الحية (آخر 10):\n`;
+          liveDataContext += `إجمالي الطلبات: ${reqCount}\n`;
+          requests.forEach(r => {
+            liveDataContext += `- ${r.title} | الحالة: ${r.status} | الأولوية: ${r.priority || 'عادي'}\n`;
+          });
+        }
+
+        const { count: pendingCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+        const { count: inProgressCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'in_progress');
+        const { count: completedCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed');
+
+        liveDataContext += `\n## إحصائيات:\n- انتظار: ${pendingCount || 0} | تنفيذ: ${inProgressCount || 0} | مكتملة: ${completedCount || 0}\n`;
+      } else {
+        // Regular customer: only their own requests
+        const { data: requests, count: reqCount } = await supabase
+          .from('maintenance_requests')
+          .select('id, title, status, priority, created_at', { count: 'exact' })
+          .eq('created_by', userId)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (requests?.length) {
+          liveDataContext += `\n## طلباتك الأخيرة (آخر 10):\n`;
+          liveDataContext += `إجمالي طلباتك: ${reqCount}\n`;
+          requests.forEach(r => {
+            liveDataContext += `- ${r.title} | الحالة: ${r.status} | الأولوية: ${r.priority || 'عادي'}\n`;
+          });
+        }
       }
-
-      const { count: pendingCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending');
-      const { count: inProgressCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'in_progress');
-      const { count: completedCount } = await supabase.from('maintenance_requests').select('id', { count: 'exact', head: true }).eq('status', 'completed');
-
-      liveDataContext += `\n## إحصائيات:\n- انتظار: ${pendingCount || 0} | تنفيذ: ${inProgressCount || 0} | مكتملة: ${completedCount || 0}\n`;
     }
 
     let knowledgeContext = '';

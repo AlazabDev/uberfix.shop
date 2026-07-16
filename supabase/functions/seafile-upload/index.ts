@@ -11,6 +11,18 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const ALLOWED_MIME = /^(image\/|application\/pdf|video\/|audio\/)/i;
 const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+const ALLOWED_FOLDERS = new Set([
+  "/chat-uploads",
+  "/documents",
+  "/technician-uploads",
+  "/customer-uploads",
+]);
+
+function sanitizeFileName(name: string): string {
+  // Strip directory components and dangerous chars
+  const base = name.split(/[\\/]/).pop() || "file";
+  return base.replace(/\.{2,}/g, ".").replace(/[^\w.\-\u0600-\u06FF ]+/g, "_").slice(0, 200) || "file";
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -51,7 +63,8 @@ Deno.serve(async (req) => {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const folder = (formData.get("folder") as string) || "/chat-uploads";
+    const requestedFolder = (formData.get("folder") as string) || "/chat-uploads";
+    const folder = ALLOWED_FOLDERS.has(requestedFolder) ? requestedFolder : "/chat-uploads";
 
     if (!file) {
       return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -59,6 +72,8 @@ Deno.serve(async (req) => {
         headers: { ...CORS, "Content-Type": "application/json" },
       });
     }
+
+    const safeName = sanitizeFileName(file.name);
 
     // ── File validation ────────────────────────────────────────────────────
     if (file.size > MAX_FILE_BYTES) {
@@ -95,7 +110,7 @@ Deno.serve(async (req) => {
 
     // Step 2: Upload the file
     const uploadForm = new FormData();
-    uploadForm.append("file", file, file.name);
+    uploadForm.append("file", file, safeName);
     uploadForm.append("parent_dir", folder);
     uploadForm.append("replace", "1");
 
@@ -115,7 +130,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Get share link for the file
-    const filePath = `${folder}/${file.name}`;
+    const filePath = `${folder}/${safeName}`;
 
     // Create a file share link
     const shareLinkResp = await fetch(
@@ -146,7 +161,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        file_name: file.name,
+        file_name: safeName,
         file_size: file.size,
         file_type: file.type,
         file_url: fileUrl,
