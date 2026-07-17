@@ -43,6 +43,32 @@ serve(async (req) => {
 
     switch (action) {
       case "get": {
+        // AuthN required — mirrors RLS on underlying tables
+        const authHeaderGet = req.headers.get('Authorization') ?? '';
+        const tokenGet = authHeaderGet.replace('Bearer ', '');
+        if (!tokenGet) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+        let getUserId: string | null = null;
+        let getRoles: string[] = [];
+        if (tokenGet !== supabaseKey) {
+          const { data: { user } } = await supabase.auth.getUser(tokenGet);
+          if (!user) {
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+              status: 401,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+            });
+          }
+          getUserId = user.id;
+          const { data: r } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
+          getRoles = (r ?? []).map((x: any) => x.role);
+        } else {
+          getRoles = ['service_role'];
+        }
+
         if (!key) {
           return new Response(JSON.stringify({ error: "Missing key" }), {
             status: 400,
@@ -68,6 +94,16 @@ serve(async (req) => {
         // Fetch from database based on key pattern
         let data = null;
         const [table, ...rest] = key.split(":");
+
+        const staffRoles = ['admin', 'owner', 'manager', 'dispatcher', 'staff', 'service_role'];
+        const isStaff = getRoles.some((r) => staffRoles.includes(r));
+        // properties/technicians are protected — staff only
+        if ((table === 'properties' || table === 'technicians') && !isStaff) {
+          return new Response(JSON.stringify({ error: 'Forbidden' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
 
         if (table === "categories") {
           const { data: categories } = await supabase

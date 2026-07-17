@@ -44,14 +44,15 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Unauthorized');
     }
 
-    // Check user role
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
+    // Check user role via canonical user_roles table
+    const { data: roles, error: rolesError } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id);
 
-    if (profileError || !profile || !['admin', 'manager'].includes(profile.role)) {
+    const allowedRoles = ['admin', 'manager', 'owner'];
+    const hasAccess = !rolesError && !!roles?.some((r: any) => allowedRoles.includes(r.role));
+    if (!hasAccess) {
       throw new Error('Insufficient permissions');
     }
 

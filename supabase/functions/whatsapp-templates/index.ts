@@ -183,7 +183,7 @@ serve(async (req) => {
   // Get user's tenant/company using service client
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("company_id, role")
+    .select("company_id")
     .eq("id", user.id)
     .single();
 
@@ -194,7 +194,15 @@ serve(async (req) => {
   // Allow users without company_id - use their user.id as tenant_id
   // This supports owner/admin users who may not have a company assigned
   const tenantId = profile?.company_id || user.id;
-  const userRole = profile?.role || "customer";
+  // Determine role from canonical user_roles table (authoritative)
+  const { data: rolesRows } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id);
+  const userRoles: string[] = (rolesRows ?? []).map((r: any) => r.role);
+  const rolePriority = ["owner", "admin", "manager", "staff", "customer"];
+  const userRole =
+    rolePriority.find((r) => userRoles.includes(r)) || "customer";
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
   const correlationId = crypto.randomUUID();

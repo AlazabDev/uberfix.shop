@@ -85,6 +85,21 @@ serve(async (req) => {
       }
       userId = user.id;
 
+      // AuthZ: only staff can send SMS via platform Twilio account
+      const { data: rolesRows } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      const isStaff = !!rolesRows?.some((r: any) =>
+        ['admin', 'owner', 'manager', 'dispatcher', 'staff'].includes(r.role)
+      );
+      if (!isStaff) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: staff role required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Rate limiting
       const { data: recentMessages } = await supabase
         .from('message_logs')
