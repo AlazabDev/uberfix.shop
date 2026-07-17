@@ -11995,6 +11995,7 @@ export type Database = {
       is_staff:
         | { Args: never; Returns: boolean }
         | { Args: { uid: string }; Returns: boolean }
+      is_staff_user: { Args: { _uid: string }; Returns: boolean }
       is_valid_egyptian_phone: { Args: { phone: string }; Returns: boolean }
       mask_pii_text: { Args: { input: string }; Returns: string }
       normalize_eg_phone: { Args: { p: string }; Returns: string }
