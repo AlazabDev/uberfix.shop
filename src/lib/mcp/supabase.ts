@@ -2,8 +2,9 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function anonClient() {
-  const url = process.env.SUPABASE_URL ?? "https://sentinel.invalid";
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? "sentinel";
+  const env = (globalThis as any)?.process?.env ?? {};
+  const url = env.SUPABASE_URL ?? "https://sentinel.invalid";
+  const key = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "sentinel";
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
