@@ -250,7 +250,7 @@ export default function ServiceMap() {
 
     if (showHeatmap && google.maps.visualization) {
       const data = filteredRequests.map(r => new google.maps.LatLng(Number(r.latitude), Number(r.longitude)));
-      heatmapRef.current = new google.maps.visualization.HeatmapLayer({
+      heatmapRef.current = new (google.maps.visualization.HeatmapLayer as any)({
         data, map, radius: 28, opacity: 0.55,
       });
     }
