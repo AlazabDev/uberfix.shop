@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "uberfix-mcp",
+      "version": "0.1.0",
+      "title": "UberFix"
+    },
+    "tools": [
+      {
+        "name": "list_services",
+        "title": "List services",
+        "description": "قائمة خدمات الصيانة المتاحة في UberFix (اسم، فئة، سعر تقريبي).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "عدد النتائج (افتراضي 100).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_branches",
+        "title": "List branches",
+        "description": "قائمة فروع UberFix العامة (اسم، مدينة، هاتف، إحداثيات).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "city": {
+              "description": "تصفية بالمدينة.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "find_nearest_branch",
+        "title": "Find nearest branch",
+        "description": "إرجاع أقرب فرع UberFix لإحداثيات العميل.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "description": "خط العرض."
+            },
+            "lng": {
+              "type": "number",
+              "description": "خط الطول."
+            }
+          },
+          "required": [
+            "lat",
+            "lng"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "track_maintenance_request",
+        "title": "Track maintenance request",
+        "description": "تتبع حالة طلب صيانة عبر رقم الطلب العام (بدون معلومات شخصية).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "request_number": {
+              "type": "string",
+              "minLength": 3,
+              "description": "رقم الطلب مثل UF/MR/YYMMDD/SEQ."
+            }
+          },
+          "required": [
+            "request_number"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_maintenance_request",
+        "title": "Create maintenance request",
+        "description": "إنشاء طلب صيانة عام عبر بوابة UberFix. يعيد رقم طلب لتتبعه لاحقاً.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "client_name": {
+              "type": "string",
+              "minLength": 2
+            },
+            "client_phone": {
+              "type": "string",
+              "minLength": 6,
+              "description": "هاتف مصري بصيغة دولية مفضلاً."
+            },
+            "service_type": {
+              "type": "string",
+              "minLength": 2,
+              "description": "نوع الخدمة (كهرباء، سباكة، تكييف...)."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 5
+            },
+            "location": {
+              "type": "string",
+              "minLength": 2
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          },
+          "required": [
+            "client_name",
+            "client_phone",
+            "service_type",
+            "description"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
