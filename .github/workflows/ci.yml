@@ -25,6 +25,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Audit dependencies (fail on critical)
+        run: npm audit --audit-level=critical --omit=dev
+
       - name: Lint
         run: npm run lint
         continue-on-error: true
