@@ -1,8 +1,5 @@
 project_id = "zrrffsjbfkphridqyais"
 
-[functions]
-import_map = "functions/import_map.json"
-
 [api]
 enabled = true
 port = 54321
@@ -12,7 +9,6 @@ max_rows = 1000
 
 [auth]
 enabled = true
-port = 54324
 
 [auth.external.google]
 enabled = false
@@ -31,7 +27,6 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-port = 54323
 
 [studio]
 enabled = true
@@ -43,15 +38,13 @@ port = 54324
 
 [storage]
 enabled = true
-port = 54321
 
 [analytics]
 enabled = false
 port = 54327
 
 # ========================================
-# AUTH-REQUIRED FUNCTIONS (verify_jwt=true)
-# These require valid JWT from authenticated users
+# FUNCTION CONFIGURATION
 # ========================================
 
 [functions.auth-callback]
@@ -67,42 +60,45 @@ verify_jwt = false
 [functions.ufbot]
 verify_jwt = false
 
-# HIGH PRIORITY: Map keys require auth to prevent abuse
 [functions.get-maps-key]
 verify_jwt = false
 # Public access with rate limiting and origin validation inside function
 
 [functions.get-mapbox-token]
 verify_jwt = false
-# Public access - returns public Mapbox token, protected by origin validation and rate limiting
+# Public token endpoint with origin validation and rate limiting
 
 [functions.instagram-webhook]
 verify_jwt = false
-# Public Meta Instagram webhook endpoint; GET verification uses INSTAGRAM_VERIFY_TOKEN / META_WEBHOOK_VERIFY_TOKEN.
+# Public Meta Instagram webhook endpoint
 
 [functions.meta-webhook]
 verify_jwt = false
-# Unified public Meta webhook endpoint for Instagram, Facebook Page, Leads, WhatsApp, and Business events.
+# Unified public Meta webhook endpoint
 
 [functions.send-maintenance-notification]
 verify_jwt = false
-# Called by DB trigger (auto_notify_on_status_change) with anon key - internal auth check in code
+import_map = "./functions/import_map.json"
+# Called internally and uses the shared email dependency import map
+
+[functions.send-invoice]
+verify_jwt = true
+import_map = "./functions/import_map.json"
+# Uses the shared email dependency import map
 
 [functions.gateway]
 verify_jwt = false
-# Unified API Gateway. Auth is enforced in code according to the channel and action.
+# Unified API Gateway. Authentication is enforced in code by channel and action.
 
 [functions.submit-public-request]
 verify_jwt = false
-# Public request adapter. Rate limiting, validation, channel fixing, and branch resolution are enforced in code.
+# Public request adapter. Validation and rate limiting are enforced in code.
 
 [functions.send-twilio-message]
 verify_jwt = true
-# SMS only - WhatsApp uses send-whatsapp-meta
 
 [functions.send-whatsapp-meta]
 verify_jwt = true
-# WhatsApp via Meta Graph API (not Twilio)
 
 [functions.calculate-route]
 verify_jwt = true
