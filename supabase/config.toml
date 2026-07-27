@@ -90,9 +90,11 @@ verify_jwt = false
 
 [functions.gateway]
 verify_jwt = false
-# 🌐 UNIFIED API GATEWAY — the single entry point for the whole system.
-# Routes: POST / (REST) , POST /mcp (MCP Streamable HTTP) , GET /health.
-# Auth handled in-code via x-api-key OR Authorization Bearer <JWT>.
+# Unified API Gateway. Auth is enforced in code according to the channel and action.
+
+[functions.submit-public-request]
+verify_jwt = false
+# Public request adapter. Rate limiting, validation, channel fixing, and branch resolution are enforced in code.
 
 [functions.send-twilio-message]
 verify_jwt = true
