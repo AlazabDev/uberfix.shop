@@ -23,25 +23,20 @@ interface RequestMetadata {
 }
 
 interface RequestBody {
-  // QR mode
   property_id?: string;
-  // Direct mode fields
   client_name?: string;
   client_phone?: string;
   client_email?: string;
   branch_name?: string;
-  // Common fields
   service_type: string;
   priority?: string;
   description?: string;
   notes?: string;
   images?: string[];
   metadata?: RequestMetadata;
-  // Map-driven intake
   location?: string;
   latitude?: number;
   longitude?: number;
-  // Route info (informational only; dispatch happens after intake)
   route_info?: {
     distance?: string;
     duration?: string;
@@ -62,14 +57,9 @@ const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
   other: { ar: 'أخرى', en: 'Other' },
 };
 
-/**
- * يحول نوع العطل/الصيانة المختار في الواجهة إلى تصنيف الخدمة الأساسي.
- * النوع الأصلي يظل محفوظاً في source_metadata لاستخدامه في التصنيف والتقارير.
- */
 const SERVICE_ALIASES: Record<string, string> = {
   hvac: 'ac',
   facades: 'other',
-
   power_outage: 'electrical',
   water_leak: 'plumbing',
   ac_failure: 'ac',
@@ -77,7 +67,6 @@ const SERVICE_ALIASES: Record<string, string> = {
   sign_issue: 'electrical',
   door_lock: 'carpentry',
   smoke: 'other',
-
   full_inspection: 'other',
   electrical_periodic: 'electrical',
   ac_periodic: 'ac',
@@ -105,43 +94,41 @@ function safeMetadata(metadata: RequestMetadata | undefined): RequestMetadata {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    // Rate limiting
     const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] ||
-                     req.headers.get('cf-connecting-ip') || 'unknown';
+      req.headers.get('cf-connecting-ip') || 'unknown';
 
     const isAllowed = rateLimit(`submit_${clientIP}`, { windowMs: 60000, maxRequests: 5 });
     if (!isAllowed) {
       return new Response(
         JSON.stringify({ error: 'Too many requests', message_ar: 'يرجى الانتظار قبل المحاولة مرة أخرى' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+        },
       );
     }
 
     const body: RequestBody = await req.json();
-
-    // Normalize the UI-specific fault/maintenance type to the canonical service category.
-    const originalServiceType = body.service_type?.trim().toLowerCase();
+    const originalServiceType = body.service_type?.trim().toLowerCase() || '';
     const serviceType = SERVICE_ALIASES[originalServiceType] || originalServiceType;
-    if (!originalServiceType || !serviceType || !VALID_SERVICES.includes(serviceType)) {
+
+    if (!serviceType || !VALID_SERVICES.includes(serviceType)) {
       return new Response(
         JSON.stringify({ error: 'Invalid service type', message_ar: 'نوع الخدمة غير صحيح' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Sanitize inputs
     const sanitizedName = body.client_name?.trim().replace(/[<>"';]/g, '').slice(0, 100) || '';
     const sanitizedPhone = body.client_phone?.replace(/[^\d+]/g, '').slice(0, 15) || '';
     const sanitizedEmail = body.client_email?.trim().toLowerCase().slice(0, 100) || '';
@@ -152,28 +139,26 @@ Deno.serve(async (req) => {
     const submittedMetadata = safeMetadata(body.metadata);
     const latNum = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
     const lngNum = typeof body.longitude === 'number' ? body.longitude : Number(body.longitude);
-    const hasGeo = Number.isFinite(latNum) && Number.isFinite(lngNum)
-      && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
+    const hasGeo = Number.isFinite(latNum) && Number.isFinite(lngNum) &&
+      latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
 
-    // Validate: direct mode requires client_name
     if (!body.property_id && !sanitizedName) {
       return new Response(
         JSON.stringify({ error: 'Client name is required', message_ar: 'اسم مقدم الطلب مطلوب' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Phone is REQUIRED for ALL submission modes (QR + Direct)
     if (sanitizedPhone.length < 8) {
       return new Response(
         JSON.stringify({ error: 'Phone number is required', message_ar: 'رقم الهاتف مطلوب (8 أرقام على الأقل) لمتابعة طلبك' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     let companyId: string;
@@ -182,12 +167,11 @@ Deno.serve(async (req) => {
     let propertyAddress = '';
 
     if (body.property_id) {
-      // QR mode - get company/branch from property
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(body.property_id)) {
         return new Response(
           JSON.stringify({ error: 'Invalid property ID', message_ar: 'معرف العقار غير صحيح' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
@@ -200,7 +184,7 @@ Deno.serve(async (req) => {
       if (propError || !property) {
         return new Response(
           JSON.stringify({ error: 'Property not found', message_ar: 'العقار غير موجود' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
@@ -209,7 +193,6 @@ Deno.serve(async (req) => {
       propertyName = property.name;
       propertyAddress = property.address || '';
     } else {
-      // Direct mode - get default company/branch
       const { data: defaultOrg, error: orgError } = await supabaseAdmin
         .from('companies')
         .select('id, branches(id, name)')
@@ -220,34 +203,32 @@ Deno.serve(async (req) => {
         console.error('No default company found:', orgError);
         return new Response(
           JSON.stringify({ error: 'System configuration error', message_ar: 'خطأ في إعداد النظام' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
 
       companyId = defaultOrg.id;
-      // Try to match branch by name
       const branches = (defaultOrg as any).branches as Array<{ id: string; name: string }>;
       const matchedBranch = body.branch_name
-        ? branches?.find(b => b.name.includes(body.branch_name!))
+        ? branches?.find((branch) => branch.name.includes(body.branch_name!))
         : null;
       branchId = matchedBranch?.id || branches?.[0]?.id || '';
 
       if (!branchId) {
         return new Response(
           JSON.stringify({ error: 'No branch available', message_ar: 'لا يوجد فرع متاح' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
     }
 
     const serviceLabel = SERVICE_LABELS[serviceType] || { ar: serviceType, en: serviceType };
 
-    // ─── Route through Unified Gateway ─────────────────────────
     const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('gateway', {
       body: {
         channel,
         client_name: sanitizedName || 'زائر',
-        client_phone: sanitizedPhone || undefined,
+        client_phone: sanitizedPhone,
         client_email: sanitizedEmail || undefined,
         service_type: serviceType,
         priority,
@@ -267,25 +248,35 @@ Deno.serve(async (req) => {
           original_service_type: originalServiceType,
           normalized_service_type: serviceType,
           ...submittedMetadata,
-          map_intake: hasGeo ? {
-            has_geo: true,
-            route: body.route_info && typeof body.route_info === 'object' ? {
-              distance: String(body.route_info.distance || '').slice(0, 32) || null,
-              duration: String(body.route_info.duration || '').slice(0, 32) || null,
-              distance_value: Number.isFinite(Number(body.route_info.distance_value)) ? Number(body.route_info.distance_value) : null,
-              duration_value: Number.isFinite(Number(body.route_info.duration_value)) ? Number(body.route_info.duration_value) : null,
-              eta: typeof body.route_info.eta === 'string' ? body.route_info.eta.slice(0, 64) : null,
-            } : null,
-          } : undefined,
-        }
-      }
+          map_intake: hasGeo
+            ? {
+                has_geo: true,
+                route: body.route_info && typeof body.route_info === 'object'
+                  ? {
+                      distance: String(body.route_info.distance || '').slice(0, 32) || null,
+                      duration: String(body.route_info.duration || '').slice(0, 32) || null,
+                      distance_value: Number.isFinite(Number(body.route_info.distance_value))
+                        ? Number(body.route_info.distance_value)
+                        : null,
+                      duration_value: Number.isFinite(Number(body.route_info.duration_value))
+                        ? Number(body.route_info.duration_value)
+                        : null,
+                      eta: typeof body.route_info.eta === 'string'
+                        ? body.route_info.eta.slice(0, 64)
+                        : null,
+                    }
+                  : null,
+              }
+            : undefined,
+        },
+      },
     });
 
     if (gatewayError || !gatewayResult?.success) {
       console.error('Gateway error:', gatewayError || gatewayResult);
       return new Response(
         JSON.stringify({ error: 'Failed to create request', message_ar: 'فشل في إنشاء الطلب' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -300,14 +291,13 @@ Deno.serve(async (req) => {
         message_en: `Request submitted successfully! Request #: ${gatewayResult.request_number}`,
         track_url: `/track/${gatewayResult.request_id}`,
       }),
-      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
-
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', message_ar: 'حدث خطأ غير متوقع' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
