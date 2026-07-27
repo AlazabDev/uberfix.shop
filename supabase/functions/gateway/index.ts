@@ -1,23 +1,3 @@
-/**
- * 🌐 UberFix UNIFIED API GATEWAY
- *
- * نقطة الدخول الوحيدة لكل النظام (Mobile App, Web Dashboard, AzSTT, Bots, External APIs).
- * مبنية وفق معمارية: Clients → Unified Gateway → MCP Core → Business Engine → DB.
- *
- * Endpoints (نفس الـ Function، توجيه داخلي بالمسار):
- *   POST   /                      → REST (يقبل تنسيق {action,payload} أو {channel,action,...})
- *   POST   /rest                  → نفس /
- *   POST   /mcp                   → MCP Streamable HTTP (initialize, tools/list, tools/call)
- *   GET    /                      → ميتاداتا الخادم
- *   GET    /health                → فحص الحياة
- *
- * المصادقة:
- *   - x-api-key : للبوتات والتكاملات الخارجية (mapped to api_consumers)
- *   - Authorization: Bearer <JWT> : للموبايل والويب (Supabase Auth)
- *
- * كل طلب يُسجَّل في api_gateway_logs.
- */
-
 import { Hono } from 'npm:hono@4.6.14';
 import { McpServer, StreamableHttpTransport } from 'npm:mcp-lite@0.10.0';
 import { z } from 'npm:zod@4.4.3';
@@ -27,8 +7,12 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { handleMaintenance } from './engine/maintenance.ts';
 import { handleBot } from './engine/bot.ts';
 import {
-  handleAiHealth, handleAiAgent, handleAiChat, handleAiStream,
-  handleAiClassify, handleAiSummarize,
+  handleAiHealth,
+  handleAiAgent,
+  handleAiChat,
+  handleAiStream,
+  handleAiClassify,
+  handleAiSummarize,
 } from './engine/ai.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? 'https://zrrffsjbfkphridqyais.supabase.co';
@@ -38,12 +22,12 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-// ─── Per-request context ─────────────────────────────────────────────
 interface ReqCtx {
   apiKey: string;
   authHeader: string;
   requestId: string;
 }
+
 const reqStorage = new AsyncLocalStorage<ReqCtx>();
 const ctx = (): ReqCtx => reqStorage.getStore() ?? { apiKey: '', authHeader: '', requestId: '' };
 
@@ -54,10 +38,18 @@ function jsonError(status: number, error: string, messageAr: string): Response {
   });
 }
 
+async function responseToResult(res: Response): Promise<{ status: number; body: any }> {
+  const text = await res.text();
+  try {
+    return { status: res.status, body: JSON.parse(text) };
+  } catch {
+    return { status: res.status, body: { raw: text } };
+  }
+}
+
 /**
- * قناة internal هي قناة لوحة التحكم وليست قناة عامة.
- * نتحقق هنا من JWT قبل أن يصل الطلب إلى محرك الصيانة الذي يعمل بصلاحية service role.
- * كما نثبت الشركة والفرع من هوية المستخدم والعقار، ولا نثق في company_id/branch_id القادمة من العميل.
+ * قناة internal خاصة بلوحة التحكم.
+ * يتم تثبيت الشركة والفرع من هوية المستخدم والعقار، ولا نثق في قيم العميل.
  */
 async function enforceInternalRequestAuth(body: Record<string, unknown>): Promise<Response | null> {
   if (body.channel !== 'internal') return null;
@@ -130,15 +122,25 @@ async function enforceInternalRequestAuth(body: Record<string, unknown>): Promis
   return null;
 }
 
-// ─── Helper: invoke an in-process engine handler ─────────────────────
+/** نقطة العبور الوحيدة إلى محركات الأعمال من REST وMCP. */
 async function invokeEngine(
   engine: 'maintenance' | 'bot',
   body: unknown,
 ): Promise<{ status: number; body: any }> {
+  if (
+    engine === 'maintenance' &&
+    body &&
+    typeof body === 'object' &&
+    !Array.isArray(body)
+  ) {
+    const authError = await enforceInternalRequestAuth(body as Record<string, unknown>);
+    if (authError) return responseToResult(authError);
+  }
+
   const { apiKey, authHeader } = ctx();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['x-api-key'] = apiKey;
-  if (authHeader) headers['Authorization'] = authHeader;
+  if (authHeader) headers.Authorization = authHeader;
 
   const req = new Request(`${INTERNAL_BASE}/gateway`, {
     method: 'POST',
@@ -147,23 +149,19 @@ async function invokeEngine(
   });
 
   const res = engine === 'maintenance' ? await handleMaintenance(req) : await handleBot(req);
-  const text = await res.text();
-  try { return { status: res.status, body: JSON.parse(text) }; }
-  catch { return { status: res.status, body: { raw: text } }; }
+  return responseToResult(res);
 }
 
 const asText = (payload: unknown) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
 });
 
-// ─── MCP CORE: Tool Handler + Context Manager + Resource Registry ────
 const mcp = new McpServer({
   name: 'uberfix-unified-gateway',
   version: '2.0.0',
-  schemaAdapter: (s) => z.toJSONSchema(s as z.ZodType),
+  schemaAdapter: (schema) => z.toJSONSchema(schema as z.ZodType),
 });
 
-// — Business Engine: Maintenance Lifecycle —
 mcp.tool('create_maintenance_request', {
   description: 'إنشاء طلب صيانة جديد (Ticket Creation).',
   inputSchema: z.object({
@@ -173,11 +171,10 @@ mcp.tool('create_maintenance_request', {
     description: z.string(),
     priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
     location: z.string().optional(),
-    channel: z.string().default('api').optional(),
   }),
   handler: async (args) => {
-    const r = await invokeEngine('maintenance', { channel: args.channel ?? 'api', ...args });
-    return asText(r.body);
+    const result = await invokeEngine('maintenance', { channel: 'api', ...args });
+    return asText(result.body);
   },
 });
 
@@ -190,21 +187,30 @@ mcp.tool('transition_request_stage', {
     reason: z.string().optional(),
   }),
   handler: async (args) => {
-    const r = await invokeEngine('maintenance', {
-      channel: 'api', action: 'transition_stage', client_name: 'mcp', ...args,
+    const result = await invokeEngine('maintenance', {
+      channel: 'api',
+      action: 'transition_stage',
+      client_name: 'mcp',
+      ...args,
     });
-    return asText(r.body);
+    return asText(result.body);
   },
 });
 
 mcp.tool('get_request_status', {
   description: 'استعلام عن حالة طلب (Status Update).',
-  inputSchema: z.object({ request_id: z.string().optional(), request_number: z.string().optional() }),
+  inputSchema: z.object({
+    request_id: z.string().optional(),
+    request_number: z.string().optional(),
+  }),
   handler: async (args) => {
-    const r = await invokeEngine('maintenance', {
-      channel: 'api', action: 'get_status', client_name: 'mcp', ...args,
+    const result = await invokeEngine('maintenance', {
+      channel: 'api',
+      action: 'get_status',
+      client_name: 'mcp',
+      ...args,
     });
-    return asText(r.body);
+    return asText(result.body);
   },
 });
 
@@ -216,10 +222,13 @@ mcp.tool('cancel_request', {
     reason: z.string(),
   }),
   handler: async (args) => {
-    const r = await invokeEngine('maintenance', {
-      channel: 'api', action: 'cancel', client_name: 'mcp', ...args,
+    const result = await invokeEngine('maintenance', {
+      channel: 'api',
+      action: 'cancel',
+      client_name: 'mcp',
+      ...args,
     });
-    return asText(r.body);
+    return asText(result.body);
   },
 });
 
@@ -231,46 +240,68 @@ mcp.tool('add_request_note', {
     note: z.string(),
   }),
   handler: async (args) => {
-    const r = await invokeEngine('maintenance', {
-      channel: 'api', action: 'add_note', client_name: 'mcp', ...args,
+    const result = await invokeEngine('maintenance', {
+      channel: 'api',
+      action: 'add_note',
+      client_name: 'mcp',
+      ...args,
     });
-    return asText(r.body);
+    return asText(result.body);
   },
 });
 
-// — Resource Registry: Catalog / Branches / Technicians —
-const botTool = (name: string, desc: string, schema: z.ZodTypeAny, action: string) => {
+const botTool = (name: string, description: string, schema: z.ZodTypeAny, action: string) => {
   mcp.tool(name, {
-    description: desc,
+    description,
     inputSchema: schema,
     handler: async (args) => {
-      const r = await invokeEngine('bot', {
-        action, payload: args, metadata: { source: 'mcp-core' },
+      const result = await invokeEngine('bot', {
+        action,
+        payload: args,
+        metadata: { source: 'mcp-core' },
       });
-      return asText(r.body);
+      return asText(result.body);
     },
   });
 };
 
 botTool('list_services', 'كتالوج الخدمات (Resource Registry).', z.object({}), 'list_services');
 botTool('list_categories', 'تصنيفات الصيانة.', z.object({}), 'list_categories');
-botTool('list_technicians', 'الفنيين المتاحين.',
-  z.object({ specialization: z.string().optional(), limit: z.number().optional() }), 'list_technicians');
+botTool(
+  'list_technicians',
+  'الفنيين المتاحين.',
+  z.object({ specialization: z.string().optional(), limit: z.number().optional() }),
+  'list_technicians',
+);
 botTool('get_branches', 'كل الفروع.', z.object({}), 'get_branches');
-botTool('find_nearest_branch', 'أقرب فرع جغرافياً.',
-  z.object({ lat: z.number(), lng: z.number() }), 'find_nearest_branch');
-botTool('get_quote', 'طلب عرض سعر.',
+botTool(
+  'find_nearest_branch',
+  'أقرب فرع جغرافياً.',
+  z.object({ lat: z.number(), lng: z.number() }),
+  'find_nearest_branch',
+);
+botTool(
+  'get_quote',
+  'طلب عرض سعر.',
   z.object({
-    service_type: z.string(), description: z.string(), location: z.string().optional(),
-    client_name: z.string(), client_phone: z.string(),
-  }), 'get_quote');
-botTool('check_status_quick', 'استعلام سريع.',
+    service_type: z.string(),
+    description: z.string(),
+    location: z.string().optional(),
+    client_name: z.string(),
+    client_phone: z.string(),
+  }),
+  'get_quote',
+);
+botTool(
+  'check_status_quick',
+  'استعلام سريع.',
   z.object({
     search_term: z.string(),
     search_type: z.enum(['request_number', 'phone', 'request_id']).optional(),
-  }), 'check_status');
+  }),
+  'check_status',
+);
 
-// — Server Info —
 mcp.tool('server_info', {
   description: 'معلومات البوابة الموحّدة.',
   inputSchema: z.object({}),
@@ -286,18 +317,12 @@ mcp.tool('server_info', {
   }),
 });
 
-// ─── HTTP transport ──────────────────────────────────────────────────
 const transport = new StreamableHttpTransport();
 const mcpHandler = transport.bind(mcp);
-
-// ─── App ─────────────────────────────────────────────────────────────
-// Supabase invokes us at the path `/gateway/...`, so mount routes under that prefix.
 const app = new Hono().basePath('/gateway');
 
 app.options('/*', () => new Response('ok', { headers: corsHeaders }));
-
 app.get('/health', (c) => c.json({ ok: true, ts: new Date().toISOString() }, 200, corsHeaders));
-
 app.get('/', (c) => c.json({
   name: 'uberfix-unified-gateway',
   version: '2.0.0',
@@ -311,46 +336,39 @@ app.get('/', (c) => c.json({
   docs: 'https://uberfix.alazab.com/api-documentation',
 }, 200, corsHeaders));
 
-// ─── REST router ─────────────────────────────────────────────────────
 const handleRestRequest = async (c: any) => {
   const parsed = await c.req.json().catch(() => ({}));
   const body: Record<string, unknown> =
     parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-
-  const authError = await enforceInternalRequestAuth(body);
-  if (authError) return authError;
-
   const isMaintenance = typeof body.channel === 'string';
-  const r = await invokeEngine(isMaintenance ? 'maintenance' : 'bot', body);
-  return c.json(r.body, r.status as 200, corsHeaders);
+  const result = await invokeEngine(isMaintenance ? 'maintenance' : 'bot', body);
+  return c.json(result.body, result.status as 200, corsHeaders);
 };
 
 app.post('/', handleRestRequest);
 app.post('/rest', handleRestRequest);
 
-// ─── MCP router ──────────────────────────────────────────────────────
 app.all('/mcp', async (c) => {
   const res = await mcpHandler(c.req.raw);
   const headers = new Headers(res.headers);
-  for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+  for (const [key, value] of Object.entries(corsHeaders)) headers.set(key, value);
   return new Response(res.body, { status: res.status, headers });
 });
+
 app.all('/mcp/*', async (c) => {
   const res = await mcpHandler(c.req.raw);
   const headers = new Headers(res.headers);
-  for (const [k, v] of Object.entries(corsHeaders)) headers.set(k, v);
+  for (const [key, value] of Object.entries(corsHeaders)) headers.set(key, value);
   return new Response(res.body, { status: res.status, headers });
 });
 
-// ─── AI Layer (Azure OpenAI) ─────────────────────────────────────────
-app.get('/ai/health',      (c) => handleAiHealth(c.req.raw));
-app.post('/ai/agent',      (c) => handleAiAgent(c.req.raw));
-app.post('/ai/chat',       (c) => handleAiChat(c.req.raw));
-app.post('/ai/stream',     (c) => handleAiStream(c.req.raw));
-app.post('/ai/classify',   (c) => handleAiClassify(c.req.raw));
-app.post('/ai/summarize',  (c) => handleAiSummarize(c.req.raw));
+app.get('/ai/health', (c) => handleAiHealth(c.req.raw));
+app.post('/ai/agent', (c) => handleAiAgent(c.req.raw));
+app.post('/ai/chat', (c) => handleAiChat(c.req.raw));
+app.post('/ai/stream', (c) => handleAiStream(c.req.raw));
+app.post('/ai/classify', (c) => handleAiClassify(c.req.raw));
+app.post('/ai/summarize', (c) => handleAiSummarize(c.req.raw));
 
-// ─── Server entry ────────────────────────────────────────────────────
 Deno.serve((req) => {
   const apiKey = req.headers.get('x-api-key') || req.headers.get('X-API-Key') || '';
   const authHeader = req.headers.get('Authorization') || '';
