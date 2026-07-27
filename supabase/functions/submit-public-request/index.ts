@@ -3,13 +3,24 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { rateLimit } from '../_shared/rateLimiter.ts';
 
 /**
- * Public endpoint for submitting maintenance requests
+ * Public endpoint for submitting maintenance requests.
  * Supports two modes:
  * 1. QR mode: requires property_id (from QR code scan)
  * 2. Direct mode: general form submission without property_id
- * 
- * Security: Rate limiting, input validation, no auth required
+ *
+ * Security: Rate limiting, input validation, no auth required.
+ * This adapter never assigns technicians and never trusts a client-supplied channel.
  */
+
+interface RequestMetadata {
+  company_name?: string;
+  form_type?: 'general' | 'urgent' | 'periodic';
+  stops_work?: string;
+  contact_time?: string;
+  preferred_date?: string;
+  time_slot?: string;
+  issue_date?: string;
+}
 
 interface RequestBody {
   // QR mode
@@ -25,13 +36,12 @@ interface RequestBody {
   description?: string;
   notes?: string;
   images?: string[];
-  channel?: string;
-  // Map-driven intake (Phase 1)
+  metadata?: RequestMetadata;
+  // Map-driven intake
   location?: string;
   latitude?: number;
   longitude?: number;
-  assigned_technician_id?: string;
-  // Route info (Phase 2 — ETA from technician → client)
+  // Route info (informational only; dispatch happens after intake)
   route_info?: {
     distance?: string;
     duration?: string;
@@ -52,8 +62,47 @@ const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
   other: { ar: 'أخرى', en: 'Other' },
 };
 
+/**
+ * يحول نوع العطل/الصيانة المختار في الواجهة إلى تصنيف الخدمة الأساسي.
+ * النوع الأصلي يظل محفوظاً في source_metadata لاستخدامه في التصنيف والتقارير.
+ */
+const SERVICE_ALIASES: Record<string, string> = {
+  hvac: 'ac',
+  facades: 'other',
+
+  power_outage: 'electrical',
+  water_leak: 'plumbing',
+  ac_failure: 'ac',
+  glass_break: 'other',
+  sign_issue: 'electrical',
+  door_lock: 'carpentry',
+  smoke: 'other',
+
+  full_inspection: 'other',
+  electrical_periodic: 'electrical',
+  ac_periodic: 'ac',
+  plumbing_periodic: 'plumbing',
+  painting_periodic: 'painting',
+  facade_periodic: 'other',
+};
+
 const VALID_SERVICES = Object.keys(SERVICE_LABELS);
 const VALID_PRIORITIES = ['high', 'medium', 'low'];
+
+function safeMetadata(metadata: RequestMetadata | undefined): RequestMetadata {
+  if (!metadata || typeof metadata !== 'object') return {};
+  return {
+    company_name: metadata.company_name?.toString().trim().slice(0, 120),
+    form_type: ['general', 'urgent', 'periodic'].includes(metadata.form_type || '')
+      ? metadata.form_type
+      : undefined,
+    stops_work: metadata.stops_work?.toString().trim().slice(0, 20),
+    contact_time: metadata.contact_time?.toString().trim().slice(0, 20),
+    preferred_date: metadata.preferred_date?.toString().trim().slice(0, 20),
+    time_slot: metadata.time_slot?.toString().trim().slice(0, 30),
+    issue_date: metadata.issue_date?.toString().trim().slice(0, 20),
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -69,9 +118,9 @@ Deno.serve(async (req) => {
 
   try {
     // Rate limiting
-    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] ||
                      req.headers.get('cf-connecting-ip') || 'unknown';
-    
+
     const isAllowed = rateLimit(`submit_${clientIP}`, { windowMs: 60000, maxRequests: 5 });
     if (!isAllowed) {
       return new Response(
@@ -82,9 +131,10 @@ Deno.serve(async (req) => {
 
     const body: RequestBody = await req.json();
 
-    // Validate service type
-    const serviceType = body.service_type?.trim().toLowerCase();
-    if (!serviceType || !VALID_SERVICES.includes(serviceType)) {
+    // Normalize the UI-specific fault/maintenance type to the canonical service category.
+    const originalServiceType = body.service_type?.trim().toLowerCase();
+    const serviceType = SERVICE_ALIASES[originalServiceType] || originalServiceType;
+    if (!originalServiceType || !serviceType || !VALID_SERVICES.includes(serviceType)) {
       return new Response(
         JSON.stringify({ error: 'Invalid service type', message_ar: 'نوع الخدمة غير صحيح' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -97,16 +147,13 @@ Deno.serve(async (req) => {
     const sanitizedEmail = body.client_email?.trim().toLowerCase().slice(0, 100) || '';
     const sanitizedNotes = (body.description || body.notes || '').trim().slice(0, 500);
     const priority = VALID_PRIORITIES.includes(body.priority || '') ? body.priority! : 'medium';
-    const channel = body.channel || (body.property_id ? 'qr_guest' : 'public_form');
+    const channel = body.property_id ? 'qr_guest' : 'public_form';
     const sanitizedLocation = body.location?.toString().trim().slice(0, 200) || '';
+    const submittedMetadata = safeMetadata(body.metadata);
     const latNum = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
     const lngNum = typeof body.longitude === 'number' ? body.longitude : Number(body.longitude);
     const hasGeo = Number.isFinite(latNum) && Number.isFinite(lngNum)
       && latNum >= -90 && latNum <= 90 && lngNum >= -180 && lngNum <= 180;
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const technicianId = body.assigned_technician_id && uuidRe.test(body.assigned_technician_id)
-      ? body.assigned_technician_id
-      : undefined;
 
     // Validate: direct mode requires client_name
     if (!body.property_id && !sanitizedName) {
@@ -180,8 +227,8 @@ Deno.serve(async (req) => {
       companyId = defaultOrg.id;
       // Try to match branch by name
       const branches = (defaultOrg as any).branches as Array<{ id: string; name: string }>;
-      const matchedBranch = body.branch_name 
-        ? branches?.find(b => b.name.includes(body.branch_name!)) 
+      const matchedBranch = body.branch_name
+        ? branches?.find(b => b.name.includes(body.branch_name!))
         : null;
       branchId = matchedBranch?.id || branches?.[0]?.id || '';
 
@@ -213,21 +260,22 @@ Deno.serve(async (req) => {
         images: body.images,
         latitude: hasGeo ? latNum : undefined,
         longitude: hasGeo ? lngNum : undefined,
-        assigned_technician_id: technicianId,
         source_id: body.property_id || undefined,
         source_metadata: {
           submission_mode: body.property_id ? 'qr' : 'direct',
           property_name: propertyName || undefined,
-          map_intake: hasGeo || !!technicianId ? {
-            has_geo: hasGeo,
-            assigned_technician_id: technicianId || null,
-          route: body.route_info && typeof body.route_info === 'object' ? {
-            distance: String(body.route_info.distance || '').slice(0, 32) || null,
-            duration: String(body.route_info.duration || '').slice(0, 32) || null,
-            distance_value: Number.isFinite(Number(body.route_info.distance_value)) ? Number(body.route_info.distance_value) : null,
-            duration_value: Number.isFinite(Number(body.route_info.duration_value)) ? Number(body.route_info.duration_value) : null,
-            eta: typeof body.route_info.eta === 'string' ? body.route_info.eta.slice(0, 64) : null,
-          } : null,
+          original_service_type: originalServiceType,
+          normalized_service_type: serviceType,
+          ...submittedMetadata,
+          map_intake: hasGeo ? {
+            has_geo: true,
+            route: body.route_info && typeof body.route_info === 'object' ? {
+              distance: String(body.route_info.distance || '').slice(0, 32) || null,
+              duration: String(body.route_info.duration || '').slice(0, 32) || null,
+              distance_value: Number.isFinite(Number(body.route_info.distance_value)) ? Number(body.route_info.distance_value) : null,
+              duration_value: Number.isFinite(Number(body.route_info.duration_value)) ? Number(body.route_info.duration_value) : null,
+              eta: typeof body.route_info.eta === 'string' ? body.route_info.eta.slice(0, 64) : null,
+            } : null,
           } : undefined,
         }
       }
