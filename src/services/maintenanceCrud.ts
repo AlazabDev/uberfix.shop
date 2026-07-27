@@ -1,15 +1,30 @@
 /**
- * خدمة CRUD لطلبات الصيانة
- * العمليات الأساسية: إنشاء، تحديث، حذف، جلب
- * 
- * ملاحظة: الإشعارات تتم تلقائياً عبر DB triggers:
- * - trg_auto_notify_status_change → يستدعي send-maintenance-notification (WhatsApp + Email)
- * - trigger_notify_customer_on_status_change → إشعار داخلي في التطبيق
- * لا حاجة لاستدعاء الإشعارات يدوياً من الكود
+ * خدمة CRUD لطلبات الصيانة.
+ *
+ * قاعدة معمارية:
+ * - القراءة والتحديث والحذف تخضع لـ RLS من خلال Supabase Client.
+ * - إنشاء أي طلب جديد يمر حصرياً عبر Unified Gateway.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { WORKFLOW_STAGES, type WorkflowStage } from "@/constants/workflowStages";
 import type { MaintenanceRequest, MaintenanceRequestInsert, MrStatus } from "@/types/maintenance";
+
+interface GatewayCreateResponse {
+  success: boolean;
+  request_id: string;
+  request_number: string;
+  track_url: string;
+  channel: string;
+  created_at: string;
+  error?: string;
+  message_ar?: string;
+}
+
+function optionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+}
 
 /** جلب جميع الطلبات مع pagination لتجنب حد 1000 صف */
 export async function fetchAllRequests(page = 0, pageSize = 500): Promise<MaintenanceRequest[]> {
@@ -25,9 +40,9 @@ export async function fetchAllRequests(page = 0, pageSize = 500): Promise<Mainte
     const to = from + pageSize - 1;
 
     const { data, error } = await supabase
-      .from('maintenance_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
+      .from("maintenance_requests")
+      .select("*")
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (error) throw error;
@@ -44,57 +59,95 @@ export async function fetchAllRequests(page = 0, pageSize = 500): Promise<Mainte
   return allData;
 }
 
-/** إنشاء طلب جديد */
+/**
+ * إنشاء طلب جديد عبر Unified Gateway فقط.
+ * لا يُسمح لهذه الخدمة بإجراء INSERT مباشر في maintenance_requests.
+ */
 export async function createMaintenanceRequest(
   requestData: Partial<MaintenanceRequestInsert>
 ): Promise<MaintenanceRequest> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("يجب تسجيل الدخول أولاً");
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', user.id)
-    .maybeSingle();
+  const raw = requestData as Record<string, unknown>;
+  const clientName =
+    optionalString(raw.client_name) ||
+    optionalString(user.user_metadata?.full_name) ||
+    optionalString(user.user_metadata?.name) ||
+    user.email ||
+    "مستخدم داخلي";
+  const clientPhone = optionalString(raw.client_phone) || optionalString(user.user_metadata?.phone);
 
-  if (profileError || !profile?.company_id) {
-    throw new Error("حدث خطأ في جلب بيانات المستخدم. يرجى تسجيل الخروج والدخول مرة أخرى.");
+  if (!clientPhone || clientPhone.replace(/\D/g, "").length < 8) {
+    throw new Error("رقم هاتف العميل مطلوب ويجب ألا يقل عن 8 أرقام");
   }
 
-  const { data: branch, error: branchError } = await supabase
-    .from('branches')
-    .select('id')
-    .eq('company_id', profile.company_id)
-    .limit(1)
-    .maybeSingle();
+  const requestedTitle = optionalString(raw.title) || "طلب صيانة جديد";
+  const requestedDescription = optionalString(raw.description);
+  const customerNotes = optionalString(raw.customer_notes);
+  const description = [
+    requestedTitle,
+    requestedDescription,
+    customerNotes ? `ملاحظات العميل: ${customerNotes}` : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+    .slice(0, 500);
 
-  if (branchError || !branch) {
-    throw new Error("حدث خطأ في جلب بيانات الفرع. يرجى تسجيل الخروج والدخول مرة أخرى.");
+  const { data: gatewayResult, error: gatewayError } =
+    await supabase.functions.invoke<GatewayCreateResponse>("gateway", {
+      body: {
+        channel: "internal",
+        action: "create_request",
+        client_name: clientName,
+        client_phone: clientPhone,
+        client_email: optionalString(raw.client_email) || user.email || undefined,
+        service_type: optionalString(raw.service_type) || "general",
+        priority: optionalString(raw.priority) || "medium",
+        description,
+        location: optionalString(raw.location),
+        property_id: optionalString(raw.property_id),
+        source_metadata: {
+          internal_user_id: user.id,
+          requested_title: requestedTitle,
+          customer_notes: customerNotes || null,
+          preferred_date: optionalString(raw.preferred_date) || null,
+          preferred_time: optionalString(raw.preferred_time) || null,
+          intake_surface: "web_dashboard",
+        },
+      },
+    });
+
+  if (gatewayError) {
+    throw new Error(gatewayError.message || "فشل الاتصال بالبوابة الموحدة");
   }
 
-  const initialStage: WorkflowStage = 'submitted';
-  const initialStatus = WORKFLOW_STAGES[initialStage].status as MrStatus;
+  if (!gatewayResult?.success || !gatewayResult.request_id) {
+    throw new Error(gatewayResult?.message_ar || gatewayResult?.error || "فشل إنشاء طلب الصيانة");
+  }
 
-  const { data, error } = await supabase
-    .from('maintenance_requests')
-    .insert({
-      ...requestData,
-      title: requestData.title || 'طلب صيانة جديد',
-      created_by: user.id,
-      status: initialStatus,
-      workflow_stage: initialStage,
-      company_id: profile.company_id,
-      branch_id: branch.id
-    })
-    .select()
+  // اقرأ السجل النهائي بعد أن تنهي البوابة التحقق والترقيم والتسجيل.
+  const { data: created, error: readError } = await supabase
+    .from("maintenance_requests")
+    .select("*")
+    .eq("id", gatewayResult.request_id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (!readError && created) return created as MaintenanceRequest;
 
-  // الإشعارات تتم تلقائياً عبر DB trigger (trg_auto_notify_status_change)
-  // عند تغيير الحالة لاحقاً. الإشعار الأول يتم عبر maintenance-gateway للطلبات العامة.
-
-  return data as MaintenanceRequest;
+  // لا نُبلغ المستخدم بفشل الإنشاء بعد نجاح البوابة لمجرد تعذر إعادة القراءة.
+  console.warn("Request created through gateway but could not be reloaded", readError);
+  return {
+    ...requestData,
+    id: gatewayResult.request_id,
+    request_number: gatewayResult.request_number,
+    title: requestedTitle,
+    description,
+    status: "Open",
+    workflow_stage: "submitted",
+    created_at: gatewayResult.created_at,
+    created_by: user.id,
+  } as MaintenanceRequest;
 }
 
 /** تحديث طلب */
@@ -105,12 +158,6 @@ export async function updateMaintenanceRequest(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("يجب تسجيل الدخول أولاً");
 
-  const { data: oldData } = await supabase
-    .from('maintenance_requests')
-    .select('status, workflow_stage, client_phone')
-    .eq('id', id)
-    .maybeSingle();
-
   // مزامنة status مع workflow_stage
   if (updates.workflow_stage) {
     const stage = updates.workflow_stage as WorkflowStage;
@@ -120,16 +167,13 @@ export async function updateMaintenanceRequest(
   }
 
   const { data, error } = await supabase
-    .from('maintenance_requests')
+    .from("maintenance_requests")
     .update(updates as unknown as MaintenanceRequestInsert)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .maybeSingle();
 
   if (error) throw error;
-
-  // الإشعارات تتم تلقائياً عبر DB trigger عند تغيير status أو workflow_stage
-
   return data as MaintenanceRequest;
 }
 
@@ -139,9 +183,9 @@ export async function deleteMaintenanceRequest(id: string): Promise<void> {
   if (!user) throw new Error("يجب تسجيل الدخول أولاً");
 
   const { error } = await supabase
-    .from('maintenance_requests')
+    .from("maintenance_requests")
     .delete()
-    .eq('id', id);
+    .eq("id", id);
 
   if (error) throw error;
 }
