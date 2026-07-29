@@ -20,7 +20,9 @@
     "check": "npm run lint && npm run typecheck",
     "clean": "bash ./scripts/clean.sh",
     "fix": "bash ./scripts/fix.sh",
-    "test:e2e": "echo \"No E2E tests configured\"",
+    "deploy:module01": "node scripts/deploy-module-01.mjs",
+    "test:e2e": "echo \"Use a module-specific E2E command\"",
+    "test:e2e:module01": "node scripts/test-module-01.mjs",
     "test": "npm run test:unit",
     "test:unit": "vitest run"
   },

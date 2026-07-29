@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { Navigate } from "react-router-dom";
 
 // Dashboard & Core
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -13,14 +14,12 @@ const RequestLifecycleJourney = lazy(
   () => import("@/pages/maintenance/RequestLifecycleJourney")
 );
 const ServiceRequest = lazy(() => import("@/pages/maintenance/ServiceRequest"));
-// ServiceMap is in publicRoutes only
 const EmergencyService = lazy(
   () => import("@/pages/maintenance/EmergencyService")
 );
 const MaintenanceProcedures = lazy(
   () => import("@/pages/maintenance/MaintenanceProcedures")
 );
-// All Requests page - alias to Requests with different default filter
 const AllRequests = lazy(() => import("@/pages/maintenance/Requests"));
 
 // Properties
@@ -57,7 +56,6 @@ const RateCard = lazy(() => import("@/pages/admin/RateCard"));
 const MallsDirectory = lazy(() => import("@/pages/admin/MallsDirectory"));
 
 // Technicians
-// TechnicianRegistration is in publicRoutes
 const TechnicianVerification = lazy(
   () => import("@/pages/technicians/TechnicianVerification")
 );
@@ -136,27 +134,17 @@ const Appointments = lazy(() => import("@/pages/Appointments"));
 const Invoices = lazy(() => import("@/pages/Invoices"));
 const UsersPage = lazy(() => import("@/pages/UsersPage"));
 
-// Module Settings (Owner only)
 const ModuleSettings = lazy(() => import("@/pages/admin/ModuleSettings"));
-
-// Internal Audit Report (pre-production audit findings)
 const AuditReport = lazy(() => import("@/pages/admin/AuditReport"));
-
-// API Gateway Developer Portal
 const ApiGatewayPortal = lazy(() => import("@/pages/admin/ApiGatewayPortal"));
-
-// Gateway
 const MaintenanceGateway = lazy(() => import("@/pages/gateway/MaintenanceGateway"));
-
-// Maintenance Module Pages
-const CreateMaintenanceRequest = lazy(() => import("@/pages/maintenance/CreateMaintenanceRequest"));
 const MaintenanceOverview = lazy(() => import("@/pages/maintenance/MaintenanceOverview"));
 
 // Contracts
 const ContractsList = lazy(() => import("@/pages/contracts/ContractsList"));
 const ContractDetails = lazy(() => import("@/pages/contracts/ContractDetails"));
 
-// Customers (Module #10)
+// Customers
 const Customers = lazy(() => import("@/pages/customers/Customers"));
 const CustomerDetails = lazy(() => import("@/pages/customers/CustomerDetails"));
 
@@ -172,7 +160,7 @@ export const protectedRoutes = [
   { path: "/request-lifecycle", element: <RequestLifecycleJourney />, withLayout: true },
   { path: "/internal-service-request", element: <ServiceRequest />, withLayout: true },
   { path: "/maintenance/overview", element: <MaintenanceOverview />, withLayout: true },
-  { path: "/maintenance/create", element: <CreateMaintenanceRequest />, withLayout: true },
+  { path: "/maintenance/create", element: <Navigate to="/requests" replace />, withLayout: true },
   { path: "/maintenance/:id", element: <RequestDetails />, withLayout: true },
   { path: "/maintenance/mirror", element: <MaintenanceMirror />, withLayout: true },
 
@@ -226,7 +214,7 @@ export const protectedRoutes = [
   { path: "/users", element: <UsersPage />, withLayout: true },
   { path: "/admin-control-center", element: <AdminControlCenter />, withLayout: true },
 
-  // Technicians Module (register is public - see publicRoutes)
+  // Technicians Module
   { path: "/technicians/verification", element: <TechnicianVerification />, withLayout: true },
   { path: "/technicians/agreement", element: <TechnicianAgreement />, withLayout: true },
   { path: "/technicians/training", element: <TechnicianTraining />, withLayout: true },
@@ -248,7 +236,6 @@ export const protectedRoutes = [
   { path: "/dashboard/whatsapp/flow-manager", element: <WhatsAppFlowManager />, withLayout: true },
   { path: "/dashboard/gateway", element: <MaintenanceGateway />, withLayout: true },
 
-  // No layout (service-map is public - see publicRoutes)
   { path: "/emergency-service/:technicianId", element: <EmergencyService />, withLayout: false },
-  { path: "/inbox", element: <Inbox />, withLayout: true }
+  { path: "/inbox", element: <Inbox />, withLayout: true },
 ];
