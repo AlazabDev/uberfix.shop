@@ -163,6 +163,13 @@ function errorResponse(message: string, messageAr: string, status: number, extra
 
 // ─── API Key Authentication ──────────────────────────────────────────
 
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 async function authenticateApiKey(
   req: Request,
   supabaseAdmin: any
@@ -180,10 +187,13 @@ async function authenticateApiKey(
     };
   }
 
+  // المفاتيح تُخزَّن كـ sha256 (fn_create_api_consumer)، فنطابق البصمة لا النص الخام.
+  const apiKeyHash = await sha256Hex(apiKey);
+
   const { data: consumer, error } = await supabaseAdmin
     .from('api_consumers')
     .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target')
-    .eq('api_key', apiKey)
+    .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKeyHash}`)
     .eq('is_active', true)
     .maybeSingle();
 
