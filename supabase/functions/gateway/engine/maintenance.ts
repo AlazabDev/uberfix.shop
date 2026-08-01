@@ -225,6 +225,11 @@ async function authenticateOAuthBearer(
   req: Request,
   supabaseAdmin: any
 ): Promise<{ consumer: ApiConsumer | null; payload: GatewayTokenPayload | null; error: Response | null }> {
+  // لو أُرسل x-api-key فالمصادقة تتم بالمفتاح، ونتجاهل هيدر Authorization
+  // (لأن استدعاءات Supabase تُرسل مفتاح anon في Authorization إلزاميًا).
+  if (req.headers.get('x-api-key') || req.headers.get('X-API-Key')) {
+    return { consumer: null, payload: null, error: null };
+  }
   const auth = req.headers.get('authorization') ?? '';
   if (!auth.toLowerCase().startsWith('bearer ')) {
     return { consumer: null, payload: null, error: null };
