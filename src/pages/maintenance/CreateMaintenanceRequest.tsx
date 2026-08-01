@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Minus, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useProperties } from "@/hooks/useProperties";
@@ -80,8 +80,7 @@ export default function CreateMaintenanceRequest() {
       }
 
       // Get user's company and branch
-      const { data: profile } = await supabase
-        .from("profiles")
+      const { data: profile } = await supabaseLegacy.from("profiles")
         .select("company_id")
         .eq("id", user.id)
         .maybeSingle();
@@ -92,8 +91,7 @@ export default function CreateMaintenanceRequest() {
       }
 
       // Get company's first branch
-      const { data: branches } = await supabase
-        .from("branches")
+      const { data: branches } = await supabaseLegacy.from("branches")
         .select("id")
         .eq("company_id", profile.company_id)
         .limit(1);
@@ -104,8 +102,7 @@ export default function CreateMaintenanceRequest() {
       }
 
       // Create maintenance request
-      const { data: request, error } = await supabase
-        .from("maintenance_requests")
+      const { data: request, error } = await supabaseLegacy.from("maintenance_requests")
         .insert({
           company_id: profile.company_id,
           branch_id: branches[0].id,

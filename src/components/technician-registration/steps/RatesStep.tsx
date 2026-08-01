@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 
 const ratesSchema = z.object({
   pricing_notes: z.string().optional(),
@@ -42,8 +42,7 @@ export function RatesStep({ data, onNext, onBack, onSaveAndExit }: RatesStepProp
   );
 
   const fetchCategories = async () => {
-    const { data, error } = await supabase
-      .from('service_categories')
+    const { data, error } = await supabaseLegacy.from('service_categories')
       .select('*')
       .eq('is_active', true)
       .order('sort_order');
@@ -54,8 +53,7 @@ export function RatesStep({ data, onNext, onBack, onSaveAndExit }: RatesStepProp
   };
 
   const fetchServices = async () => {
-    const { data, error } = await supabase
-      .from('service_items')
+    const { data, error } = await supabaseLegacy.from('service_items')
       .select(`
         id,
         name,

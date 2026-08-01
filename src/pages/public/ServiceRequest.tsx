@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,8 +115,7 @@ export default function ServiceRequest() {
       const tracking = `SR-${Date.now().toString(36).toUpperCase()}`;
 
       // Create maintenance request
-      const { data: request, error } = await supabase
-        .from('maintenance_requests')
+      const { data: request, error } = await supabaseLegacy.from('maintenance_requests')
         .insert([{
           title: `طلب ${serviceConfig[formData.service_type as ServiceType]?.label || formData.service_type}`,
           description: formData.description || `طلب خدمة ${serviceConfig[formData.service_type as ServiceType]?.label}`,

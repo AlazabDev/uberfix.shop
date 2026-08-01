@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { appointmentFormSchema } from "@/lib/validationSchemas";
 import { getPropertyIcon } from "@/lib/propertyIcons";
@@ -76,8 +76,7 @@ export const NewAppointmentForm = ({ onClose, onSuccess }: NewAppointmentFormPro
 
   const fetchProperties = async () => {
     try {
-      const { data, error } = await supabase
-        .from('properties')
+      const { data, error } = await supabaseLegacy.from('properties')
         .select('id, name, address, type, icon_url')
         .eq('status', 'active')
         .order('name');
@@ -91,8 +90,7 @@ export const NewAppointmentForm = ({ onClose, onSuccess }: NewAppointmentFormPro
 
   const fetchVendors = async () => {
     try {
-      const { data, error } = await supabase
-        .from('vendors')
+      const { data, error } = await supabaseLegacy.from('vendors')
         .select('id, name, specialization')
         .eq('status', 'available')
         .order('name');
@@ -108,8 +106,7 @@ export const NewAppointmentForm = ({ onClose, onSuccess }: NewAppointmentFormPro
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { error } = await supabase
-        .from('appointments')
+      const { error } = await supabaseLegacy.from('appointments')
         .insert([{
           title: data.title,
           customer_name: data.customer_name,

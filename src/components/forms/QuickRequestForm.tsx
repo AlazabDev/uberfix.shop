@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MapPin, Send, CheckCircle2, Building2, Search, Phone, User, Upload, QrCode } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -191,8 +191,7 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
         ...(userId ? { created_by: userId } : {}),
       };
 
-      const { data: createdRequest, error: requestError } = await supabase
-        .from('maintenance_requests')
+      const { data: createdRequest, error: requestError } = await supabaseLegacy.from('maintenance_requests')
         .insert([requestData])
         .select('id')
         .single();
@@ -235,8 +234,7 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
 
     setTrackingLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('maintenance_requests')
+      const { data, error } = await supabaseLegacy.from('maintenance_requests')
         .select('id, title, status, created_at, description, priority')
         .eq('property_id', property.id)
         .eq('client_phone', trackingPhone)

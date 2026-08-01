@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { TechnicianRegistrationData, ServicePrice, TechnicianTrade, CoverageArea, TechnicianDocument } from '@/types/technician-registration';
 import { sanitizeStorageFilename } from '@/utils/sanitizeFilename';
 
@@ -190,7 +191,7 @@ export function useTechnicianRegistration() {
 
       // إدخال الخدمات والأسعار
       if (services && services.length > 0 && profileId) {
-        const { error: servicesError } = await supabase.from('technician_service_prices').insert(
+        const { error: servicesError } = await supabaseLegacy.from('technician_service_prices').insert(
           services.map(s => ({ 
             technician_id: profileId,
             service_id: s.service_id,
@@ -206,7 +207,7 @@ export function useTechnicianRegistration() {
 
       // إدخال المهن
       if (trades && trades.length > 0 && profileId) {
-        const { error: tradesError } = await supabase.from('technician_trades').insert(
+        const { error: tradesError } = await supabaseLegacy.from('technician_trades').insert(
           trades.map(t => ({ 
             technician_id: profileId,
             category_id: t.category_id,
@@ -220,7 +221,7 @@ export function useTechnicianRegistration() {
 
       // إدخال مناطق التغطية
       if (coverageAreas && coverageAreas.length > 0 && profileId) {
-        const { error: coverageError } = await supabase.from('technician_coverage_areas').insert(
+        const { error: coverageError } = await supabaseLegacy.from('technician_coverage_areas').insert(
           coverageAreas.map(c => ({ 
             technician_id: profileId,
             city_id: c.city_id,
@@ -286,8 +287,7 @@ export function useTechnicianRegistration() {
         }
 
         if (uploadedDocs.length > 0) {
-          const { error: docsError } = await supabase
-            .from('technician_documents')
+          const { error: docsError } = await supabaseLegacy.from('technician_documents')
             .insert(uploadedDocs);
           if (docsError) console.warn('Error inserting document rows:', docsError);
         }
@@ -312,8 +312,7 @@ export function useTechnicianRegistration() {
   const submitForReview = useCallback(async (profileId: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('technician_profiles')
+      const { error } = await supabaseLegacy.from('technician_profiles')
         .update({
           status: 'pending_review',
           submitted_at: new Date().toISOString(),

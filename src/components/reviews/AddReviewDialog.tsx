@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Upload, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 
@@ -105,8 +105,7 @@ export function AddReviewDialog({
       }
 
       // Insert review
-      const { error } = await supabase
-        .from('reviews')
+      const { error } = await supabaseLegacy.from('reviews')
         .insert({
           technician_id: technicianId,
           customer_id: user.id,

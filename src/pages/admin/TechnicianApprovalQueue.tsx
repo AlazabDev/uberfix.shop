@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,8 +70,7 @@ export default function TechnicianApprovalQueue() {
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('technician_profiles')
+      const { data, error } = await supabaseLegacy.from('technician_profiles')
         .select('*')
         .eq('status', activeTab)
         .order('created_at', { ascending: false });
@@ -89,15 +89,13 @@ export default function TechnicianApprovalQueue() {
     setSelectedProfile(profile);
     
     // Fetch documents
-    const { data: docs } = await supabase
-      .from('technician_documents')
+    const { data: docs } = await supabaseLegacy.from('technician_documents')
       .select('*')
       .eq('technician_id', profile.id);
     setDocuments(docs || []);
 
     // Fetch trades
-    const { data: tradesData } = await supabase
-      .from('technician_trades')
+    const { data: tradesData } = await supabaseLegacy.from('technician_trades')
       .select('*')
       .eq('technician_id', profile.id);
     setTrades(tradesData || []);

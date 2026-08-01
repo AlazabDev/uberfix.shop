@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ServiceCategory {
@@ -37,8 +38,7 @@ export const useServices = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('categories')
+      const { data, error } = await supabaseLegacy.from('categories')
         .select('id, name, description, icon_url, sort_order, is_active')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
@@ -56,8 +56,7 @@ export const useServices = () => {
 
   const fetchServices = async (categoryId?: string) => {
     try {
-      let query = supabase
-        .from('services')
+      let query = supabaseLegacy.from('services')
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });

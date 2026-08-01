@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,7 @@ export default function TechnicianAgreement() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("technician_profiles")
+      const { data: profile } = await supabaseLegacy.from("technician_profiles")
         .select("id, status")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -44,8 +43,7 @@ export default function TechnicianAgreement() {
       setTechnicianId(profile.id);
 
       // Check verification status
-      const { data: verification } = await supabase
-        .from("technician_verifications")
+      const { data: verification } = await supabaseLegacy.from("technician_verifications")
         .select("verification_status")
         .eq("technician_id", profile.id)
         .maybeSingle();
@@ -61,8 +59,7 @@ export default function TechnicianAgreement() {
       }
 
       // Check if already signed
-      const { data: existingAgreement } = await supabase
-        .from("technician_agreements")
+      const { data: existingAgreement } = await supabaseLegacy.from("technician_agreements")
         .select("signed_at")
         .eq("technician_id", profile.id)
         .maybeSingle();
@@ -89,8 +86,7 @@ export default function TechnicianAgreement() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("technician_agreements")
+      const { error } = await supabaseLegacy.from("technician_agreements")
         .insert({
           technician_id: technicianId!,
           quality_policy_accepted: policies.quality,
@@ -104,8 +100,7 @@ export default function TechnicianAgreement() {
       if (error) throw error;
 
       // Update profile status
-      await supabase
-        .from("technician_profiles")
+      await supabaseLegacy.from("technician_profiles")
         .update({ status: "approved" })
         .eq("id", technicianId!);
 

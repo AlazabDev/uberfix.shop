@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 
 export interface Appointment {
   id: string;
@@ -53,8 +54,7 @@ export const useAppointments = () => {
   const fetchAppointments = async () => {
     try {
       // استخدم View آمن لتجنب إرجاع أعمدة حساسة/غير لازمة (مثل *_enc)
-      const { data, error} = await supabase
-        .from('appointments_safe')
+      const { data, error} = await supabaseLegacy.from('appointments_safe')
         .select(`
           id,
           title,
@@ -126,8 +126,7 @@ export const useAppointments = () => {
 
   const addAppointment = async (appointmentData: Omit<Appointment, 'id' | 'created_at' | 'updated_at' | 'properties' | 'vendors'>) => {
     try {
-      const { data, error } = await supabase
-        .from('appointments')
+      const { data, error } = await supabaseLegacy.from('appointments')
         .insert([appointmentData])
         .select()
         .maybeSingle();
@@ -141,8 +140,7 @@ export const useAppointments = () => {
 
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
     try {
-      const { data, error } = await supabase
-        .from('appointments')
+      const { data, error } = await supabaseLegacy.from('appointments')
         .update(updates as any)
         .eq('id', id)
         .select()

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ export function ApprovalWorkflowManager() {
   }, []);
 
   const fetchCategories = async () => {
-    const { data } = await supabase.from("categories").select("*").order("name");
+    const { data } = await supabaseLegacy.from("categories").select("*").order("name");
     setCategories(data || []);
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 
 export interface Vendor {
   id: string;
@@ -46,8 +47,7 @@ export const useVendors = () => {
   const fetchVendors = async () => {
     try {
       // RLS policies handle access control - no client-side filtering needed
-      const { data, error } = await supabase
-        .from('vendors')
+      const { data, error } = await supabaseLegacy.from('vendors')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -62,8 +62,7 @@ export const useVendors = () => {
 
   const addVendor = async (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .from('vendors')
+      const { data, error } = await supabaseLegacy.from('vendors')
         .insert([vendorData])
         .select()
         .maybeSingle();
@@ -77,8 +76,7 @@ export const useVendors = () => {
 
   const updateVendor = async (id: string, updates: Partial<Vendor>) => {
     try {
-      const { data, error } = await supabase
-        .from('vendors')
+      const { data, error } = await supabaseLegacy.from('vendors')
         .update(updates)
         .eq('id', id)
         .select()

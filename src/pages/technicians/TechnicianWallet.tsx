@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,8 +49,7 @@ export default function TechnicianWallet() {
       }
 
       // جلب technician_id الصحيح عبر technician_profiles → technicians
-      const { data: profile } = await supabase
-        .from('technician_profiles')
+      const { data: profile } = await supabaseLegacy.from('technician_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -60,8 +60,7 @@ export default function TechnicianWallet() {
         return;
       }
 
-      const { data: techData } = await supabase
-        .from('technicians')
+      const { data: techData } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('technician_profile_id', profile.id)
         .maybeSingle();
@@ -73,8 +72,7 @@ export default function TechnicianWallet() {
       }
 
       // Get or create wallet
-      const { data, error } = await supabase
-        .from('technician_wallet')
+      const { data, error } = await supabaseLegacy.from('technician_wallet')
         .select('*')
         .eq('technician_id', techData.id)
         .single();
@@ -82,8 +80,7 @@ export default function TechnicianWallet() {
       let walletData = data;
 
       if (error && error.code === 'PGRST116') {
-        const { data: newWallet } = await supabase
-          .from('technician_wallet')
+        const { data: newWallet } = await supabaseLegacy.from('technician_wallet')
           .insert({ technician_id: techData.id })
           .select()
           .single();
@@ -104,24 +101,21 @@ export default function TechnicianWallet() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from('technician_profiles')
+      const { data: profile } = await supabaseLegacy.from('technician_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (!profile) return;
 
-      const { data: techData } = await supabase
-        .from('technicians')
+      const { data: techData } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('technician_profile_id', profile.id)
         .maybeSingle();
 
       if (!techData) return;
 
-      const { data } = await supabase
-        .from('technician_transactions')
+      const { data } = await supabaseLegacy.from('technician_transactions')
         .select('*')
         .eq('technician_id', techData.id)
         .order('created_at', { ascending: false })

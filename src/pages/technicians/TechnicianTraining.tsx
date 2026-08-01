@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,8 +79,7 @@ export default function TechnicianTraining() {
       if (!user) return;
 
       // Check if technician record exists
-      const { data: tech } = await supabase
-        .from("technicians")
+      const { data: tech } = await supabaseLegacy.from("technicians")
         .select("id")
         .eq("id", user.id)
         .maybeSingle();
@@ -98,8 +97,7 @@ export default function TechnicianTraining() {
       setTechnicianId(tech.id);
 
       // Load completed courses
-      const { data: training } = await supabase
-        .from("technician_training")
+      const { data: training } = await supabaseLegacy.from("technician_training")
         .select("course_type, status")
         .eq("technician_id", tech.id)
         .eq("status", "completed");
@@ -120,8 +118,7 @@ export default function TechnicianTraining() {
     if (!technicianId) return;
 
     try {
-      const { error } = await supabase
-        .from("technician_training")
+      const { error } = await supabaseLegacy.from("technician_training")
         .insert({
           technician_id: technicianId,
           course_type: course.id,
@@ -150,8 +147,7 @@ export default function TechnicianTraining() {
         });
         
         // Award certified badge
-        await supabase
-          .from("technician_badges")
+        await supabaseLegacy.from("technician_badges")
           .insert({
             technician_id: technicianId,
             badge_type: "legacy",

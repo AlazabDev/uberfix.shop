@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface LocationData {
@@ -27,8 +28,7 @@ export const useTechnicianLocation = ({
 
   const updateLocationInDB = useCallback(async (lat: number, lng: number) => {
     try {
-      const { error } = await supabase
-        .from('technicians')
+      const { error } = await supabaseLegacy.from('technicians')
         .update({
           current_latitude: lat,
           current_longitude: lng,
