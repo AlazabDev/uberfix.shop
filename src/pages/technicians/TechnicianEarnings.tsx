@@ -49,16 +49,14 @@ export default function TechnicianEarnings() {
       if (!user) return;
 
       // جلب technician_id الصحيح عبر technician_profiles → technicians
-      const { data: profile } = await supabase
-        .from('technician_profiles')
+      const { data: profile } = await supabaseLegacy.from('technician_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (!profile) { setLoading(false); return; }
 
-      const { data: techData } = await supabase
-        .from('technicians')
+      const { data: techData } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('technician_profile_id', profile.id)
         .maybeSingle();
@@ -69,8 +67,7 @@ export default function TechnicianEarnings() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: statsData } = await supabase
-        .from('technician_daily_stats')
+      const { data: statsData } = await supabaseLegacy.from('technician_daily_stats')
         .select('*')
         .eq('technician_id', techData.id)
         .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
@@ -90,8 +87,7 @@ export default function TechnicianEarnings() {
       setTotalEarningsThisMonth(total);
 
       // Fetch monthly bonuses
-      const { data: bonusesData } = await supabase
-        .from('technician_monthly_bonuses')
+      const { data: bonusesData } = await supabaseLegacy.from('technician_monthly_bonuses')
         .select('*')
         .eq('technician_id', techData.id)
         .order('month', { ascending: false })

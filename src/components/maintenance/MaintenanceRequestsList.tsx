@@ -15,7 +15,7 @@ import { RequestStatusBadge } from "./RequestStatusBadge";
 import { RequestPriorityBadge } from "./RequestPriorityBadge";
 import { WorkOrdersCalendar } from "./WorkOrdersCalendar";
 import { getServiceTypeLabel } from "@/constants/maintenanceStatusConstants";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 
 interface MaintenanceRequestsListProps {
   onNewRequestClick?: () => void;
@@ -40,8 +40,7 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data } = await supabase
-        .from('categories')
+      const { data } = await supabaseLegacy.from('categories')
         .select('id, name')
         .order('sort_order');
       if (data) setCategories(data);

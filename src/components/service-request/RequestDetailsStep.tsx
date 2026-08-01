@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { ImageUpload } from "@/components/forms/ImageUpload";
@@ -68,8 +68,7 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
   }, []);
 
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('categories')
+    const { data } = await supabaseLegacy.from('categories')
       .select('*')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
@@ -77,8 +76,7 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
   };
 
   const fetchSubcategories = async (categoryId: string) => {
-    const { data } = await supabase
-      .from('services')
+    const { data } = await supabaseLegacy.from('services')
       .select('*')
       .eq('category_id', categoryId)
       .eq('is_active', true)
@@ -87,16 +85,14 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
   };
 
   const fetchServices = async () => {
-    const { data } = await supabase
-      .from('services')
+    const { data } = await supabaseLegacy.from('services')
       .select('*')
       .in('id', selectedServices);
     if (data) setServices(data);
   };
 
   const fetchProperties = async () => {
-    const { data } = await supabase
-      .from('properties')
+    const { data } = await supabaseLegacy.from('properties')
       .select('id, name, type, icon_url')
       .eq('status', 'active')
       .order('name');
@@ -132,8 +128,7 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
       const taxAmount = (totalServicePrice + inspectionPrice) * 0.14;
 
       // جلب بيانات المستخدم
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+      const { data: profile, error: profileError } = await supabaseLegacy.from('profiles')
         .select('company_id')
         .eq('id', user.id)
         .maybeSingle();
@@ -144,8 +139,7 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
       }
 
       // جلب أول فرع للشركة
-      const { data: branch, error: branchError } = await supabase
-        .from('branches')
+      const { data: branch, error: branchError } = await supabaseLegacy.from('branches')
         .select('id')
         .eq('company_id', profile.company_id)
         .limit(1)
@@ -180,8 +174,7 @@ export const RequestDetailsStep = ({ selectedServices, onBack }: RequestDetailsS
 
       
 
-      const { data: request, error: requestError } = await supabase
-        .from('maintenance_requests')
+      const { data: request, error: requestError } = await supabaseLegacy.from('maintenance_requests')
         .insert([requestData])
         .select()
         .maybeSingle();

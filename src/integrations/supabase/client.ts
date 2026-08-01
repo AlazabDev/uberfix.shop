@@ -58,3 +58,13 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+/**
+ * عميل غير مُقيّد بأنواع Database المولّدة.
+ * يُستخدم فقط للجداول/الأعمدة القديمة غير المكشوفة في Data API الحالي،
+ * حتى يتم توحيد المخطط. لا تستخدمه لأي كود جديد.
+ */
+export const supabaseLegacy = supabase as unknown as {
+  from: (table: string) => any;
+  rpc: (fn: string, args?: Record<string, unknown>) => any;
+};

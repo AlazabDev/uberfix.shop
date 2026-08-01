@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TechnicianTask } from "@/types/technician";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,8 +40,7 @@ export default function TechnicianTaskManagement() {
       if (!user) return;
 
       // جلب technician_id الصحيح عبر technician_profiles → technicians
-      const { data: profile } = await supabase
-        .from('technician_profiles')
+      const { data: profile } = await supabaseLegacy.from('technician_profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -51,8 +50,7 @@ export default function TechnicianTaskManagement() {
         return;
       }
 
-      const { data: technician } = await supabase
-        .from('technicians')
+      const { data: technician } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('technician_profile_id', profile.id)
         .maybeSingle();
@@ -62,8 +60,7 @@ export default function TechnicianTaskManagement() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("technician_tasks")
+      const { data, error } = await supabaseLegacy.from("technician_tasks")
         .select("*")
         .eq("technician_id", technician.id)
         .order("created_at", { ascending: false });
@@ -79,8 +76,7 @@ export default function TechnicianTaskManagement() {
 
   const handleCheckIn = async (task: TechnicianTask) => {
     try {
-      const { error } = await supabase
-        .from("technician_tasks")
+      const { error } = await supabaseLegacy.from("technician_tasks")
         .update({
           status: "in_progress",
           check_in_at: new Date().toISOString(),
@@ -120,8 +116,7 @@ export default function TechnicianTaskManagement() {
       const checkOutTime = new Date();
       const duration = Math.round((checkOutTime.getTime() - checkInTime.getTime()) / 60000);
 
-      const { error } = await supabase
-        .from("technician_tasks")
+      const { error } = await supabaseLegacy.from("technician_tasks")
         .update({
           status: "completed",
           check_out_at: checkOutTime.toISOString(),

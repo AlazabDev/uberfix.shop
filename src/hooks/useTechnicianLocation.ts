@@ -27,8 +27,7 @@ export const useTechnicianLocation = ({
 
   const updateLocationInDB = useCallback(async (lat: number, lng: number) => {
     try {
-      const { error } = await supabase
-        .from('technicians')
+      const { error } = await supabaseLegacy.from('technicians')
         .update({
           current_latitude: lat,
           current_longitude: lng,

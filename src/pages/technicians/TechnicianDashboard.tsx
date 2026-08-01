@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -32,8 +32,7 @@ export default function TechnicianDashboard() {
       if (!user) return;
 
       // أولاً: البحث عن technician_profile للمستخدم
-      const { data: profile, error: profileError } = await supabase
-        .from('technician_profiles')
+      const { data: profile, error: profileError } = await supabaseLegacy.from('technician_profiles')
         .select('id, status')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -55,8 +54,7 @@ export default function TechnicianDashboard() {
       }
 
       // ثانياً: جلب technician_id من جدول technicians
-      const { data: technician, error: techError } = await supabase
-        .from('technicians')
+      const { data: technician, error: techError } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('technician_profile_id', profile.id)
         .maybeSingle();
@@ -83,8 +81,7 @@ export default function TechnicianDashboard() {
   const fetchDashboardData = async (techId: string) => {
     try {
       // Fetch performance
-      const { data: perfData } = await supabase
-        .from("technician_performance")
+      const { data: perfData } = await supabaseLegacy.from("technician_performance")
         .select("*")
         .eq("technician_id", techId)
         .maybeSingle();
@@ -92,8 +89,7 @@ export default function TechnicianDashboard() {
       setPerformance(perfData);
 
       // Fetch level
-      const { data: levelData } = await supabase
-        .from("technician_levels")
+      const { data: levelData } = await supabaseLegacy.from("technician_levels")
         .select("*")
         .eq("technician_id", techId)
         .maybeSingle();
@@ -101,8 +97,7 @@ export default function TechnicianDashboard() {
       setLevel(levelData as any);
 
       // Fetch badges
-      const { data: badgesData } = await supabase
-        .from("technician_badges")
+      const { data: badgesData } = await supabaseLegacy.from("technician_badges")
         .select("*")
         .eq("technician_id", techId)
         .order("awarded_at", { ascending: false });
@@ -110,8 +105,7 @@ export default function TechnicianDashboard() {
       setBadges(badgesData as any || []);
 
       // Fetch recent tasks
-      const { data: tasksData } = await supabase
-        .from("technician_tasks")
+      const { data: tasksData } = await supabaseLegacy.from("technician_tasks")
         .select("*")
         .eq("technician_id", techId)
         .order("created_at", { ascending: false })

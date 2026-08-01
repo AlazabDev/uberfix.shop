@@ -1,11 +1,10 @@
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { TechnicianPerformance, MonthlyExcellenceAward } from "@/types/technician";
 
 export const calculateTechnicianPerformance = async (technicianId: string) => {
   try {
     // Get all completed tasks
-    const { data: tasks } = await supabase
-      .from("technician_tasks")
+    const { data: tasks } = await supabaseLegacy.from("technician_tasks")
       .select("*")
       .eq("technician_id", technicianId);
 
@@ -14,8 +13,7 @@ export const calculateTechnicianPerformance = async (technicianId: string) => {
     const cancelledTasks = tasks?.filter(t => t.status === "cancelled").length || 0;
 
     // Get reviews
-    const { data: reviews } = await supabase
-      .from("reviews")
+    const { data: reviews } = await supabaseLegacy.from("reviews")
       .select("rating")
       .eq("technician_id", technicianId);
 
@@ -32,8 +30,7 @@ export const calculateTechnicianPerformance = async (technicianId: string) => {
     const totalPoints = (completedTasks * 10) + (reviews?.length || 0) * 20;
 
     // Update performance record
-    const { error } = await supabase
-      .from("technician_performance")
+    const { error } = await supabaseLegacy.from("technician_performance")
       .upsert({
         technician_id: technicianId,
         total_tasks: totalTasks,
@@ -62,14 +59,12 @@ export const calculateTechnicianPerformance = async (technicianId: string) => {
 
 export const checkLevelPromotion = async (technicianId: string) => {
   try {
-    const { data: performance } = await supabase
-      .from("technician_performance")
+    const { data: performance } = await supabaseLegacy.from("technician_performance")
       .select("*")
       .eq("technician_id", technicianId)
       .maybeSingle();
 
-    const { data: level } = await supabase
-      .from("technician_levels")
+    const { data: level } = await supabaseLegacy.from("technician_levels")
       .select("*")
       .eq("technician_id", technicianId)
       .maybeSingle();
@@ -115,8 +110,7 @@ export const checkLevelPromotion = async (technicianId: string) => {
         }
       ];
 
-      await supabase
-        .from("technician_levels")
+      await supabaseLegacy.from("technician_levels")
         .update({
           current_level: newLevel,
           level_updated_at: new Date().toISOString(),
@@ -141,8 +135,7 @@ export const selectMonthlyWinners = async (month: string) => {
     endDate.setMonth(endDate.getMonth() + 1);
 
     // Get all technicians with their performance
-    const { data: performances } = await supabase
-      .from("technician_performance")
+    const { data: performances } = await supabaseLegacy.from("technician_performance")
       .select(`
         *,
         technician:technicians(name, specialization, profile_image)
@@ -172,8 +165,7 @@ export const selectMonthlyWinners = async (month: string) => {
       };
 
       // Insert award
-      const { data: inserted, error } = await supabase
-        .from("monthly_excellence_awards")
+      const { data: inserted, error } = await supabaseLegacy.from("monthly_excellence_awards")
         .insert(award)
         .select()
         .maybeSingle();
@@ -187,8 +179,7 @@ export const selectMonthlyWinners = async (month: string) => {
         winners.push(inserted as any);
 
         // Award badge
-        await supabase
-          .from("technician_badges")
+        await supabaseLegacy.from("technician_badges")
           .insert({
             technician_id: perf.technician_id,
             badge_type: "gold_monthly",
@@ -199,8 +190,7 @@ export const selectMonthlyWinners = async (month: string) => {
           });
 
         // Add to Hall of Excellence
-        await supabase
-          .from("hall_of_excellence")
+        await supabaseLegacy.from("hall_of_excellence")
           .insert({
             technician_id: perf.technician_id,
             achievement_type: "monthly",

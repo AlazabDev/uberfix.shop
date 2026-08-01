@@ -54,8 +54,7 @@ export default function TechnicianWithdrawal() {
         return;
       }
 
-      const { data: techData } = await supabase
-        .from('technicians')
+      const { data: techData } = await supabaseLegacy.from('technicians')
         .select('id')
         .eq('id', user.id)
         .single();
@@ -67,8 +66,7 @@ export default function TechnicianWithdrawal() {
 
       setTechnicianId(techData.id);
 
-      const { data: walletData } = await supabase
-        .from('technician_wallet')
+      const { data: walletData } = await supabaseLegacy.from('technician_wallet')
         .select('balance_current')
         .eq('technician_id', techData.id)
         .single();
@@ -101,8 +99,7 @@ export default function TechnicianWithdrawal() {
         account_name: data.account_name,
       };
 
-      const { error } = await supabase
-        .from('technician_withdrawals')
+      const { error } = await supabaseLegacy.from('technician_withdrawals')
         .insert({
           technician_id: technicianId,
           amount: data.amount,
@@ -115,8 +112,7 @@ export default function TechnicianWithdrawal() {
       if (error) throw error;
 
       // Update wallet - lock the withdrawn amount
-      const { error: walletError } = await supabase
-        .from('technician_wallet')
+      const { error: walletError } = await supabaseLegacy.from('technician_wallet')
         .update({
           balance_current: balance - data.amount,
           balance_locked: balance - data.amount, // Lock it until processed

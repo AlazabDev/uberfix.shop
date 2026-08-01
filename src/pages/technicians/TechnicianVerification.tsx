@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {  supabase, supabaseLegacy } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,7 @@ export default function TechnicianVerification() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("technician_profiles")
+      const { data: profile } = await supabaseLegacy.from("technician_profiles")
         .select("id, status")
         .eq("user_id", user.id)
         .maybeSingle();
@@ -49,8 +48,7 @@ export default function TechnicianVerification() {
       setTechnicianId(profile.id);
 
       // Check if verification already exists
-      const { data: verification } = await supabase
-        .from("technician_verifications")
+      const { data: verification } = await supabaseLegacy.from("technician_verifications")
         .select("verification_status")
         .eq("technician_id", profile.id)
         .maybeSingle();
@@ -103,8 +101,7 @@ export default function TechnicianVerification() {
       const nationalIdBackUrl = await uploadFile(files.nationalIdBack, 'national-id-back');
       const selfieUrl = await uploadFile(files.selfie, 'selfies');
 
-      const { error } = await supabase
-        .from("technician_verifications")
+      const { error } = await supabaseLegacy.from("technician_verifications")
         .insert({
           technician_id: technicianId!,
           national_id_front: nationalIdFrontUrl,
