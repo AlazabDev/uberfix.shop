@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 
 export interface Appointment {
   id: string;

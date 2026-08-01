@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseLegacy } from '@/integrations/supabase/client';
 import { TechnicianRegistrationData, ServicePrice, TechnicianTrade, CoverageArea, TechnicianDocument } from '@/types/technician-registration';
 import { sanitizeStorageFilename } from '@/utils/sanitizeFilename';
 
