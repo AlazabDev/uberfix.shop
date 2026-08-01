@@ -64,6 +64,16 @@ async function enforceInternalRequestAuth(body: Record<string, unknown>): Promis
     return jsonError(401, 'Authentication required', 'جلسة المستخدم غير صالحة');
   }
 
+  // ارفض مفتاح anon/service المُرسَل كـ Bearer: قناة internal تتطلب جلسة مستخدم حقيقية.
+  try {
+    const claims = JSON.parse(atob(token.split('.')[1] ?? ''));
+    if (claims?.role !== 'authenticated' || !claims?.sub) {
+      return jsonError(401, 'User session required', 'يجب تسجيل الدخول بجلسة مستخدم لإنشاء طلب داخلي');
+    }
+  } catch {
+    return jsonError(401, 'Invalid session token', 'جلسة المستخدم غير صالحة');
+  }
+
   const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
   const user = authData?.user;
   if (authError || !user) {
