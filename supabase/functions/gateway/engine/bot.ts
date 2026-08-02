@@ -23,6 +23,32 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+/** سياق المتصل: هل هو موظف / مستهلك API موثق / عام (anon) */
+interface CallerCtx {
+  isStaff: boolean;
+  isApiConsumer: boolean;
+  userId: string | null;
+}
+
+/** يتحقق من ملكية الطلب عبر رقم الهاتف — إلزامي للمتصلين العموميين */
+function verifyOwnership(
+  caller: CallerCtx,
+  clientPhone: unknown,
+  recordPhone: unknown,
+): { ok: true } | { ok: false; error: string } {
+  if (caller.isStaff || caller.isApiConsumer) return { ok: true };
+
+  const sent = typeof clientPhone === 'string' ? clientPhone.replace(/\D/g, '') : '';
+  if (sent.length < 9) {
+    return { ok: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
+  }
+  const stored = typeof recordPhone === 'string' ? recordPhone.replace(/\D/g, '') : '';
+  if (!stored || !stored.includes(sent.slice(-9))) {
+    return { ok: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
+  }
+  return { ok: true };
+}
+
 export async function handleBot(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -41,6 +67,7 @@ export async function handleBot(req: Request): Promise<Response> {
     const apiKey = req.headers.get('x-api-key');
     let authenticated = false;
     let consumerId: string | null = null;
+    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null };
 
     if (apiKey) {
       // External API consumer auth
@@ -54,6 +81,7 @@ export async function handleBot(req: Request): Promise<Response> {
       if (consumer) {
         authenticated = true;
         consumerId = consumer.id;
+        caller.isApiConsumer = true;
       }
     }
 
@@ -70,7 +98,16 @@ export async function handleBot(req: Request): Promise<Response> {
           global: { headers: { Authorization: authHeader } }
         });
         const { data: { user } } = await anonClient.auth.getUser();
-        if (user) authenticated = true;
+        if (user) {
+          authenticated = true;
+          caller.userId = user.id;
+          const { data: staffRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .in('role', ['admin', 'manager', 'owner', 'staff', 'dispatcher', 'engineering']);
+          caller.isStaff = Array.isArray(staffRoles) && staffRoles.length > 0;
+        }
       }
     }
 
@@ -110,19 +147,19 @@ export async function handleBot(req: Request): Promise<Response> {
         result = await handleCheckStatus(supabase, payload);
         break;
       case 'get_request_details':
-        result = await handleGetRequestDetails(supabase, payload);
+        result = await handleGetRequestDetails(supabase, payload, caller);
         break;
       case 'update_request':
-        result = await handleUpdateRequest(supabase, payload, consumerId);
+        result = await handleUpdateRequest(supabase, payload, consumerId, caller);
         break;
       case 'cancel_request':
-        result = await handleCancelRequest(supabase, payload, consumerId);
+        result = await handleCancelRequest(supabase, payload, consumerId, caller);
         break;
       case 'add_note':
-        result = await handleAddNote(supabase, payload, consumerId);
+        result = await handleAddNote(supabase, payload, consumerId, caller);
         break;
       case 'assign_technician':
-        result = await handleAssignTechnician(supabase, supabaseUrl, supabaseServiceKey, payload);
+        result = await handleAssignTechnician(supabase, supabaseUrl, supabaseServiceKey, payload, caller);
         break;
       case 'list_technicians':
         result = await handleListTechnicians(supabase, payload);
