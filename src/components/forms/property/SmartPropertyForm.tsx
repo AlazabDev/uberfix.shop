@@ -205,13 +205,6 @@ export function SmartPropertyForm({ initialData, propertyId, skipNavigation, onS
         longitude: data.longitude || null,
         description: data.description || null,
         images: uploadedImages.length > 0 ? uploadedImages : null,
-        ...(propertyId
-          ? {}
-          : {
-              qr_code_data: `${window.location.origin}/quick-request/pending`,
-              qr_code_generated_at: new Date().toISOString(),
-              created_by: user.id,
-            }),
         manager_id: data.manager_id || user.id,
         area: data.area || null,
         floors: data.floors || null,
@@ -250,7 +243,7 @@ export function SmartPropertyForm({ initialData, propertyId, skipNavigation, onS
       } else {
         const { data: created, error } = await supabase
           .from("properties")
-          .insert([propertyData])
+          .insert([{ ...propertyData, created_by: user.id }])
           .select("id")
           .maybeSingle();
 
