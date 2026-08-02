@@ -23,6 +23,32 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+/** سياق المتصل: هل هو موظف / مستهلك API موثق / عام (anon) */
+interface CallerCtx {
+  isStaff: boolean;
+  isApiConsumer: boolean;
+  userId: string | null;
+}
+
+/** يتحقق من ملكية الطلب عبر رقم الهاتف — إلزامي للمتصلين العموميين */
+function verifyOwnership(
+  caller: CallerCtx,
+  clientPhone: unknown,
+  recordPhone: unknown,
+): { ok: true } | { ok: false; error: string } {
+  if (caller.isStaff || caller.isApiConsumer) return { ok: true };
+
+  const sent = typeof clientPhone === 'string' ? clientPhone.replace(/\D/g, '') : '';
+  if (sent.length < 9) {
+    return { ok: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
+  }
+  const stored = typeof recordPhone === 'string' ? recordPhone.replace(/\D/g, '') : '';
+  if (!stored || !stored.includes(sent.slice(-9))) {
+    return { ok: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
+  }
+  return { ok: true };
+}
+
 export async function handleBot(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -41,6 +67,7 @@ export async function handleBot(req: Request): Promise<Response> {
     const apiKey = req.headers.get('x-api-key');
     let authenticated = false;
     let consumerId: string | null = null;
+    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null };
 
     if (apiKey) {
       // External API consumer auth
@@ -54,6 +81,7 @@ export async function handleBot(req: Request): Promise<Response> {
       if (consumer) {
         authenticated = true;
         consumerId = consumer.id;
+        caller.isApiConsumer = true;
       }
     }
 
@@ -70,7 +98,16 @@ export async function handleBot(req: Request): Promise<Response> {
           global: { headers: { Authorization: authHeader } }
         });
         const { data: { user } } = await anonClient.auth.getUser();
-        if (user) authenticated = true;
+        if (user) {
+          authenticated = true;
+          caller.userId = user.id;
+          const { data: staffRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .in('role', ['admin', 'manager', 'owner', 'staff', 'dispatcher', 'engineering']);
+          caller.isStaff = Array.isArray(staffRoles) && staffRoles.length > 0;
+        }
       }
     }
 
@@ -110,19 +147,19 @@ export async function handleBot(req: Request): Promise<Response> {
         result = await handleCheckStatus(supabase, payload);
         break;
       case 'get_request_details':
-        result = await handleGetRequestDetails(supabase, payload);
+        result = await handleGetRequestDetails(supabase, payload, caller);
         break;
       case 'update_request':
-        result = await handleUpdateRequest(supabase, payload, consumerId);
+        result = await handleUpdateRequest(supabase, payload, consumerId, caller);
         break;
       case 'cancel_request':
-        result = await handleCancelRequest(supabase, payload, consumerId);
+        result = await handleCancelRequest(supabase, payload, consumerId, caller);
         break;
       case 'add_note':
-        result = await handleAddNote(supabase, payload, consumerId);
+        result = await handleAddNote(supabase, payload, consumerId, caller);
         break;
       case 'assign_technician':
-        result = await handleAssignTechnician(supabase, supabaseUrl, supabaseServiceKey, payload);
+        result = await handleAssignTechnician(supabase, supabaseUrl, supabaseServiceKey, payload, caller);
         break;
       case 'list_technicians':
         result = await handleListTechnicians(supabase, payload);
@@ -329,10 +366,18 @@ async function handleGetQuote(supabase: any, payload: any, metadata?: any) {
 // ============================================================
 
 /** تفاصيل طلب واحد كاملة (للبوت لعرضها للعميل) */
-async function handleGetRequestDetails(supabase: any, payload: any) {
+async function handleGetRequestDetails(supabase: any, payload: any, caller: CallerCtx) {
   const { request_id, request_number, client_phone } = payload;
   if (!request_id && !request_number) {
     return { success: false, error: 'request_id أو request_number مطلوب' };
+  }
+
+  // التحقق الإلزامي: المتصل العام يجب أن يقدّم رقم هاتف قبل أي استعلام
+  if (!caller.isStaff && !caller.isApiConsumer) {
+    const sent = typeof client_phone === 'string' ? client_phone.replace(/\D/g, '') : '';
+    if (sent.length < 9) {
+      return { success: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
+    }
   }
 
   let query = supabase
@@ -347,17 +392,18 @@ async function handleGetRequestDetails(supabase: any, payload: any) {
   if (error) return { success: false, error: error.message };
   if (!data) return { success: false, error: 'الطلب غير موجود' };
 
-  // التحقق من الهاتف لو مرسل (حماية ضد التسريب)
-  if (client_phone && data.client_phone && !data.client_phone.includes(client_phone.replace(/\D/g, '').slice(-9))) {
-    return { success: false, error: 'رقم الهاتف لا يطابق الطلب' };
-  }
+  // التحقق الإلزامي من الملكية (يُتخطى فقط للموظفين ومستهلكي API الموثقين)
+  const own = verifyOwnership(caller, client_phone, data.client_phone);
+  if (!own.ok) return { success: false, error: own.error };
 
   // جلب بيانات الفني لو موجود
   let technician = null;
   if (data.assigned_technician_id) {
     const { data: tech } = await supabase
       .from('technicians')
-      .select('id, name, specialization, rating, phone')
+      .select(caller.isStaff || caller.isApiConsumer
+        ? 'id, name, specialization, rating, phone'
+        : 'id, name, specialization, rating')
       .eq('id', data.assigned_technician_id)
       .maybeSingle();
     if (tech) technician = tech;
@@ -374,7 +420,7 @@ async function handleGetRequestDetails(supabase: any, payload: any) {
 }
 
 /** تعديل طلب موجود — حقول محدودة + قواعد انتقال آمنة */
-async function handleUpdateRequest(supabase: any, payload: any, consumerId: string | null) {
+async function handleUpdateRequest(supabase: any, payload: any, consumerId: string | null, caller: CallerCtx) {
   const { request_id, client_phone, updates } = payload;
   if (!request_id || !updates || typeof updates !== 'object') {
     return { success: false, error: 'request_id و updates مطلوبان' };
@@ -389,13 +435,9 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
 
   if (fetchErr || !current) return { success: false, error: 'الطلب غير موجود' };
 
-  // حماية: إذا أرسل client_phone يجب أن يطابق
-  if (client_phone && current.client_phone) {
-    const last9Sent = client_phone.replace(/\D/g, '').slice(-9);
-    if (!current.client_phone.includes(last9Sent)) {
-      return { success: false, error: 'غير مصرح بتعديل هذا الطلب' };
-    }
-  }
+  // حماية إلزامية: يجب إثبات الملكية بالهاتف إن لم يكن المتصل موظفًا/مستهلك API
+  const own = verifyOwnership(caller, client_phone, current.client_phone);
+  if (!own.ok) return { success: false, error: own.error };
 
   // منع التعديل في المراحل النهائية
   if (TERMINAL_STAGES.has(current.workflow_stage)) {
@@ -444,7 +486,7 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
 }
 
 /** إلغاء طلب */
-async function handleCancelRequest(supabase: any, payload: any, consumerId: string | null) {
+async function handleCancelRequest(supabase: any, payload: any, consumerId: string | null, caller: CallerCtx) {
   const { request_id, client_phone, reason } = payload;
   if (!request_id) return { success: false, error: 'request_id مطلوب' };
 
@@ -456,12 +498,8 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
 
-  if (client_phone && current.client_phone) {
-    const last9 = client_phone.replace(/\D/g, '').slice(-9);
-    if (!current.client_phone.includes(last9)) {
-      return { success: false, error: 'غير مصرح بإلغاء هذا الطلب' };
-    }
-  }
+  const own = verifyOwnership(caller, client_phone, current.client_phone);
+  if (!own.ok) return { success: false, error: own.error };
 
   // لا يمكن إلغاء طلب بدأ تنفيذه أو أُغلق
   if (['in_progress', 'inspection', 'completed', 'billed', 'paid', 'closed', 'cancelled'].includes(current.workflow_stage)) {
@@ -490,7 +528,7 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
 }
 
 /** إضافة ملاحظة عميل بدون تغيير حالة */
-async function handleAddNote(supabase: any, payload: any, consumerId: string | null) {
+async function handleAddNote(supabase: any, payload: any, consumerId: string | null, caller: CallerCtx) {
   const { request_id, note, client_phone } = payload;
   if (!request_id || !note) return { success: false, error: 'request_id و note مطلوبان' };
 
@@ -502,12 +540,8 @@ async function handleAddNote(supabase: any, payload: any, consumerId: string | n
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
 
-  if (client_phone && current.client_phone) {
-    const last9 = client_phone.replace(/\D/g, '').slice(-9);
-    if (!current.client_phone.includes(last9)) {
-      return { success: false, error: 'غير مصرح' };
-    }
-  }
+  const own = verifyOwnership(caller, client_phone, current.client_phone);
+  if (!own.ok) return { success: false, error: own.error };
 
   const stamp = new Date().toISOString();
   const newNotes = `${current.customer_notes || ''}\n[${stamp}] ${note.slice(0, 500)}`.trim();
@@ -531,9 +565,14 @@ async function handleAddNote(supabase: any, payload: any, consumerId: string | n
 
 /** تعيين فني — يستدعي assign-technician-to-request للتعيين الذكي،
  *  أو يقبل technician_id لتعيين مباشر */
-async function handleAssignTechnician(supabase: any, supabaseUrl: string, serviceKey: string, payload: any) {
+async function handleAssignTechnician(supabase: any, supabaseUrl: string, serviceKey: string, payload: any, caller: CallerCtx) {
   const { request_id, technician_id, auto } = payload;
   if (!request_id) return { success: false, error: 'request_id مطلوب' };
+
+  // التعيين عملية تشغيلية: للموظفين ومستهلكي API الموثقين فقط
+  if (!caller.isStaff && !caller.isApiConsumer) {
+    return { success: false, error: 'غير مصرح: تعيين الفنيين يتطلب صلاحية تشغيلية' };
+  }
 
   // تعيين تلقائي ذكي
   if (auto || !technician_id) {
@@ -555,30 +594,23 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
     }
   }
 
-  // تعيين يدوي بـ technician_id محدد
-  const { data: tech, error: techErr } = await supabase
-    .from('technicians')
-    .select('id, name, is_active, is_verified, status')
-    .eq('id', technician_id)
-    .maybeSingle();
-
-  if (techErr || !tech) return { success: false, error: 'الفني غير موجود' };
-  if (!tech.is_active || !tech.is_verified) {
-    return { success: false, error: 'الفني غير نشط أو غير موثق' };
+  // تعيين يدوي — يُوجَّه دائمًا عبر الدالة المحمية assign-technician-to-request
+  try {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/assign-technician-to-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+      body: JSON.stringify({ requestId: request_id, technicianId: technician_id }),
+    });
+    const result = await resp.json();
+    if (!resp.ok) return { success: false, error: result.error || 'فشل التعيين' };
+    return {
+      success: true,
+      message: `تم تعيين الفني ${result.assigned_technician?.name ?? ''}`.trim(),
+      data: result,
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
   }
-
-  const { error: assignErr } = await supabase
-    .from('maintenance_requests')
-    .update({
-      assigned_technician_id: technician_id,
-      status: 'Assigned',
-      workflow_stage: 'assigned',
-    })
-    .eq('id', request_id);
-
-  if (assignErr) return { success: false, error: assignErr.message };
-
-  return { success: true, message: `تم تعيين الفني ${tech.name}`, data: { technician: tech } };
 }
 
 /** قائمة فنيين متاحين (مع فلترة اختيارية بالتخصص/المدينة) */
