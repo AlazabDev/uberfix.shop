@@ -259,7 +259,7 @@ export function SmartPropertyForm({ initialData, propertyId, skipNavigation, onS
           await supabase
             .from("properties")
             .update({
-              qr_code_data: `${window.location.origin}/quick-request/${created.id}`,
+              qr_code_data: `${window.location.origin}/qr/${created.id}`,
               qr_code_generated_at: new Date().toISOString(),
             })
             .eq("id", created.id);
