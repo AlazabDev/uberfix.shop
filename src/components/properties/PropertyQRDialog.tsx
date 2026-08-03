@@ -280,7 +280,9 @@ export function PropertyQRDialog({
                 bgColor="#ffffff"
                 fgColor="#0b2264"
                 imageSettings={{
-                  src: "/logo/uberfix-logo.png",
+                  // Absolute URL so the logo still resolves when the SVG is
+                  // rasterized from a blob: URL during download.
+                  src: `${typeof window !== "undefined" ? window.location.origin : ""}/logo/uberfix-logo.png`,
                   height: 60,
                   width: 60,
                   excavate: true,
