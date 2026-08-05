@@ -39,14 +39,12 @@ const Projects = lazy(() => import("@/pages/projects/Projects"));
 const PWASettings = lazy(() => import("@/pages/settings/PWASettings"));
 const QuickRequest = lazy(() => import("@/pages/QuickRequest"));
 const PublicQuickRequest = lazy(() => import("@/pages/PublicQuickRequest"));
-const QuickRequestFromMap = lazy(() => import("@/pages/QuickRequestFromMap"));
 const TrackOrders = lazy(() => import("@/pages/TrackOrders"));
 const TrackOrder = lazy(() => import("@/pages/track/TrackOrder"));
 const PublicInvoice = lazy(() => import("@/pages/track/PublicInvoice"));
 const CompletedServices = lazy(() => import("@/pages/CompletedServices"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const WhatsAppStatusPage = lazy(() => import("@/pages/messages/WhatsAppStatusPage"));
-const ServiceMap = lazy(() => import("@/pages/maintenance/ServiceMap"));
 const ChatPage = lazy(() => import("@/pages/messages/ChatPage"));
 const PublicMaintenanceForm = lazy(() => import("@/pages/whatsapp/WhatsAppMaintenanceFormPage"));
 const UberFixRequestForm = lazy(() => import("@/pages/public/UberFixRequestForm"));
@@ -99,14 +97,12 @@ export const publicRoutes = [
   { path: "/quick-request/:propertyId", element: <QuickRequest /> },
   { path: "/qr/:propertyId", element: <PublicQuickRequest /> },
   { path: "/quick-request", element: <Navigate to="/uf" replace /> },
-  { path: "/quick-request-from-map", element: <QuickRequestFromMap /> },
   { path: "/track-orders", element: <TrackOrders /> },
   { path: "/track", element: <TrackOrder /> },
   { path: "/track/:orderId", element: <TrackOrder /> },
   { path: "/track/:orderId/invoice", element: <PublicInvoice /> },
   { path: "/completed-services", element: <CompletedServices /> },
   { path: "/whatsapp-status", element: <WhatsAppStatusPage /> },
-  { path: "/service-map", element: <ServiceMap /> },
   { path: "/chat", element: <ChatPage /> },
   { path: "/maintenance-request", element: <PublicMaintenanceForm /> },
   { path: "/uf", element: <UberFixRequestForm /> },

@@ -35,6 +35,11 @@ interface MapPickedLocation {
   };
 }
 
+interface PublicDefaultBranch {
+  branch_id: string;
+  branch_name: string;
+}
+
 export default function QuickRequestFromMap() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -107,6 +112,17 @@ export default function QuickRequestFromMap() {
     setSubmitting(true);
 
     try {
+      let requestContext = pickedLocation?.ctx;
+      if (!requestContext?.property_id && !requestContext?.branch_name) {
+        const { data: defaultBranches, error: defaultBranchError } = await supabase
+          .rpc('get_public_default_branch_company');
+        const defaultBranch = (defaultBranches as PublicDefaultBranch[] | null)?.[0];
+        if (defaultBranchError || !defaultBranch) {
+          throw new Error('تعذر تحديد فرع استقبال الطلب. يرجى اختيار فرع من الخريطة.');
+        }
+        requestContext = { branch_id: defaultBranch.branch_id, branch_name: defaultBranch.branch_name };
+      }
+
       const enrichedLines = [formData.description, ''];
       if (technician) {
         enrichedLines.push(
@@ -115,11 +131,11 @@ export default function QuickRequestFromMap() {
           `التخصص: ${getSpecializationLabel(technician.specialization)}`,
         );
       }
-      if (pickedLocation?.ctx?.branch_name) {
-        enrichedLines.push(`الفرع: ${pickedLocation.ctx.branch_name}`);
+      if (requestContext?.branch_name) {
+        enrichedLines.push(`الفرع: ${requestContext.branch_name}`);
       }
-      if (pickedLocation?.ctx?.property_name) {
-        enrichedLines.push(`العقار: ${pickedLocation.ctx.property_name}`);
+      if (requestContext?.property_name) {
+        enrichedLines.push(`العقار: ${requestContext.property_name}`);
       }
       const enrichedDescription = enrichedLines.join('\n');
 
@@ -132,15 +148,15 @@ export default function QuickRequestFromMap() {
           priority: formData.priority,
           description: enrichedDescription,
           notes: enrichedDescription,
-          branch_name: pickedLocation?.ctx?.branch_name || '',
+          branch_name: requestContext?.branch_name || '',
           channel: 'public_form',
           // Map-driven payload (Phase 1)
           location: formData.location,
           latitude: clientCoords.lat,
           longitude: clientCoords.lng,
           assigned_technician_id: technician?.id,
-          branch_id: pickedLocation?.ctx?.branch_id,
-          property_id: pickedLocation?.ctx?.property_id,
+          branch_id: requestContext?.branch_id,
+          property_id: requestContext?.property_id,
           // Phase 2 — route summary (snapshot at submission time)
           route_info: routeInfo ? {
             distance: routeInfo.distance,
