@@ -53,7 +53,6 @@ const sections: RouteSection[] = [
       { path: "/quote", label: "طلب عرض أسعار", icon: <FileText className="h-4 w-4" /> },
       { path: "/service-request", label: "طلب خدمة", icon: <Wrench className="h-4 w-4" /> },
       { path: "/book-consultation", label: "حجز استشارة", icon: <Calendar className="h-4 w-4" /> },
-      { path: "/service-map", label: "خريطة الخدمات", icon: <Map className="h-4 w-4" /> },
     ],
   },
   {
@@ -124,6 +123,7 @@ const sections: RouteSection[] = [
       { path: "/maintenance/create", label: "إنشاء طلب", icon: <ClipboardList className="h-4 w-4" /> },
       { path: "/request-lifecycle", label: "دورة حياة الطلب", icon: <GitBranch className="h-4 w-4" /> },
       { path: "/maintenance-procedures", label: "إجراءات الصيانة", icon: <FileText className="h-4 w-4" /> },
+      { path: "/service-map", label: "خريطة الخدمات", icon: <Map className="h-4 w-4" /> },
     ],
   },
   {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface MapTechnician {
@@ -57,6 +57,7 @@ export function useServiceMapData() {
   const [requests, setRequests] = useState<MapActiveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<string[]>([]);
+  const realtimeRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -74,7 +75,9 @@ export function useServiceMapData() {
         .filter(Boolean)
         .map((error) => error?.message || 'تعذر تحميل إحدى طبقات الخريطة');
 
-      setTechnicians((techRes.data as MapTechnician[] | null) || []);
+      setTechnicians(((techRes.data as MapTechnician[] | null) || []).filter((technician) =>
+        Number.isFinite(Number(technician.current_latitude)) && Number.isFinite(Number(technician.current_longitude))
+      ));
       setBranches(((brRes.data as MapBranch[] | null) || []).filter((branch) =>
         Number.isFinite(Number(branch.latitude)) && Number.isFinite(Number(branch.longitude))
       ));
@@ -92,12 +95,25 @@ export function useServiceMapData() {
 
   useEffect(() => {
     fetchAll();
+    const scheduleRefresh = () => {
+      if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
+      realtimeRefreshRef.current = setTimeout(fetchAll, 1200);
+    };
     const ch = supabase
       .channel('service-map-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, () => fetchAll())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_requests' }, () => fetchAll())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, scheduleRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_requests' }, scheduleRefresh)
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setErrors((current) => current.includes('انقطع التحديث اللحظي للخريطة')
+            ? current
+            : [...current, 'انقطع التحديث اللحظي للخريطة']);
+        }
+      });
+    return () => {
+      if (realtimeRefreshRef.current) clearTimeout(realtimeRefreshRef.current);
+      supabase.removeChannel(ch);
+    };
   }, [fetchAll]);
 
   return { technicians, branches, properties, requests, loading, errors, refetch: fetchAll };

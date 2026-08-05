@@ -188,7 +188,7 @@ export default function ServiceMap() {
       filteredProperties.forEach(p => {
         if (!Number.isFinite(Number(p.latitude)) || !Number.isFinite(Number(p.longitude))) return;
         const m = new google.maps.Marker({
-          position: { lat: p.latitude, lng: p.longitude },
+          position: { lat: Number(p.latitude), lng: Number(p.longitude) },
           icon: {
             path: google.maps.SymbolPath.CIRCLE, scale: 9,
             fillColor: "#030957", fillOpacity: 0.9,
@@ -247,11 +247,18 @@ export default function ServiceMap() {
     }
 
     if (showHeatmap && google.maps.visualization) {
-      const data = filteredRequests.map(r => new google.maps.LatLng(Number(r.latitude), Number(r.longitude)));
+      const data = filteredRequests
+        .filter((request) => Number.isFinite(Number(request.latitude)) && Number.isFinite(Number(request.longitude)))
+        .map((request) => new google.maps.LatLng(Number(request.latitude), Number(request.longitude)));
       heatmapRef.current = new (google.maps.visualization.HeatmapLayer as any)({
         data, map, radius: 28, opacity: 0.55,
       });
     }
+    return () => {
+      allMarkers.forEach((marker) => marker.setMap?.(null));
+      clustererRef.current?.clearMarkers?.();
+      heatmapRef.current?.setMap?.(null);
+    };
   }, [mapReady, filteredTechs, filteredBranches, filteredProperties, filteredRequests,
       layerTechnicians, layerBranches, layerProperties, layerRequests, showClusters, showHeatmap]);
 
@@ -603,8 +610,8 @@ export default function ServiceMap() {
           {selectedItem?.kind === "property" && (
             <PropertyDetail p={selectedItem.data}
               onCreateRequest={() => handleQuickRequestFromLocation(
-                selectedItem.data.latitude!, selectedItem.data.longitude!,
-                { property_id: selectedItem.data.id }
+                Number(selectedItem.data.latitude), Number(selectedItem.data.longitude),
+                { property_id: selectedItem.data.id, property_name: selectedItem.data.name }
               )}
             />
           )}

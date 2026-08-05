@@ -21,6 +21,8 @@ const MaintenanceProcedures = lazy(
   () => import("@/pages/maintenance/MaintenanceProcedures")
 );
 const AllRequests = lazy(() => import("@/pages/maintenance/Requests"));
+const ServiceMap = lazy(() => import("@/pages/maintenance/ServiceMap"));
+const QuickRequestFromMap = lazy(() => import("@/pages/QuickRequestFromMap"));
 
 // Properties
 const Properties = lazy(() => import("@/pages/properties/Properties"));
@@ -163,6 +165,8 @@ export const protectedRoutes = [
   { path: "/maintenance/create", element: <Navigate to="/requests" replace />, withLayout: true },
   { path: "/maintenance/:id", element: <RequestDetails />, withLayout: true },
   { path: "/maintenance/mirror", element: <MaintenanceMirror />, withLayout: true },
+  { path: "/service-map", element: <ServiceMap />, withLayout: false },
+  { path: "/quick-request-from-map", element: <QuickRequestFromMap />, withLayout: false },
 
   // Contracts
   { path: "/contracts", element: <ContractsList />, withLayout: true },
