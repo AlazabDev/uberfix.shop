@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from "react";
-import { createRoot } from "react-dom/client";
 import { useNavigate } from "react-router-dom";
 import {
   Search, MapPin, Users, Building2, Home as HomeIcon, ClipboardList,
@@ -24,8 +23,6 @@ import {
   getTechnicianIconByText, getBranchIcon,
 } from "@/constants/technicianConstants";
 import { WORKFLOW_STAGES, WorkflowStage } from "@/constants/workflowStages";
-import { TechnicianMapPopup } from "@/components/maps/TechnicianMapPopup";
-import { BranchMapPopup } from "@/components/maps/BranchMapPopup";
 import { openWhatsApp } from "@/config/whatsapp";
 // @ts-ignore - markerclusterer types optional
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
@@ -65,7 +62,7 @@ type SelectedItem =
 export default function ServiceMap() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { technicians, branches, properties, requests, loading, refetch } = useServiceMapData();
+  const { technicians, branches, properties, requests, loading, errors, refetch } = useServiceMapData();
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -189,7 +186,7 @@ export default function ServiceMap() {
 
     if (layerProperties) {
       filteredProperties.forEach(p => {
-        if (!p.latitude || !p.longitude) return;
+        if (!Number.isFinite(Number(p.latitude)) || !Number.isFinite(Number(p.longitude))) return;
         const m = new google.maps.Marker({
           position: { lat: p.latitude, lng: p.longitude },
           icon: {
@@ -206,7 +203,7 @@ export default function ServiceMap() {
 
     if (layerTechnicians) {
       filteredTechs.forEach(t => {
-        if (!t.current_latitude || !t.current_longitude) return;
+        if (!Number.isFinite(Number(t.current_latitude)) || !Number.isFinite(Number(t.current_longitude))) return;
         const m = new google.maps.Marker({
           position: { lat: Number(t.current_latitude), lng: Number(t.current_longitude) },
           icon: makeIcon(getTechnicianIconByText(t.specialization || ""), 42),
@@ -219,6 +216,7 @@ export default function ServiceMap() {
 
     if (layerRequests) {
       filteredRequests.forEach(r => {
+        if (!Number.isFinite(Number(r.latitude)) || !Number.isFinite(Number(r.longitude))) return;
         const color = r.is_sla_breached ? "#dc2626" : (PRIORITY_COLOR[r.priority] || "#0ea5e9");
         const m = new google.maps.Marker({
           position: { lat: Number(r.latitude), lng: Number(r.longitude) },
@@ -275,7 +273,7 @@ export default function ServiceMap() {
       lat = Number(selectedItem.data.latitude);
       lng = Number(selectedItem.data.longitude);
     }
-    if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+    if (lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)) {
       map.panTo({ lat, lng });
       if (map.getZoom() < 14) map.setZoom(15);
     }
@@ -328,7 +326,7 @@ export default function ServiceMap() {
     if (!map) return;
     const c = map.getCenter();
     if (!c) return;
-    handleQuickRequestFromLocation(c.lat(), c.lng());
+    handleQuickRequestFromLocation(c.lat(), c.lng(), { branch_name: 'طلب من خريطة الخدمات' });
   };
 
   const handleLocateMe = () => {
@@ -346,6 +344,7 @@ export default function ServiceMap() {
   const handleFollowTechnician = (t: MapTechnician) => {
     if (!t.current_latitude || !t.current_longitude) return;
     const map = mapInstanceRef.current;
+    if (!map) return;
     map.panTo({ lat: Number(t.current_latitude), lng: Number(t.current_longitude) });
     map.setZoom(16);
     toast({ title: "تتبع نشط", description: `جاري تتبع ${t.name}` });
@@ -408,17 +407,28 @@ export default function ServiceMap() {
         <div className="container mx-auto p-4 grid grid-cols-12 gap-4">
           {/* Sidebar Filters */}
           <aside className="col-span-12 lg:col-span-3 space-y-3">
+            {errors.length > 0 && (
+              <Card className="p-3 border-destructive/30 bg-destructive/5" role="alert">
+                <div className="flex items-start gap-2 text-destructive text-sm">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">تعذر تحميل بعض طبقات الخريطة</p>
+                    <p className="text-xs mt-1">{errors.join(' • ')}</p>
+                  </div>
+                </div>
+              </Card>
+            )}
             <Card className="p-3 space-y-3">
               <div className="relative">
                 <Search className="w-4 h-4 absolute top-1/2 -translate-y-1/2 right-3 text-muted-foreground" />
                 <Input id="service-map-search" placeholder="بحث: اسم/تخصص/رقم طلب…  (اضغط /)" value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)} className="pr-9" />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')}
+                  <Button variant="ghost" size="icon" onClick={() => setSearchQuery('')}
                     className="absolute top-1/2 -translate-y-1/2 left-2 p-0.5 rounded hover:bg-slate-100"
                     aria-label="مسح البحث">
                     <X className="w-3.5 h-3.5 text-slate-500" />
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -453,7 +463,7 @@ export default function ServiceMap() {
               <Label className="text-xs font-bold text-[#030957] mb-2 block">التخصصات</Label>
               <div className="flex flex-wrap gap-1">
                 {SPECIALTIES.map(s => (
-                  <button key={s.id}
+                  <Button key={s.id} type="button" variant="outline" size="sm"
                     onClick={() => setSelectedSpecialty(s.id)}
                     className={`text-xs px-2 py-1 rounded-md border transition ${
                       selectedSpecialty === s.id
@@ -462,7 +472,7 @@ export default function ServiceMap() {
                     }`}
                   >
                     <span className="ml-1">{s.emoji}</span>{s.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </Card>
@@ -585,7 +595,7 @@ export default function ServiceMap() {
             <BranchDetail b={selectedItem.data}
               onCreateRequest={() => handleQuickRequestFromLocation(
                 parseFloat(selectedItem.data.latitude!), parseFloat(selectedItem.data.longitude!),
-                { branch_id: selectedItem.data.id }
+                { branch_name: selectedItem.data.branch }
               )}
               onCall={() => selectedItem.data.phone && window.open(`tel:${selectedItem.data.phone}`)}
             />

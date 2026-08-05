@@ -56,19 +56,38 @@ export function useServiceMapData() {
   const [properties, setProperties] = useState<MapProperty[]>([]);
   const [requests, setRequests] = useState<MapActiveRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const [techRes, brRes, prRes, reqRes] = await Promise.all([
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const queries = [
       supabase.rpc('get_public_technicians_for_map'),
       supabase.from('branch_locations').select('*').order('branch'),
       supabase.from('v_properties_for_map').select('*'),
-      supabase.rpc('get_active_requests_for_map'),
-    ]);
-    setTechnicians((techRes.data as any[]) || []);
-    setBranches(((brRes.data as any[]) || []).filter(b => b.latitude && b.longitude));
-    setProperties((prRes.data as any[]) || []);
-    setRequests((reqRes.data as any[]) || []);
-    setLoading(false);
+      user ? supabase.rpc('get_active_requests_for_map') : Promise.resolve({ data: [], error: null }),
+    ];
+
+    try {
+      const [techRes, brRes, prRes, reqRes] = await Promise.all(queries);
+      const failures = [techRes.error, brRes.error, prRes.error, reqRes.error]
+        .filter(Boolean)
+        .map((error) => error?.message || 'تعذر تحميل إحدى طبقات الخريطة');
+
+      setTechnicians((techRes.data as MapTechnician[] | null) || []);
+      setBranches(((brRes.data as MapBranch[] | null) || []).filter((branch) =>
+        Number.isFinite(Number(branch.latitude)) && Number.isFinite(Number(branch.longitude))
+      ));
+      setProperties(((prRes.data as MapProperty[] | null) || []).filter((property) =>
+        Number.isFinite(Number(property.latitude)) && Number.isFinite(Number(property.longitude))
+      ));
+      setRequests(((reqRes.data as MapActiveRequest[] | null) || []).filter((request) =>
+        Number.isFinite(Number(request.latitude)) && Number.isFinite(Number(request.longitude))
+      ));
+      setErrors(failures);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -81,5 +100,5 @@ export function useServiceMapData() {
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
 
-  return { technicians, branches, properties, requests, loading, refetch: fetchAll };
+  return { technicians, branches, properties, requests, loading, errors, refetch: fetchAll };
 }
