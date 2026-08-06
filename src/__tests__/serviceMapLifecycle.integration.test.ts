@@ -8,9 +8,9 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
-const ANON_KEY =
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const env = (import.meta as unknown as { env: Record<string, string | undefined> }).env || {};
+const SUPABASE_URL = env.VITE_SUPABASE_URL || '';
+const ANON_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || '';
 
 const enabled = Boolean(SUPABASE_URL && ANON_KEY);
 const d = enabled ? describe : describe.skip;
