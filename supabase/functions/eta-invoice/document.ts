@@ -48,6 +48,12 @@ export interface InvoiceItemRow {
 
 const r5 = (n: number) => Math.round(n * 100000) / 100000;
 
+/** T1 (VAT) sub-types are V001..V009; "T1" is not a valid sub-type. */
+function normalizeSubType(subType: string | null): string {
+  const v = (subType || "").trim().toUpperCase();
+  return /^V\d{3}$/.test(v) ? v : "V009";
+}
+
 /** ETA requires ISO-8601 UTC with "Z" and no milliseconds */
 export function etaDateTime(date: string | null): string {
   const d = date ? new Date(date) : new Date();
@@ -99,7 +105,7 @@ export function buildInvoiceDocument(
           {
             taxType: "T1",
             amount: vat,
-            subType: settings.default_tax_subtype || "V009",
+            subType: normalizeSubType(settings.default_tax_subtype),
             rate: vatRate,
           },
         ],
