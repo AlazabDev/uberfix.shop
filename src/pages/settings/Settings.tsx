@@ -9,6 +9,7 @@ import { TechniciansSettings } from "@/components/settings/TechniciansSettings";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import { UISettings } from "@/components/settings/UISettings";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
+import { ETAInvoicingSettings } from "@/components/settings/ETAInvoicingSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { LauncherSettings } from "@/components/settings/LauncherSettings";
 import { UFBotTrainingPanel } from "@/components/ufbot/UFBotTrainingPanel";
@@ -122,6 +123,9 @@ export default function Settings() {
 
         <TabsContent value="integrations">
           <IntegrationsSettings />
+          <div className="mt-6">
+            <ETAInvoicingSettings />
+          </div>
           <div className="mt-6">
             <UFBotTrainingPanel />
           </div>

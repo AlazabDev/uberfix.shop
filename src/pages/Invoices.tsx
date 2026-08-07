@@ -25,6 +25,8 @@ type Invoice = {
   payment_method?: string;
   notes?: string;
   created_at: string;
+  eta_status?: string | null;
+  eta_uuid?: string | null;
 };
 
 export default function Invoices() {
@@ -83,7 +85,9 @@ export default function Invoices() {
           status,
           payment_method,
           notes,
-          created_at
+          created_at,
+          eta_status,
+          eta_uuid
         `)
         .order('created_at', { ascending: false });
 

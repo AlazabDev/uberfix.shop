@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, FileText, CreditCard, Loader2 } from "lucide-react";
+import { Download, Eye, FileText, CreditCard, Loader2, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useState } from "react";
@@ -17,6 +17,8 @@ interface InvoiceCardProps {
     currency: string;
     issue_date: string;
     status: string;
+    eta_status?: string | null;
+    eta_uuid?: string | null;
   };
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
@@ -24,7 +26,33 @@ interface InvoiceCardProps {
 
 export function InvoiceCard({ invoice, onView, onDownload }: InvoiceCardProps) {
   const [sending, setSending] = useState(false);
+  const [etaSending, setEtaSending] = useState(false);
+  const [etaState, setEtaState] = useState<{ status: string; uuid?: string | null }>({
+    status: invoice.eta_status || "not_submitted",
+    uuid: invoice.eta_uuid,
+  });
   const { toast } = useToast();
+
+  const handleSubmitToETA = async () => {
+    setEtaSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("eta-invoice", {
+        body: { action: "submit", invoice_id: invoice.id },
+      });
+      if (error) throw error;
+      setEtaState({ status: "submitted", uuid: data?.eta_uuid });
+      toast({
+        title: "تم إرسال الفاتورة لمصلحة الضرائب",
+        description: data?.eta_uuid ? `رقم الفاتورة بالمنظومة: ${data.eta_uuid}` : undefined,
+      });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "حدث خطأ غير متوقع";
+      setEtaState((prev) => ({ ...prev, status: "failed" }));
+      toast({ title: "تعذر إرسال الفاتورة للمصلحة", description: message, variant: "destructive" });
+    } finally {
+      setEtaSending(false);
+    }
+  };
 
   const handleSendPaymentLink = async () => {
     setSending(true);
@@ -139,6 +167,23 @@ export function InvoiceCard({ invoice, onView, onDownload }: InvoiceCardProps) {
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <CreditCard className="h-4 w-4 ml-2" />}
             إرسال رابط الدفع للعميل
+          </Button>
+        )}
+
+        {etaState.status === 'submitted' ? (
+          <div className="mt-2 text-xs text-center text-success">
+            مُرسلة لمصلحة الضرائب{etaState.uuid ? ` — ${etaState.uuid.slice(0, 12)}…` : ''}
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-2"
+            onClick={handleSubmitToETA}
+            disabled={etaSending}
+          >
+            {etaSending ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Receipt className="h-4 w-4 ml-2" />}
+            إرسال للفاتورة الإلكترونية (ETA)
           </Button>
         )}
       </CardContent>

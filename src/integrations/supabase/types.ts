@@ -2352,6 +2352,163 @@ export type Database = {
         }
         Relationships: []
       }
+      eta_settings: {
+        Row: {
+          activity_code: string | null
+          auto_submit_on_paid: boolean
+          branch_building_number: string | null
+          branch_city: string | null
+          branch_country: string
+          branch_governate: string | null
+          branch_id: string
+          branch_postal_code: string | null
+          branch_street: string | null
+          created_at: string
+          default_item_code: string | null
+          default_item_code_type: string
+          default_item_name: string | null
+          default_tax_subtype: string
+          default_unit_type: string
+          environment: string
+          id: string
+          is_enabled: boolean
+          signing_enabled: boolean
+          signing_service_url: string | null
+          taxpayer_name: string | null
+          taxpayer_tin: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activity_code?: string | null
+          auto_submit_on_paid?: boolean
+          branch_building_number?: string | null
+          branch_city?: string | null
+          branch_country?: string
+          branch_governate?: string | null
+          branch_id?: string
+          branch_postal_code?: string | null
+          branch_street?: string | null
+          created_at?: string
+          default_item_code?: string | null
+          default_item_code_type?: string
+          default_item_name?: string | null
+          default_tax_subtype?: string
+          default_unit_type?: string
+          environment?: string
+          id?: string
+          is_enabled?: boolean
+          signing_enabled?: boolean
+          signing_service_url?: string | null
+          taxpayer_name?: string | null
+          taxpayer_tin?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activity_code?: string | null
+          auto_submit_on_paid?: boolean
+          branch_building_number?: string | null
+          branch_city?: string | null
+          branch_country?: string
+          branch_governate?: string | null
+          branch_id?: string
+          branch_postal_code?: string | null
+          branch_street?: string | null
+          created_at?: string
+          default_item_code?: string | null
+          default_item_code_type?: string
+          default_item_name?: string | null
+          default_tax_subtype?: string
+          default_unit_type?: string
+          environment?: string
+          id?: string
+          is_enabled?: boolean
+          signing_enabled?: boolean
+          signing_service_url?: string | null
+          taxpayer_name?: string | null
+          taxpayer_tin?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      eta_submissions: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string | null
+          document_uuid: string | null
+          environment: string | null
+          error_message: string | null
+          http_status: number | null
+          id: string
+          invoice_id: string | null
+          long_id: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+          submission_uuid: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          created_by?: string | null
+          document_uuid?: string | null
+          environment?: string | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          invoice_id?: string | null
+          long_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          submission_uuid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          document_uuid?: string | null
+          environment?: string | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          invoice_id?: string | null
+          long_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+          submission_uuid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eta_submissions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eta_submissions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eta_submissions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -3084,6 +3241,14 @@ export type Database = {
           customer_phone: string | null
           discount_amount: number
           due_date: string | null
+          eta_environment: string | null
+          eta_error: string | null
+          eta_internal_id: string | null
+          eta_long_id: string | null
+          eta_status: string
+          eta_submission_uuid: string | null
+          eta_submitted_at: string | null
+          eta_uuid: string | null
           id: string
           invoice_number: string
           is_locked: boolean
@@ -3122,6 +3287,14 @@ export type Database = {
           customer_phone?: string | null
           discount_amount?: number
           due_date?: string | null
+          eta_environment?: string | null
+          eta_error?: string | null
+          eta_internal_id?: string | null
+          eta_long_id?: string | null
+          eta_status?: string
+          eta_submission_uuid?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string
           invoice_number: string
           is_locked?: boolean
@@ -3160,6 +3333,14 @@ export type Database = {
           customer_phone?: string | null
           discount_amount?: number
           due_date?: string | null
+          eta_environment?: string | null
+          eta_error?: string | null
+          eta_internal_id?: string | null
+          eta_long_id?: string | null
+          eta_status?: string
+          eta_submission_uuid?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string
           invoice_number?: string
           is_locked?: boolean
@@ -8247,6 +8428,10 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           due_date: string | null
+          eta_long_id: string | null
+          eta_status: string | null
+          eta_submitted_at: string | null
+          eta_uuid: string | null
           id: string | null
           invoice_number: string | null
           is_locked: boolean | null
@@ -8268,6 +8453,10 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           due_date?: string | null
+          eta_long_id?: string | null
+          eta_status?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
@@ -8289,6 +8478,10 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           due_date?: string | null
+          eta_long_id?: string | null
+          eta_status?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
