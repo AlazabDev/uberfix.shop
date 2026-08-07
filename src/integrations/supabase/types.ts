@@ -8428,6 +8428,10 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           due_date: string | null
+          eta_long_id: string | null
+          eta_status: string | null
+          eta_submitted_at: string | null
+          eta_uuid: string | null
           id: string | null
           invoice_number: string | null
           is_locked: boolean | null
@@ -8449,6 +8453,10 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           due_date?: string | null
+          eta_long_id?: string | null
+          eta_status?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
@@ -8470,6 +8478,10 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           due_date?: string | null
+          eta_long_id?: string | null
+          eta_status?: string | null
+          eta_submitted_at?: string | null
+          eta_uuid?: string | null
           id?: string | null
           invoice_number?: string | null
           is_locked?: boolean | null
