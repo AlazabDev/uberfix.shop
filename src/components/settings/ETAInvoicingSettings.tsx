@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Receipt, PlugZap } from "lucide-react";
+import { Loader2, Receipt, PlugZap, Copy, Check } from "lucide-react";
 
 type EtaSettings = {
   id: string;
@@ -38,6 +38,20 @@ export function ETAInvoicingSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [form, setForm] = useState<EtaSettings | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eta-callback`;
+  const callbackDisplay = `${callbackUrl}?token=<ETA_CALLBACK_TOKEN>`;
+
+  const copyCallback = async () => {
+    try {
+      await navigator.clipboard.writeText(callbackDisplay);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "تعذر النسخ", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -247,6 +261,23 @@ export function ETAInvoicingSettings() {
             <p className="text-sm text-muted-foreground">إرسال الفاتورة للمصلحة مباشرة بعد تحويل حالتها إلى مدفوعة</p>
           </div>
           <Switch id="autosubmit" checked={form.auto_submit_on_paid} onCheckedChange={(v) => set("auto_submit_on_paid", v)} />
+        </div>
+
+        <div className="space-y-3 p-4 rounded-lg border border-border/50 bg-muted/20">
+          <h4 className="font-medium">رابط الاتصال لاستقبال رد المصلحة (Callback)</h4>
+          <p className="text-sm text-muted-foreground">
+            يُلصق هذا الرابط في حقل «رابط الاتصال» عند تسجيل نظام ERP في بوابة الممول —
+            تُرسل المصلحة إليه حالة كل فاتورة (مقبولة / مرفوضة / ملغاة) فتتحدث حالتها تلقائيًا في النظام.
+          </p>
+          <div className="flex items-center gap-2" dir="ltr">
+            <Input readOnly value={callbackDisplay} className="font-mono text-xs" onFocus={(e) => e.target.select()} />
+            <Button type="button" variant="outline" size="icon" onClick={copyCallback} aria-label="نسخ الرابط">
+              {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            استبدل <code>&lt;ETA_CALLBACK_TOKEN&gt;</code> بنفس القيمة المحفوظة في أسرار النظام — أي طلب بدون التوكن الصحيح يُرفض.
+          </p>
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

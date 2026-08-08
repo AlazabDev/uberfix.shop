@@ -127,3 +127,7 @@ verify_jwt = true
 [functions.eta-invoice]
 verify_jwt = false
 # Egyptian Tax Authority e-invoicing: JWT + staff role validated in code
+
+[functions.eta-callback]
+verify_jwt = false
+# ETA notification webhook (رابط الاتصال). Shared-secret token validated in code.
