@@ -5991,6 +5991,116 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_voucher_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          seq: number | null
+          total_price: number
+          unit: string
+          unit_price: number
+          voucher_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          seq?: number | null
+          total_price?: number
+          unit?: string
+          unit_price?: number
+          voucher_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          seq?: number | null
+          total_price?: number
+          unit?: string
+          unit_price?: number
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_voucher_items_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_vouchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_voucher_items_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "v_receipt_vouchers_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_vouchers: {
+        Row: {
+          branch_location_id: string | null
+          branch_name: string
+          branch_name_raw: string | null
+          created_at: string
+          customer_name: string
+          id: string
+          items_count: number
+          notes: string | null
+          source: string
+          status: string
+          total_amount: number
+          updated_at: string
+          voucher_date: string
+          voucher_no: string
+        }
+        Insert: {
+          branch_location_id?: string | null
+          branch_name: string
+          branch_name_raw?: string | null
+          created_at?: string
+          customer_name?: string
+          id?: string
+          items_count?: number
+          notes?: string | null
+          source?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          voucher_date: string
+          voucher_no: string
+        }
+        Update: {
+          branch_location_id?: string | null
+          branch_name?: string
+          branch_name_raw?: string | null
+          created_at?: string
+          customer_name?: string
+          id?: string
+          items_count?: number
+          notes?: string | null
+          source?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          voucher_date?: string
+          voucher_no?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_vouchers_branch_location_id_fkey"
+            columns: ["branch_location_id"]
+            isOneToOne: false
+            referencedRelation: "branch_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_approvals: {
         Row: {
           approval_type: string
@@ -10610,6 +10720,33 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      v_receipt_vouchers_dashboard: {
+        Row: {
+          branch_location_id: string | null
+          branch_location_name: string | null
+          branch_name: string | null
+          branch_name_raw: string | null
+          created_at: string | null
+          customer_name: string | null
+          id: string | null
+          items_count: number | null
+          month_bucket: string | null
+          source: string | null
+          status: string | null
+          total_amount: number | null
+          voucher_date: string | null
+          voucher_no: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_vouchers_branch_location_id_fkey"
+            columns: ["branch_location_id"]
+            isOneToOne: false
+            referencedRelation: "branch_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_reports_overview: {
         Row: {
