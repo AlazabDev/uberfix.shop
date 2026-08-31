@@ -27,6 +27,7 @@ import {
   Store,
   Archive,
   Database,
+  Receipt,
   Bell
 } from "lucide-react";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
@@ -59,6 +60,7 @@ const allMenuItems = [
   { icon: Building2, label: "العقارات", href: "/properties", moduleKey: "properties" },
   { icon: Calendar, label: "المواعيد", href: "/appointments", moduleKey: "appointments" },
   { icon: DollarSign, label: "الفواتير", href: "/invoices", moduleKey: "invoices" },
+  { icon: Receipt, label: "أذونات الاستلام", href: "/receipts", moduleKey: "invoices" },
   { icon: ScrollText, label: "عقود الصيانة", href: "/contracts", moduleKey: "contracts" },
   { icon: MapPin, label: "خريطة الخدمات", href: "/service-map", moduleKey: "service_map" },
   { icon: FileText, label: "التوثيق", href: "/documentation", moduleKey: "documentation" },
