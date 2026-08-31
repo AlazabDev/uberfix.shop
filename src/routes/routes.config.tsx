@@ -150,6 +150,12 @@ const ContractDetails = lazy(() => import("@/pages/contracts/ContractDetails"));
 const Customers = lazy(() => import("@/pages/customers/Customers"));
 const CustomerDetails = lazy(() => import("@/pages/customers/CustomerDetails"));
 
+// Receipt Vouchers
+const ReceiptsDashboard = lazy(() => import("@/pages/receipts/ReceiptsDashboard"));
+const ReceiptVoucherDetails = lazy(
+  () => import("@/pages/receipts/ReceiptVoucherDetails")
+);
+
 export const protectedRoutes = [
   { path: "/dashboard", element: <Dashboard />, withLayout: true },
   { path: "/monitoring", element: <MonitoringDashboard />, withLayout: true },
@@ -175,6 +181,10 @@ export const protectedRoutes = [
   // Customers
   { path: "/customers", element: <Customers />, withLayout: true },
   { path: "/customers/:id", element: <CustomerDetails />, withLayout: true },
+
+  // Receipt Vouchers
+  { path: "/receipts", element: <ReceiptsDashboard />, withLayout: true },
+  { path: "/receipts/:id", element: <ReceiptVoucherDetails />, withLayout: true },
 
   // Vendors
   { path: "/vendors", element: <Vendors />, withLayout: true },
