@@ -82,23 +82,42 @@ Deno.serve(async (req) => {
     }
 
     const to = phone.replace(/^\+/, "");
-    const body = {
+    const graph = `https://graph.facebook.com/v20.0/${waPhoneId}/messages`;
+    const headers = { Authorization: `Bearer ${waToken}`, "Content-Type": "application/json" };
+    const templateName = Deno.env.get("WHATSAPP_OTP_TEMPLATE") || "otp_verification";
+
+    // 1) Approved AUTHENTICATION template (required by Meta outside the 24h window —
+    //    free-form text is accepted with 200 but silently never delivered).
+    const templateBody = {
       messaging_product: "whatsapp",
       to,
-      type: "text",
-      text: {
-        body: `رمز التحقق الخاص بك من UberFix هو: ${code}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.`,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: "ar" },
+        components: [
+          { type: "body", parameters: [{ type: "text", text: code }] },
+          { type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: code }] },
+        ],
       },
     };
 
-    const waRes = await fetch(`https://graph.facebook.com/v20.0/${waPhoneId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${waToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    let waRes = await fetch(graph, { method: "POST", headers, body: JSON.stringify(templateBody) });
+    let sentVia = "template";
+
+    if (!waRes.ok) {
+      const tplErr = await waRes.text();
+      console.error("WhatsApp template send failed, falling back to text:", waRes.status, tplErr);
+      // 2) Fallback: plain text (works only inside an open 24h conversation window)
+      const textBody = {
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: { body: `رمز التحقق الخاص بك من UberFix هو: ${code}\nصالح لمدة 10 دقائق. لا تشاركه مع أحد.` },
+      };
+      waRes = await fetch(graph, { method: "POST", headers, body: JSON.stringify(textBody) });
+      sentVia = "text";
+    }
 
     if (!waRes.ok) {
       const err = await waRes.text();
@@ -109,7 +128,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    const waJson = await waRes.json().catch(() => ({}));
+    console.log("OTP sent", { phone: phone.slice(0, 5) + "***", via: sentVia, wamid: waJson?.messages?.[0]?.id });
+
+    return new Response(JSON.stringify({ success: true, via: sentVia }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
