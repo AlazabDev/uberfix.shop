@@ -325,10 +325,10 @@ export default function Login() {
                       dir="ltr"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 rounded-xl pe-10"
+                      className="h-11 rounded-xl pr-10"
                       placeholder={isSignup ? "8 أحرف على الأقل" : "••••••••"}
                     />
-                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute inset-y-0 start-auto end-3 flex items-center text-muted-foreground hover:text-foreground" aria-label="إظهار كلمة المرور">
+                    <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground" aria-label="إظهار كلمة المرور">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
