@@ -3,9 +3,8 @@ import { Navigate } from "react-router-dom";
 
 // Auth pages
 const Index = lazy(() => import("@/pages/public/Index"));
-const RoleSelection = lazy(() => import("@/pages/auth/RoleSelection"));
+const LegacyAuthRedirect = lazy(() => import("@/pages/auth/LegacyAuthRedirect"));
 const Login = lazy(() => import("@/pages/auth/Login"));
-const Register = lazy(() => import("@/pages/auth/Register"));
 const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
 const AuthCallback = lazy(() => import("@/pages/auth/AuthCallback"));
 const UpdatePassword = lazy(() => import("@/pages/auth/UpdatePassword"));
@@ -62,9 +61,9 @@ const RegistrationThankYou = lazy(() => import("@/pages/technicians/Registration
  */
 export const publicRoutes = [
   { path: "/", element: <Index /> },
-  { path: "/role-selection", element: <RoleSelection /> },
+  { path: "/role-selection", element: <LegacyAuthRedirect /> },
   { path: "/login", element: <Login /> },
-  { path: "/register", element: <Register /> },
+  { path: "/register", element: <LegacyAuthRedirect /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/auth/callback", element: <AuthCallback /> },
   { path: "/auth/confirm-role", element: <ConfirmRole /> },
