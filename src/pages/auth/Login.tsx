@@ -32,14 +32,7 @@ const ROLE_OPTIONS: { value: SignupRole; label: string; hint: string; icon: type
   { value: "vendor", label: "مورد", hint: "شركة / فريق خدمات", icon: Building2 },
 ];
 
-const normalizePhone = (raw: string) => {
-  const t = raw.trim().replace(/\s|-/g, "");
-  if (t.startsWith("+")) return t;
-  if (t.startsWith("00")) return "+" + t.slice(2);
-  if (t.startsWith("0")) return "+20" + t.slice(1);
-  if (t.startsWith("20")) return "+" + t;
-  return "+20" + t;
-};
+// مفتاح الدولة يُضاف في الخلفية حسب منطقة المستخدم (انظر src/lib/phoneRegion.ts)
 
 export default function Login() {
   const navigate = useNavigate();
