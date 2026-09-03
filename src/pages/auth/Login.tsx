@@ -253,7 +253,7 @@ export default function Login() {
                       className="h-12 rounded-xl text-center text-2xl tracking-[0.5em] font-mono"
                       autoFocus
                     />
-                    <p className="text-xs text-muted-foreground">أُرسل إلى {normalizePhone(phone)} — صالح لمدة 10 دقائق.</p>
+                    <p className="text-xs text-muted-foreground" dir="auto">أُرسل إلى <span dir="ltr">{phoneE164 ? maskPhone(phoneE164) : ""}</span> — صالح لمدة 10 دقائق.</p>
                   </div>
                   <Button
                     type="button"
