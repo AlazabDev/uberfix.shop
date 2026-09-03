@@ -213,21 +213,23 @@ export default function Login() {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="wa-phone">رقم الهاتف</Label>
-                    <div className="flex gap-2" dir="ltr">
-                      <div className="flex items-center gap-1 rounded-xl border bg-muted px-3 text-sm font-semibold text-muted-foreground select-none">
-                        <span>🇪🇬</span><span>+20</span>
-                      </div>
-                      <Input
-                        id="wa-phone"
-                        inputMode="tel"
-                        placeholder="1012345678"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="h-11 rounded-xl text-left"
-                        autoFocus
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">سنرسل رمز تحقق مكوّن من 6 أرقام إلى واتساب على هذا الرقم.</p>
+                    <Input
+                      id="wa-phone"
+                      inputMode="tel"
+                      autoComplete="tel-national"
+                      dir="ltr"
+                      placeholder={region.example}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={cn(
+                        "h-11 rounded-xl text-left tracking-wide",
+                        phone && !normalized.valid && "border-destructive/60 focus-visible:ring-destructive/40",
+                      )}
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      اكتب رقمك كما هو معتاد في {region.nameAr} {region.flag} — سنرسل رمز تحقق مكوّن من 6 أرقام إلى واتساب.
+                    </p>
                   </div>
                   <Button
                     type="button"
