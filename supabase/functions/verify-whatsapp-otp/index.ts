@@ -77,34 +77,38 @@ Deno.serve(async (req) => {
     // Mark consumed
     await admin.from("whatsapp_otp").update({ consumed_at: new Date().toISOString() }).eq("id", otpRow.id);
 
-    // Find or create user by phone
+    // Find or create user by phone (indexed lookup via profiles, no full user listing)
+    const bare = phone.replace(/^\+/, "");
     let userId: string | null = null;
-    const { data: existing } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const foundUser = existing?.users?.find((u) => u.phone === phone.replace(/^\+/, "") || u.phone === phone);
-    if (foundUser) {
-      userId = foundUser.id;
-    } else {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("auth_user_id")
+      .in("phone", [bare, phone, "0" + bare.replace(/^20/, "")])
+      .not("auth_user_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (prof?.auth_user_id) userId = prof.auth_user_id as string;
+
+    if (!userId) {
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
-        phone: phone.replace(/^\+/, ""),
+        phone: bare,
         phone_confirm: true,
-        user_metadata: { provider: "whatsapp", full_name: `عميل ${phone.slice(-4)}` },
+        user_metadata: { provider: "whatsapp", phone: phone, full_name: `عميل ${phone.slice(-4)}` },
       });
-      if (createErr || !created.user) throw createErr || new Error("فشل إنشاء المستخدم");
-      userId = created.user.id;
+      if (created?.user) {
+        userId = created.user.id;
+      } else {
+        // Phone already registered but profile has no phone → paginate auth users
+        console.warn("createUser failed, scanning users:", createErr?.message);
+        for (let page = 1; page <= 20 && !userId; page++) {
+          const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+          const hit = list?.users?.find((u) => u.phone === bare || u.phone === phone);
+          if (hit) userId = hit.id;
+          if (!list?.users?.length || list.users.length < 1000) break;
+        }
+        if (!userId) throw createErr || new Error("فشل إنشاء المستخدم");
+      }
     }
-
-    // Generate a magic link to derive a valid session
-    // For phone-only users, we mint an access/refresh token via signInWithPassword pattern is not applicable.
-    // Use admin.generateLink type=magiclink requires email. Instead, we issue tokens via updateUserById + manual token exchange is unsupported.
-    // Simplest reliable path: create a one-time email link if email exists, otherwise use the Sign-In With ID Token approach is not available for custom.
-    // We fallback to generating a magic link if email exists; otherwise return userId and let client refresh via signInWithOtp phone.
-
-    // Preferred: use Supabase admin generateLink with type=magiclink (requires email)
-    // Since phone users may have no email, we mint tokens via createSession (available in supabase-js v2 admin API? not standard).
-    // Reliable universal fix: attach a synthetic email placeholder on the user if none, then generate a magic link and hash-exchange on client.
-
-    // Simpler alternative implemented here: use the admin.signOut then rely on client-side setSession with tokens minted via a signed JWT is out of scope.
-    // Correct approach: call admin.generateLink to produce a hashed_token and exchange it client-side using verifyOtp type=magiclink.
 
     const email = `wa_${userId}@whatsapp.local`;
     // Ensure user has an email so magiclink works
