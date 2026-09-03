@@ -139,26 +139,34 @@ export default function Login() {
   };
 
   // ---------- WhatsApp OTP ----------
+  // الدولة تُكتشف تلقائياً (منطقة زمنية / لغة المتصفح) والمفتاح يُضاف في الخلفية.
+  const region = useMemo(() => detectRegion(), []);
+  const normalized = useMemo(() => normalizePhoneForRegion(phone, region), [phone, region]);
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
+
   const sendWhatsappOtp = async () => {
-    if (phone.replace(/\D/g, "").length < 10) {
-      toast({ title: "رقم غير مكتمل", description: "أدخل رقم هاتف صحيح (مثال: 1012345678)", variant: "destructive" });
+    if (!normalized.valid || !normalized.e164) {
+      toast({ title: "رقم غير مكتمل", description: normalized.reason || `مثال: ${region.example}`, variant: "destructive" });
       return;
     }
     setBusy("wa-send");
     rememberIntent();
-    const { data, error } = await supabase.functions.invoke("send-whatsapp-otp", { body: { phone: normalizePhone(phone) } });
+    const e164 = normalized.e164;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-otp", { body: { phone: e164 } });
     setBusy(null);
     if (error || !data?.success) {
       toast({ title: "تعذر إرسال الرمز", description: error?.message || data?.error || "حاول لاحقاً", variant: "destructive" });
       return;
     }
+    setPhoneE164(e164);
     setOtpSent(true);
     toast({ title: "تم إرسال الرمز عبر واتساب", description: "افتح واتساب وأدخل الرمز المكوّن من 6 أرقام" });
   };
 
   const verifyWhatsappOtp = async () => {
+    if (!phoneE164) return;
     setBusy("wa-verify");
-    const { data, error } = await supabase.functions.invoke("verify-whatsapp-otp", { body: { phone: normalizePhone(phone), code: otp } });
+    const { data, error } = await supabase.functions.invoke("verify-whatsapp-otp", { body: { phone: phoneE164, code: otp } });
     if (error || !data?.token_hash) {
       setBusy(null);
       toast({ title: "رمز غير صحيح", description: error?.message || data?.error || "الرمز خاطئ أو منتهي", variant: "destructive" });
