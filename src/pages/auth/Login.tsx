@@ -13,6 +13,7 @@ import { resolveUserRedirectAfterAuth, savePendingOAuthContext, clearPendingOAut
 import { useAuth } from "@/contexts/AuthContext";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { cn } from "@/lib/utils";
+import { detectRegion, normalizePhoneForRegion, maskPhone } from "@/lib/phoneRegion";
 
 /**
  * الوجهة الواحدة للمصادقة (دخول + تسجيل) — UberFix SSO
