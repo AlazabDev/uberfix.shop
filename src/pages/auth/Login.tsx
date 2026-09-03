@@ -13,6 +13,7 @@ import { resolveUserRedirectAfterAuth, savePendingOAuthContext, clearPendingOAut
 import { useAuth } from "@/contexts/AuthContext";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { cn } from "@/lib/utils";
+import { detectRegion, normalizePhoneForRegion, maskPhone } from "@/lib/phoneRegion";
 
 /**
  * الوجهة الواحدة للمصادقة (دخول + تسجيل) — UberFix SSO
@@ -32,14 +33,7 @@ const ROLE_OPTIONS: { value: SignupRole; label: string; hint: string; icon: type
   { value: "vendor", label: "مورد", hint: "شركة / فريق خدمات", icon: Building2 },
 ];
 
-const normalizePhone = (raw: string) => {
-  const t = raw.trim().replace(/\s|-/g, "");
-  if (t.startsWith("+")) return t;
-  if (t.startsWith("00")) return "+" + t.slice(2);
-  if (t.startsWith("0")) return "+20" + t.slice(1);
-  if (t.startsWith("20")) return "+" + t;
-  return "+20" + t;
-};
+// مفتاح الدولة يُضاف في الخلفية حسب منطقة المستخدم (انظر src/lib/phoneRegion.ts)
 
 export default function Login() {
   const navigate = useNavigate();
@@ -145,26 +139,34 @@ export default function Login() {
   };
 
   // ---------- WhatsApp OTP ----------
+  // الدولة تُكتشف تلقائياً (منطقة زمنية / لغة المتصفح) والمفتاح يُضاف في الخلفية.
+  const region = useMemo(() => detectRegion(), []);
+  const normalized = useMemo(() => normalizePhoneForRegion(phone, region), [phone, region]);
+  const [phoneE164, setPhoneE164] = useState<string | null>(null);
+
   const sendWhatsappOtp = async () => {
-    if (phone.replace(/\D/g, "").length < 10) {
-      toast({ title: "رقم غير مكتمل", description: "أدخل رقم هاتف صحيح (مثال: 1012345678)", variant: "destructive" });
+    if (!normalized.valid || !normalized.e164) {
+      toast({ title: "رقم غير مكتمل", description: normalized.reason || `مثال: ${region.example}`, variant: "destructive" });
       return;
     }
     setBusy("wa-send");
     rememberIntent();
-    const { data, error } = await supabase.functions.invoke("send-whatsapp-otp", { body: { phone: normalizePhone(phone) } });
+    const e164 = normalized.e164;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-otp", { body: { phone: e164 } });
     setBusy(null);
     if (error || !data?.success) {
       toast({ title: "تعذر إرسال الرمز", description: error?.message || data?.error || "حاول لاحقاً", variant: "destructive" });
       return;
     }
+    setPhoneE164(e164);
     setOtpSent(true);
     toast({ title: "تم إرسال الرمز عبر واتساب", description: "افتح واتساب وأدخل الرمز المكوّن من 6 أرقام" });
   };
 
   const verifyWhatsappOtp = async () => {
+    if (!phoneE164) return;
     setBusy("wa-verify");
-    const { data, error } = await supabase.functions.invoke("verify-whatsapp-otp", { body: { phone: normalizePhone(phone), code: otp } });
+    const { data, error } = await supabase.functions.invoke("verify-whatsapp-otp", { body: { phone: phoneE164, code: otp } });
     if (error || !data?.token_hash) {
       setBusy(null);
       toast({ title: "رمز غير صحيح", description: error?.message || data?.error || "الرمز خاطئ أو منتهي", variant: "destructive" });
@@ -211,21 +213,23 @@ export default function Login() {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="wa-phone">رقم الهاتف</Label>
-                    <div className="flex gap-2" dir="ltr">
-                      <div className="flex items-center gap-1 rounded-xl border bg-muted px-3 text-sm font-semibold text-muted-foreground select-none">
-                        <span>🇪🇬</span><span>+20</span>
-                      </div>
-                      <Input
-                        id="wa-phone"
-                        inputMode="tel"
-                        placeholder="1012345678"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="h-11 rounded-xl text-left"
-                        autoFocus
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">سنرسل رمز تحقق مكوّن من 6 أرقام إلى واتساب على هذا الرقم.</p>
+                    <Input
+                      id="wa-phone"
+                      inputMode="tel"
+                      autoComplete="tel-national"
+                      dir="ltr"
+                      placeholder={region.example}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={cn(
+                        "h-11 rounded-xl text-left tracking-wide",
+                        phone && !normalized.valid && "border-destructive/60 focus-visible:ring-destructive/40",
+                      )}
+                      autoFocus
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      اكتب رقمك كما هو معتاد في {region.nameAr} {region.flag} — سنرسل رمز تحقق مكوّن من 6 أرقام إلى واتساب.
+                    </p>
                   </div>
                   <Button
                     type="button"
@@ -251,7 +255,7 @@ export default function Login() {
                       className="h-12 rounded-xl text-center text-2xl tracking-[0.5em] font-mono"
                       autoFocus
                     />
-                    <p className="text-xs text-muted-foreground">أُرسل إلى {normalizePhone(phone)} — صالح لمدة 10 دقائق.</p>
+                    <p className="text-xs text-muted-foreground" dir="auto">أُرسل إلى <span dir="ltr">{phoneE164 ? maskPhone(phoneE164) : ""}</span> — صالح لمدة 10 دقائق.</p>
                   </div>
                   <Button
                     type="button"

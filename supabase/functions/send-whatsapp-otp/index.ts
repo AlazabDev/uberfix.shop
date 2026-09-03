@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { normalizePhone } from "../_shared/phone.ts";
 
 // إرسال OTP عبر واتساب Cloud API
 // - يخزن الهاش فقط، ليس الرمز
@@ -15,14 +16,6 @@ async function sha256Hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function normalizePhone(raw: string): string | null {
-  const t = String(raw || "").trim().replace(/\s|-/g, "");
-  if (!t) return null;
-  if (t.startsWith("+")) return t;
-  if (t.startsWith("00")) return "+" + t.slice(2);
-  if (t.startsWith("0")) return "+20" + t.slice(1);
-  return "+" + t;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
