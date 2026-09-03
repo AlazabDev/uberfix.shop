@@ -220,41 +220,114 @@ export async function detectUserRole(userId: string, userEmail?: string): Promis
   }
 }
 
+/** مسار شاشة اختيار فئة الحساب (مرة واحدة فقط عند أول تسجيل) */
+export const ONBOARDING_PATH = '/auth/confirm-role';
+
+export interface OnboardingState {
+  roles: UserRole[];
+  primaryRole: UserRole;
+  needsRoleSelection: boolean;
+}
+
+/** حالة الإعداد الأول للمستخدم الحالي — تُقرأ من الخادم (لا يُعتمد على التخزين المحلي) */
+export async function getMyOnboardingState(): Promise<OnboardingState> {
+  const { data, error } = await (supabase as any).rpc('get_my_onboarding_state');
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  const roles = ((row?.roles || []) as string[]).filter(Boolean) as UserRole[];
+  return {
+    roles,
+    primaryRole: (row?.primary_role as UserRole) || determinePrimaryRole(roles),
+    needsRoleSelection: Boolean(row?.needs_role_selection),
+  };
+}
+
+/** إتمام اختيار الفئة لأول مرة (customer | technician | vendor). آمن للاستدعاء المتكرر — لا يغيّر شيئًا بعد أول مرة. */
+export async function completeFirstTimeOnboarding(requestedRole: UserRole = 'customer'): Promise<DetectedUserRole> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Authentication required');
+
+  const safeRole = normalizeRequestedRole(requestedRole) || 'customer';
+  const { data, error } = await (supabase as any).rpc('complete_first_time_onboarding', {
+    p_requested_role: safeRole,
+    p_full_name: getSafeProfileName(user, user.email),
+    p_phone: typeof user.user_metadata?.phone === 'string' ? user.user_metadata.phone : (user.phone || null),
+    p_avatar_url:
+      typeof user.user_metadata?.avatar_url === 'string'
+        ? user.user_metadata.avatar_url
+        : typeof user.user_metadata?.picture === 'string' ? user.user_metadata.picture : null,
+  });
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const roles = ((row?.roles || []) as string[]).filter(Boolean) as UserRole[];
+  const primary = (row?.primary_role as UserRole) || determinePrimaryRole(roles);
+  clearPendingOAuthContext();
+  return {
+    roles: roles.length ? roles : [primary],
+    primaryRole: primary,
+    isNewUser: Boolean(row?.is_new_user),
+    redirectPath: ROLE_DASHBOARDS[primary] || DEFAULT_DASHBOARD,
+  };
+}
+
+/** الفئة المطلوبة عند التسجيل (من جلسة OAuth/WhatsApp المعلّقة أو من user_metadata لتسجيل البريد) */
+async function readRequestedRoleForSignup(): Promise<UserRole | null> {
+  const pending = readPendingOAuthContext();
+  const fromPending = pending?.intent === 'signup' ? normalizeRequestedRole(pending.requestedRole) : null;
+  if (fromPending) return fromPending;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  return normalizeRequestedRole(user?.user_metadata?.requested_role as string | undefined);
+}
+
+/**
+ * الوجهة الواحدة بعد أي مصادقة (بريد / OAuth / WhatsApp):
+ * - المالك المصرّح → لوحة التحكم مباشرة.
+ * - مستخدم أكمل الإعداد → لوحة دوره (لا يُسأل عن الفئة مجددًا).
+ * - أول دخول + فئة معروفة من التسجيل → تُحفظ تلقائيًا ثم توجيه.
+ * - أول دخول بدون فئة → شاشة اختيار الفئة (مرة واحدة).
+ */
 export async function resolveUserRedirectAfterAuth(
   userId: string,
   userEmail?: string,
 ): Promise<DetectedUserRole> {
-  const detectedRole = await detectUserRole(userId, userEmail);
-  if (!detectedRole.isNewUser) {
-    try {
-      await ensureAuthenticatedUserOnboarding(detectedRole.primaryRole || 'customer');
-    } catch (error) {
-      console.error('Failed to refresh authenticated onboarding:', error);
-    }
+  if (userEmail && isAuthorizedOwner(userEmail.toLowerCase())) {
     clearPendingOAuthContext();
-    return detectedRole;
+    return buildResolvedRole('owner');
   }
 
-  const pendingContext = readPendingOAuthContext();
-  const shouldAutoProvision =
-    pendingContext?.intent === 'signup' && !!normalizeRequestedRole(pendingContext?.requestedRole);
-
-  if (!shouldAutoProvision) {
-    return detectedRole;
-  }
-
-  const preferredRole = normalizeRequestedRole(pendingContext?.requestedRole) || 'customer';
-
+  let state: OnboardingState;
   try {
-    const ensuredRole = await ensureAuthenticatedUserOnboarding(preferredRole);
-    clearPendingOAuthContext();
-    return ensuredRole;
+    state = await getMyOnboardingState();
   } catch (error) {
-    console.error('Failed to resolve OAuth onboarding:', error);
+    console.error('Failed to read onboarding state:', error);
+    const detected = await detectUserRole(userId, userEmail);
+    return detected.isNewUser ? { ...detected, redirectPath: ONBOARDING_PATH } : detected;
   }
 
-  clearPendingOAuthContext();
-  return buildResolvedRole(preferredRole);
+  if (!state.needsRoleSelection) {
+    // تحديث بيانات الملف (اسم/صورة) دون تغيير الدور
+    ensureAuthenticatedUserOnboarding(state.primaryRole).catch(() => undefined);
+    clearPendingOAuthContext();
+    return {
+      roles: state.roles,
+      primaryRole: state.primaryRole,
+      isNewUser: false,
+      redirectPath: ROLE_DASHBOARDS[state.primaryRole] || DEFAULT_DASHBOARD,
+    };
+  }
+
+  const requested = await readRequestedRoleForSignup();
+  if (requested) {
+    try {
+      return await completeFirstTimeOnboarding(requested);
+    } catch (error) {
+      console.error('Failed to complete first-time onboarding:', error);
+    }
+  }
+
+  return { roles: state.roles, primaryRole: null, isNewUser: true, redirectPath: ONBOARDING_PATH };
 }
 
 /**
