@@ -11257,6 +11257,10 @@ export type Database = {
           vendor_name: string
         }[]
       }
+      fn_backfill_lifecycle_batch: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       fn_create_api_consumer: {
         Args: {
           p_allowed_origins?: string[]
