@@ -1,0 +1,1 @@
+- [Historical Lifecycle Completion](mem://features/maintenance/historical-lifecycle-completion) — 2,900 طلب أُغلق بدورة كاملة مع فواتير، بلا أرشفة، وview v_maintenance_requests_full وصفحة /requests-ledger
