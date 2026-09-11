@@ -383,7 +383,7 @@ export default function RequestsLedger() {
                         </TableCell>
                         <TableCell>
                           <Button asChild variant="ghost" size="icon">
-                            <Link to={`/maintenance/requests/${r.id}`}>
+                            <Link to={`/requests/${r.id}`}>
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
