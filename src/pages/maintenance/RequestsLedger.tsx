@@ -135,7 +135,7 @@ export default function RequestsLedger() {
 
       if (branch !== ALL) query = query.eq("branch_name", branch);
       if (trade !== ALL) query = query.eq("service_type", trade);
-      if (stage !== ALL) query = query.eq("stage", stage);
+      if (stage !== ALL) query = query.eq("stage", stage as never);
       if (invoiceStatus !== ALL) query = query.eq("invoice_status", invoiceStatus);
       if (search.trim()) {
         const term = `%${search.trim()}%`;
