@@ -156,6 +156,9 @@ const ReceiptVoucherDetails = lazy(
   () => import("@/pages/receipts/ReceiptVoucherDetails")
 );
 
+// Maintenance ledger
+const RequestsLedger = lazy(() => import("@/pages/maintenance/RequestsLedger"));
+
 export const protectedRoutes = [
   { path: "/dashboard", element: <Dashboard />, withLayout: true },
   { path: "/monitoring", element: <MonitoringDashboard />, withLayout: true },
