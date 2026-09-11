@@ -54,6 +54,7 @@ const allMenuItems = [
   { icon: Home, label: "الرئيسية", href: "/dashboard", moduleKey: "dashboard" },
   { icon: ClipboardList, label: "طلبات الصيانة", href: "/requests", moduleKey: "requests" },
   { icon: ListChecks, label: "كل الطلبات", href: "/all-requests", moduleKey: "all_requests", showBadge: true },
+  { icon: ClipboardList, label: "سجل الطلبات", href: "/requests-ledger", moduleKey: "all_requests" },
   { icon: Mail, label: "صندوق البريد", href: "/inbox", moduleKey: "inbox" },
   { icon: Users, label: "الموردين والفنيين", href: "/vendors", moduleKey: "vendors" },
   { icon: BarChart3, label: "التقارير والإحصائيات", href: "/reports", moduleKey: "reports" },

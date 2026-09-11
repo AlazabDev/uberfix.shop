@@ -251,6 +251,13 @@ export type Database = {
             foreignKeyName: "ai_sessions_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -993,6 +1000,13 @@ export type Database = {
             foreignKeyName: "appointments_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -1112,6 +1126,13 @@ export type Database = {
             columns: ["last_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -1358,6 +1379,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_conversations_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -1671,6 +1699,13 @@ export type Database = {
             foreignKeyName: "communication_logs_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -1870,6 +1905,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daftra_sync_logs_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -2507,6 +2549,13 @@ export type Database = {
             referencedRelation: "v_invoices_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "eta_submissions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["invoice_id"]
+          },
         ]
       }
       expenses: {
@@ -2638,6 +2687,13 @@ export type Database = {
             columns: ["maintenance_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facebook_leads_maintenance_request_id_fkey"
+            columns: ["maintenance_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -2966,6 +3022,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -3143,6 +3206,13 @@ export type Database = {
             referencedRelation: "v_invoices_dashboard"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["invoice_id"]
+          },
         ]
       }
       invoice_public_summaries: {
@@ -3214,6 +3284,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: true
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_public_summaries_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -3398,6 +3475,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -3735,6 +3819,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -4722,6 +4813,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "payment_transactions_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
@@ -4740,6 +4838,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -5751,6 +5856,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "provider_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "provider_transactions_provider_id_fkey"
             columns: ["provider_id"]
             isOneToOne: false
@@ -5783,6 +5895,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -6238,6 +6357,13 @@ export type Database = {
             foreignKeyName: "request_assignments_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_assignments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -6309,6 +6435,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -6408,6 +6541,13 @@ export type Database = {
             foreignKeyName: "request_public_events_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_public_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -6491,6 +6631,13 @@ export type Database = {
             foreignKeyName: "request_public_tracking_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: true
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_public_tracking_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -6553,6 +6700,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_review_request"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -7360,6 +7514,13 @@ export type Database = {
             columns: ["current_request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_current_request_id_fkey"
+            columns: ["current_request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -8839,6 +9000,13 @@ export type Database = {
             foreignKeyName: "communication_logs_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -9406,6 +9574,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
@@ -9980,6 +10155,13 @@ export type Database = {
             foreignKeyName: "bot_sessions_last_request_id_fkey"
             columns: ["last_request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bot_sessions_last_request_id_fkey"
+            columns: ["last_request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -10274,6 +10456,13 @@ export type Database = {
             foreignKeyName: "invoices_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
             referencedRelation: "v_sla_dashboard"
             referencedColumns: ["id"]
           },
@@ -10335,6 +10524,84 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_maintenance_requests_full: {
+        Row: {
+          actual_cost: number | null
+          assigned_technician_id: string | null
+          branch_city: string | null
+          branch_id: string | null
+          branch_name: string | null
+          category_name: string | null
+          client_name: string | null
+          closed_at: string | null
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          created_month: string | null
+          customer_id: string | null
+          description: string | null
+          estimated_cost: number | null
+          id: string | null
+          invoice_amount: number | null
+          invoice_id: string | null
+          invoice_number: string | null
+          invoice_status: string | null
+          items_count: number | null
+          items_total: number | null
+          location: string | null
+          paid_at: string | null
+          priority: string | null
+          rating: number | null
+          request_number: string | null
+          service_type: string | null
+          stage: Database["public"]["Enums"]["workflow_stage_t"] | null
+          status: Database["public"]["Enums"]["mr_status"] | null
+          status_group:
+            | Database["public"]["Enums"]["request_status_canonical"]
+            | null
+          technician_name: string | null
+          technician_specialization: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "v_branches_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "v_customers_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -10521,6 +10788,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_transactions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "payment_transactions_request_id_fkey"
             columns: ["request_id"]
             isOneToOne: false
@@ -10539,6 +10813,13 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
             referencedColumns: ["id"]
           },
           {
