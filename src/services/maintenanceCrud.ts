@@ -27,7 +27,8 @@ function optionalString(value: unknown): string | undefined {
 }
 
 /** جلب جميع الطلبات مع pagination لتجنب حد 1000 صف */
-export async function fetchAllRequests(page = 0, pageSize = 500): Promise<MaintenanceRequest[]> {
+export async function fetchAllRequests(page = 0, pageSize = 500, maxRows?: number): Promise<MaintenanceRequest[]> {
+  if (maxRows && maxRows < pageSize) pageSize = maxRows;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -49,7 +50,7 @@ export async function fetchAllRequests(page = 0, pageSize = 500): Promise<Mainte
 
     if (data && data.length > 0) {
       allData.push(...(data as MaintenanceRequest[]));
-      hasMore = data.length === pageSize;
+      hasMore = data.length === pageSize && (!maxRows || allData.length < maxRows);
       currentPage++;
     } else {
       hasMore = false;

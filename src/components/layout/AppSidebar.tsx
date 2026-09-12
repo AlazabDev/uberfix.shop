@@ -16,7 +16,7 @@ import {
   Clock,
   Mail
 } from "lucide-react";
-import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
+import { useRequestsCounts } from "@/hooks/useRequestsCount";
 
 import {
   Sidebar,
@@ -109,7 +109,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
-  const { requests } = useMaintenanceRequests();
+  const { counts } = useRequestsCounts();
 
   const isActive = (path: string) => currentPath === path;
 
@@ -132,9 +132,9 @@ export function AppSidebar() {
                       {state !== "collapsed" && (
                         <>
                           <span>{item.label}</span>
-                          {item.showBadge && requests.length > 0 && (
+                          {item.showBadge && counts.total > 0 && (
                             <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-semibold mr-auto">
-                              {requests.length}
+                              {counts.total}
                             </span>
                           )}
                         </>
