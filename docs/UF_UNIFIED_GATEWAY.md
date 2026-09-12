@@ -70,14 +70,19 @@ curl -X POST "$G/mcp" \
 
 ## 📜 ملاحظات الهجرة
 
-| القديم (مهجور) | البديل |
-|---|---|
-| `/functions/v1/maintenance-gateway` | `/functions/v1/gateway` (REST، نفس body) |
-| `/functions/v1/bot-gateway`         | `/functions/v1/gateway` (REST، نفس body) |
-| `/functions/v1/mcp`                 | `/functions/v1/gateway/mcp` |
+| القديم (مهجور) | البديل | الحالة |
+|---|---|---|
+| `/functions/v1/maintenance-gateway` | `/functions/v1/gateway` | يعمل كـ shim يحوّل الطلب تلقائياً |
+| `/functions/v1/bot-gateway`         | `/functions/v1/gateway` | يعمل كـ shim يحوّل الطلب تلقائياً |
+| `/functions/v1/mcp`                 | `/functions/v1/gateway/mcp` | JSON-RPC على الجذر يُحوَّل تلقائياً |
 
-الدوال القديمة لا تزال موجودة مؤقتاً كـ **محرّكات داخلية** يستدعيها `gateway`؛ سيتم دمجها كاملاً
-داخل `gateway/engine/` ثم حذفها في المرحلة التالية.
+المسارات القديمة ترجع هيدر `x-uberfix-deprecated`؛ يُفضَّل تحديث البوتات إلى `/gateway`.
+
+### مصادقة المفاتيح
+مفاتيح `api_consumers` تُخزَّن كبصمة **SHA-256** في `api_key_hash`، والمقارنة تتم على البصمة
+في كل المحركات (`maintenance` / `bot` / `ai`) عبر `_shared/api-consumer.ts`.
+مفتاح غير صالح ⇒ `403 Invalid or inactive API key`، وغياب أي مصادقة ⇒ `401 Unauthorized`.
+
 
 ## 🏛️ المعمارية
 
