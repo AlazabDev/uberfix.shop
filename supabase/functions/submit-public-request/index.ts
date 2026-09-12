@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
 
     const serviceLabel = SERVICE_LABELS[serviceType] || { ar: serviceType, en: serviceType };
 
-    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('gateway', {
+    const { data: gatewayResult, error: gatewayError } = await supabaseAdmin.functions.invoke('api', {
       body: {
         channel,
         client_name: sanitizedName || 'زائر',
