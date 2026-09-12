@@ -87,6 +87,7 @@ interface ApiConsumer {
   scopes?: string[];
   storage_target?: string;
   metadata?: Record<string, unknown>;
+  total_requests?: number;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -193,7 +194,7 @@ async function authenticateApiKey(
 
   const { data: consumer, error } = await supabaseAdmin
     .from('api_consumers')
-    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata, total_requests')
     .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKeyHash}`)
     .eq('is_active', true)
     .maybeSingle();
@@ -212,7 +213,7 @@ async function authenticateApiKey(
   // Update last_used_at and total_requests
   supabaseAdmin
     .from('api_consumers')
-    .update({ last_used_at: new Date().toISOString(), total_requests: (consumer as any).total_requests + 1 })
+    .update({ last_used_at: new Date().toISOString(), total_requests: (consumer.total_requests ?? 0) + 1 })
     .eq('id', consumer.id)
     .then(() => {});
 
@@ -260,7 +261,7 @@ async function authenticateOAuthBearer(
   }
   const { data: consumer } = await supabaseAdmin
     .from('api_consumers')
-    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata, total_requests')
     .eq('id', payload.sub)
     .eq('is_active', true)
     .maybeSingle();
