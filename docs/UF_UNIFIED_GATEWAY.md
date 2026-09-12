@@ -1,111 +1,86 @@
-# 🌐 UberFix Unified API Gateway
+# 🌐 UberFix Backend — بابان فقط
 
-> نقطة الدخول **الوحيدة** لكل النظام — تطبق المعمارية الموحّدة:
-> `Clients → Unified Gateway → MCP Core → Business Engine → Database`.
-
-## 🔗 العنوان
-
+```text
+                    ┌── REST API   /functions/v1/api    للتطبيقات والتكاملات والاختبارات
+UberFix Backend ────┤
+                    └── MCP Server /functions/v1/mcp    لوكلاء الذكاء الاصطناعي
+                                 │
+                                 ▼
+                   نواة الأعمال المشتركة (_shared/core)
+                                 ▼
+                     PostgreSQL (Supabase + RLS)
 ```
-https://zrrffsjbfkphridqyais.supabase.co/functions/v1/gateway
-```
+
+## 1) REST API — `/functions/v1/api`
 
 | المسار | الغرض |
 |---|---|
-| `GET  /gateway/`        | ميتاداتا الخادم |
-| `GET  /gateway/health`  | فحص الحياة |
-| `POST /gateway/`        | REST — يقبل `{action,payload,...}` أو `{channel,action,...}` |
-| `POST /gateway/mcp`     | MCP Streamable HTTP (initialize / tools/list / tools/call) |
+| `GET  /api/` | وصف الباب |
+| `GET  /api/health` | فحص الحياة |
+| `POST /api/` | `{channel,...}` للصيانة أو `{action,payload}` للكتالوج والاستعلامات |
+| `POST /api/ai/{agent,chat,stream,classify,summarize}` | مسارات الذكاء |
 
-## 🔑 المصادقة
+### المصادقة
+- `x-api-key: <BOT_API_KEY>` — للبوتات والتكاملات (مفاتيح `api_consumers`، مخزَّنة كبصمة SHA-256 في `api_key_hash`).
+- `Authorization: Bearer <JWT>` — للواجهة والموبايل. قناة `internal` تتطلب جلسة مستخدم حقيقية.
+- مفتاح غير صالح ⇒ `403`، وغياب المصادقة ⇒ `401`.
 
-- `x-api-key: <BOT_API_KEY>` — للبوتات والتكاملات الخارجية (مفاتيح `api_consumers`).
-- `Authorization: Bearer <JWT>` — للموبايل والواجهة (Supabase Auth).
+### القنوات المتاحة
+`whatsapp_flow`, `jotform`, `public_form`, `qr_guest`, `facebook_lead`, `phone`,
+`internal`, `whatsapp_chat`, `email`, `api`, `bot_gateway`.
 
-## 🧠 MCP Core (أدوات البروتوكول)
-
-| الفئة | الأدوات |
-|---|---|
-| Maintenance Lifecycle | `create_maintenance_request`, `transition_request_stage`, `get_request_status`, `cancel_request`, `add_request_note` |
-| Resource Registry     | `list_services`, `list_categories`, `list_technicians`, `get_branches`, `find_nearest_branch` |
-| Context / Quote       | `get_quote`, `check_status_quick`, `server_info` |
-
-## 🧪 اختبار سريع
-
+### اختبار سريع
 ```bash
-G="https://zrrffsjbfkphridqyais.supabase.co/functions/v1/gateway"
-K="uf_e4c85e466a4428909ea1baf8f7998ce98e1f1ba0bb69d69e"
-
-# 1) Health
-curl "$G/health"
-
-# 2) REST: catalog
-curl -X POST "$G" -H "Content-Type: application/json" -H "x-api-key: $K" \
+A="https://zrrffsjbfkphridqyais.supabase.co/functions/v1/api"
+curl "$A/health"
+curl -X POST "$A" -H "Content-Type: application/json" -H "x-api-key: $UF_KEY" \
   -d '{"action":"list_services","payload":{}}'
-
-# 3) REST: create maintenance request
-curl -X POST "$G" -H "Content-Type: application/json" -H "x-api-key: $K" \
+curl -X POST "$A" -H "Content-Type: application/json" -H "x-api-key: $UF_KEY" \
   -d '{"channel":"api","client_name":"أحمد","client_phone":"01004006620",
        "service_type":"electrical","description":"قطع كهرباء","priority":"high"}'
-
-# 4) MCP: list tools
-curl -X POST "$G/mcp" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "x-api-key: $K" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-## 🖥️ Claude Desktop / Cursor / Rasa
+## 2) MCP Server — `/functions/v1/mcp`
+
+خادم MCP مستقل للوكلاء، أدواته تُكتب في `src/lib/mcp/tools/` وتُبنى تلقائيًا إلى
+`supabase/functions/mcp/`. الأدوات الحالية: `list_services`, `list_branches`,
+`find_nearest_branch`, `track_maintenance_request`, `create_maintenance_request`
+(تنفّذ عبر REST بنفس قواعد الأمان).
 
 ```json
 {
   "mcpServers": {
     "uberfix": {
-      "url": "https://zrrffsjbfkphridqyais.supabase.co/functions/v1/gateway/mcp",
-      "headers": { "x-api-key": "uf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }
+      "url": "https://zrrffsjbfkphridqyais.supabase.co/functions/v1/mcp"
     }
   }
 }
 ```
 
-## 📜 ملاحظات الهجرة
+عمليات التشغيل الحساسة (نقل المرحلة، الإلغاء، الملاحظات، إسناد الفنيين) تبقى على
+REST بمفتاح صالح، ولا تُعرَض كأدوات عامة بدون مصادقة.
 
-| القديم (مهجور) | البديل | الحالة |
+## 3) المسارات المهجورة
+
+| القديم | البديل | الحالة |
 |---|---|---|
-| `/functions/v1/maintenance-gateway` | `/functions/v1/gateway` | يعمل كـ shim يحوّل الطلب تلقائياً |
-| `/functions/v1/bot-gateway`         | `/functions/v1/gateway` | يعمل كـ shim يحوّل الطلب تلقائياً |
-| `/functions/v1/mcp`                 | `/functions/v1/gateway/mcp` | JSON-RPC على الجذر يُحوَّل تلقائياً |
+| `/functions/v1/gateway` | `/functions/v1/api` | shim يحوّل تلقائيًا |
+| `/functions/v1/gateway/mcp` | `/functions/v1/mcp` | JSON-RPC يُحوَّل تلقائيًا |
+| `/functions/v1/bot-gateway` | `/functions/v1/api` | shim يحوّل تلقائيًا |
+| `/functions/v1/maintenance-gateway` | `/functions/v1/api` | shim يحوّل تلقائيًا |
 
-المسارات القديمة ترجع هيدر `x-uberfix-deprecated`؛ يُفضَّل تحديث البوتات إلى `/gateway`.
+كل استجابة من المسارات القديمة تحمل الرأس `x-uberfix-deprecated`.
 
-### مصادقة المفاتيح
-مفاتيح `api_consumers` تُخزَّن كبصمة **SHA-256** في `api_key_hash`، والمقارنة تتم على البصمة
-في كل المحركات (`maintenance` / `bot` / `ai`) عبر `_shared/api-consumer.ts`.
-مفتاح غير صالح ⇒ `403 Invalid or inactive API key`، وغياب أي مصادقة ⇒ `401 Unauthorized`.
-
-
-## 🏛️ المعمارية
+## 4) تنظيم الكود
 
 ```
-┌────────────────────────────────────────────────┐
-│ Clients: Mobile / Web / AzSTT / Bots / Webhook │
-└────────────────────┬───────────────────────────┘
-                     │ REST + MCP
-                     ▼
-        ┌────────────────────────────┐
-        │   UNIFIED API GATEWAY      │  ← functions/gateway
-        │  Auth · Rate-limit · Logs  │
-        └────────────┬───────────────┘
-                     ▼
-        ┌────────────────────────────┐
-        │   MCP SERVER CORE          │
-        │  Tools · Context · Schemas │
-        └────────────┬───────────────┘
-                     ▼
-        ┌────────────────────────────┐
-        │   BUSINESS LOGIC ENGINE    │
-        │  Tickets · Dispatch · SLA  │
-        └────────────┬───────────────┘
-                     ▼
-         PostgreSQL (Supabase + RLS)
+supabase/functions/
+  api/index.ts                باب REST (Hono) — رقيق
+  mcp/index.ts                خادم MCP (مولّد من src/lib/mcp)
+  _shared/core/maintenance.ts دورة حياة طلبات الصيانة
+  _shared/core/bot.ts         الكتالوج والاستعلامات وأدوات البوت
+  _shared/core/ai.ts + ai/    الذكاء الاصطناعي والوكيل الداخلي
+  _shared/api-consumer.ts     مصادقة مفاتيح api_consumers (SHA-256)
+  _shared/legacy-shim.ts      وسيط المسارات القديمة
+  gateway|bot-gateway|maintenance-gateway/index.ts   سطر واحد يستدعي الوسيط
 ```
