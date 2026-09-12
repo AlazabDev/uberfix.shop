@@ -86,6 +86,7 @@ interface ApiConsumer {
   branch_id: string | null;
   scopes?: string[];
   storage_target?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ async function authenticateApiKey(
 
   const { data: consumer, error } = await supabaseAdmin
     .from('api_consumers')
-    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata')
     .or(`api_key_hash.eq.${apiKeyHash},api_key.eq.${apiKeyHash}`)
     .eq('is_active', true)
     .maybeSingle();
@@ -259,7 +260,7 @@ async function authenticateOAuthBearer(
   }
   const { data: consumer } = await supabaseAdmin
     .from('api_consumers')
-    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target')
+    .select('id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, metadata')
     .eq('id', payload.sub)
     .eq('is_active', true)
     .maybeSingle();
@@ -539,8 +540,34 @@ async function handleConsumerAction(
   req: Request,
   startTime: number
 ): Promise<Response> {
+  const scopes = consumer.scopes ?? [];
+  const hasConsumerScope = (required: string) => scopes.includes('*') || scopes.includes(required);
+  const requiredScope = action === 'get_status'
+    ? 'requests:read'
+    : action === 'transition_stage'
+      ? 'workflow:transition'
+      : action === 'cancel'
+        ? 'workflow:cancel'
+        : 'requests:write';
+
+  if (!hasConsumerScope(requiredScope)) {
+    return errorResponse(
+      'Insufficient scope',
+      `المفتاح لا يملك الصلاحية المطلوبة: ${requiredScope}`,
+      403,
+      { required_scope: requiredScope },
+    );
+  }
+
   const { row, error } = await resolveTargetRequest(supabaseAdmin, consumer, body);
   if (error) return error;
+
+  const delegatedActor = typeof consumer.metadata?.delegated_actor_id === 'string'
+    ? consumer.metadata.delegated_actor_id
+    : '';
+  const actorId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(delegatedActor)
+    ? delegatedActor
+    : null;
 
   const logAction = async (status: number, extra: Record<string, unknown>) => {
     try {
@@ -592,9 +619,15 @@ async function handleConsumerAction(
     const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('fn_transition_request_stage', {
       p_request_id: row.id,
       p_to_stage: body.to_stage,
-      p_actor: null,
+      p_actor: actorId,
       p_reason: body.reason || `api:${consumer.name}`,
-      p_metadata: { source: 'maintenance-gateway', consumer_id: consumer.id, consumer_name: consumer.name, ip: clientIP },
+      p_metadata: {
+        source: 'api',
+        consumer_id: consumer.id,
+        consumer_name: consumer.name,
+        delegated_actor_id: actorId,
+        ip: clientIP,
+      },
     });
     if (rpcErr) {
       await logAction(400, { error: rpcErr.message, to_stage: body.to_stage });
@@ -622,9 +655,16 @@ async function handleConsumerAction(
     const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('fn_transition_request_stage', {
       p_request_id: row.id,
       p_to_stage: 'cancelled',
-      p_actor: null,
+      p_actor: actorId,
       p_reason: body.reason || 'cancelled_via_api',
-      p_metadata: { source: 'maintenance-gateway', consumer_id: consumer.id, action: 'cancel', ip: clientIP },
+      p_metadata: {
+        source: 'api',
+        consumer_id: consumer.id,
+        consumer_name: consumer.name,
+        delegated_actor_id: actorId,
+        action: 'cancel',
+        ip: clientIP,
+      },
     });
     if (rpcErr) {
       await logAction(400, { error: rpcErr.message });
