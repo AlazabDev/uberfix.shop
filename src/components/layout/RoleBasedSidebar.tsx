@@ -154,7 +154,9 @@ export function RoleBasedSidebar() {
                       <SidebarMenuButton 
                         asChild 
                         isActive={isActive(item.href)}
+                        tooltip={item.label}
                         className={cn(
+                          "justify-start group-data-[collapsible=icon]:justify-center",
                           !hasAccess && "opacity-60"
                         )}
                       >
