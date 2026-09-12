@@ -31,7 +31,7 @@ import {
   Bell
 } from "lucide-react";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
-import { useMaintenanceRequests } from "@/hooks/useMaintenanceRequests";
+import { useRequestsCounts } from "@/hooks/useRequestsCount";
 import { ModuleAccessDialog } from "./ModuleAccessDialog";
 
 import {
@@ -96,7 +96,7 @@ export function RoleBasedSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { requests } = useMaintenanceRequests();
+  const { counts } = useRequestsCounts();
   const { isModuleEnabled, loading, userRole } = useModulePermissions();
   
   // State for access denied dialog
@@ -184,9 +184,9 @@ export function RoleBasedSidebar() {
                                 <Lock className="h-3 w-3 text-muted-foreground mr-auto" />
                               )}
                               {/* Badge for requests count - only if has access */}
-                              {hasAccess && item.showBadge && requests.length > 0 && (
+                              {hasAccess && item.showBadge && counts.total > 0 && (
                                 <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-semibold mr-auto">
-                                  {requests.length}
+                                  {counts.total}
                                 </span>
                               )}
                             </>
