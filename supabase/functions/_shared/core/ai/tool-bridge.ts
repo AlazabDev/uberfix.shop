@@ -2,8 +2,8 @@
  * Bridges the 13 MCP tools to Azure-OpenAI tool schema, and executes them
  * by dispatching to the in-process engine handlers (no extra HTTP hop).
  */
-import { handleMaintenance } from '../engine/maintenance.ts';
-import { handleBot } from '../engine/bot.ts';
+import { handleMaintenance } from '../maintenance.ts';
+import { handleBot } from '../bot.ts';
 
 type ToolDef = {
   type: 'function';
