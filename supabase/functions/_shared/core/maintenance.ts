@@ -44,6 +44,9 @@ interface GatewayRequest {
   request_id?: string;
   request_number?: string;
   to_stage?: string;
+  // Required (1-5) when closing a request.
+  rating?: number;
+  feedback?: string;
   reason?: string;
   note?: string;
   client_name: string;
