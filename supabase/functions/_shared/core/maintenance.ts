@@ -1,9 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { corsHeaders } from '../../_shared/cors.ts';
-import { rateLimit, createRateLimitResponse } from '../../_shared/rateLimiter.ts';
-import { verifyGatewayToken, hasScope, type GatewayTokenPayload } from '../../_shared/jwt-gateway.ts';
-import { hashRequest, checkIdempotency, reserveIdempotency, storeIdempotentResponse } from '../../_shared/idempotency.ts';
-import { cacheIncr } from '../../_shared/redis.ts';
+import { corsHeaders } from '../cors.ts';
+import { rateLimit, createRateLimitResponse } from '../rateLimiter.ts';
+import { verifyGatewayToken, hasScope, type GatewayTokenPayload } from '../jwt-gateway.ts';
+import { hashRequest, checkIdempotency, reserveIdempotency, storeIdempotentResponse } from '../idempotency.ts';
+import { cacheIncr } from '../redis.ts';
 
 /**
  * 🌐 Unified Maintenance Gateway (API Gateway)
