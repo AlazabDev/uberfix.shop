@@ -132,11 +132,7 @@ export function RoleBasedSidebar() {
 
   return (
     <>
-      <Sidebar
-        side="right"
-        className={state === "collapsed" ? "w-14" : "w-64"}
-        collapsible="icon"
-      >
+      <Sidebar side="right" collapsible="icon">
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>
