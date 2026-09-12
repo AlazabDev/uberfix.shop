@@ -43,7 +43,7 @@ export const WhatsAppFloatingButton = ({
       <button
         onClick={openWhatsApp}
         className="
-          w-14 h-14 rounded-full
+          w-10 h-10 rounded-full
           bg-[#25D366] hover:bg-[#128C7E]
           text-white
           flex items-center justify-center
@@ -55,11 +55,11 @@ export const WhatsAppFloatingButton = ({
         style={{ animationDuration: '2s' }}
         aria-label="تواصل عبر واتساب"
       >
-        <MessageCircle className="h-7 w-7" />
+        <MessageCircle className="h-5 w-5" />
       </button>
 
       {/* Pulse animation ring */}
-      <div className="absolute inset-0 w-14 h-14 rounded-full bg-[#25D366] animate-ping opacity-20 pointer-events-none" style={{ animationDuration: '2s' }} />
+      <div className="absolute inset-0 w-10 h-10 rounded-full bg-[#25D366] animate-ping opacity-20 pointer-events-none" style={{ animationDuration: '2s' }} />
     </div>
   );
 };
