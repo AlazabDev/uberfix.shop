@@ -93,11 +93,16 @@ export function useAdvancedRequests(
       if (filters.rating !== ALL_OPTION) q = q.gte("rating", Number(filters.rating));
       if (filters.unpriced) q = q.or("actual_cost.is.null,actual_cost.eq.0");
       if (filters.search.trim()) {
-        const term = `%${filters.search.trim()}%`;
-        q = q.or(
-          `request_number.ilike.${term},title.ilike.${term},description.ilike.${term},client_name.ilike.${term},client_phone.ilike.${term}`
-        );
+        // Strip PostgREST reserved characters before interpolation
+        const safe = filters.search.trim().replace(/[,()"'\\*%]/g, " ").trim();
+        if (safe) {
+          const term = `*${safe}*`;
+          q = q.or(
+            `request_number.ilike.${term},title.ilike.${term},description.ilike.${term},client_name.ilike.${term},client_phone.ilike.${term}`
+          );
+        }
       }
+
 
       const { data, error: fetchError, count } = await q.returns<MaintenanceRequest[]>();
       if (current !== requestId.current) return;
