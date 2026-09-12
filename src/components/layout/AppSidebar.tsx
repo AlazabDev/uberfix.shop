@@ -114,11 +114,7 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path;
 
   return (
-    <Sidebar
-      side="right"
-      className={state === "collapsed" ? "w-14" : "w-64"}
-      collapsible="icon"
-    >
+    <Sidebar side="right" collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>القائمة الرئيسية</SidebarGroupLabel>
@@ -126,7 +122,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                    className="justify-start group-data-[collapsible=icon]:justify-center"
+                  >
                     <NavLink to={item.href} end>
                       <item.icon className="h-4 w-4" />
                       {state !== "collapsed" && (
@@ -148,16 +149,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="p-2 border-t border-border">
-          {state !== "collapsed" && (
+      {state !== "collapsed" && (
+        <SidebarFooter>
+          <div className="p-2 border-t border-border">
             <div className="text-xs text-muted-foreground text-center space-y-1">
               <p className="font-medium">نسخة 1.0.0</p>
               <p>© 2024 UberFix.shop</p>
             </div>
-          )}
-        </div>
-      </SidebarFooter>
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
