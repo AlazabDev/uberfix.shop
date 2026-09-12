@@ -627,7 +627,7 @@ async function handleConsumerAction(
       if (Number.isInteger(rating) && rating >= 1 && rating <= 5) {
         const patch: Record<string, unknown> = { rating };
         if (typeof body.feedback === 'string' && body.feedback.trim()) {
-          patch.feedback = body.feedback.trim();
+          patch.feedback_comment = body.feedback.trim();
         }
         const { error: ratingErr } = await supabaseAdmin
           .from('maintenance_requests')
