@@ -42,3 +42,7 @@ lerna-debug.log*
 
 # System files
 Thumbs.db
+
+# Local secret docs
+docs/.local/
+docs/UF_API_ENDPOINTS.md
