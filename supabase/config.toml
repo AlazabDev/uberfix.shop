@@ -86,17 +86,21 @@ verify_jwt = true
 import_map = "./functions/import_map.json"
 # Uses the shared email dependency import map
 
+[functions.api]
+verify_jwt = false
+# Official REST API. Authentication is enforced in code by channel and action.
+
 [functions.gateway]
 verify_jwt = false
-# Unified API Gateway. Authentication is enforced in code by channel and action.
+# Deprecated path shim -> api. Auth enforced downstream in code.
 
 [functions.bot-gateway]
 verify_jwt = false
-# Deprecated path shim -> gateway. Auth enforced downstream in code.
+# Deprecated path shim -> api. Auth enforced downstream in code.
 
 [functions.maintenance-gateway]
 verify_jwt = false
-# Deprecated path shim -> gateway. Auth enforced downstream in code.
+# Deprecated path shim -> api. Auth enforced downstream in code.
 
 
 

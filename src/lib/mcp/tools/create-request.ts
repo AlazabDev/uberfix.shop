@@ -21,7 +21,7 @@ export default defineTool({
     const anon = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
     if (!base || !anon) return errorResult("Supabase env missing.");
     try {
-      const res = await fetch(`${base}/functions/v1/maintenance-gateway`, {
+      const res = await fetch(`${base}/functions/v1/api`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -31,7 +31,7 @@ export default defineTool({
         body: JSON.stringify({ channel: "mcp-public", ...args }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) return errorResult(`gateway ${res.status}: ${JSON.stringify(body)}`);
+      if (!res.ok) return errorResult(`api ${res.status}: ${JSON.stringify(body)}`);
       return textResult(body);
     } catch (e: any) {
       return errorResult(e?.message ?? String(e));

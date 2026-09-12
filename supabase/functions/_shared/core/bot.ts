@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders } from '../../_shared/cors.ts';
-import { findApiConsumer, touchApiConsumer } from '../../_shared/api-consumer.ts';
+import { corsHeaders } from '../cors.ts';
+import { findApiConsumer, touchApiConsumer } from '../api-consumer.ts';
 import { handleMaintenance } from './maintenance.ts';
 
 
