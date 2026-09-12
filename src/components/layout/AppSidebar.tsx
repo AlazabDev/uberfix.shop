@@ -149,16 +149,16 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="p-2 border-t border-border">
-          {state !== "collapsed" && (
+      {state !== "collapsed" && (
+        <SidebarFooter>
+          <div className="p-2 border-t border-border">
             <div className="text-xs text-muted-foreground text-center space-y-1">
               <p className="font-medium">نسخة 1.0.0</p>
               <p>© 2024 UberFix.shop</p>
             </div>
-          )}
-        </div>
-      </SidebarFooter>
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   );
 }
