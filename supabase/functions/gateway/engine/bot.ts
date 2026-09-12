@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from '../../_shared/cors.ts';
+import { findApiConsumer, touchApiConsumer } from '../../_shared/api-consumer.ts';
 import { handleMaintenance } from './maintenance.ts';
+
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   plumbing: "سباكة", electrical: "كهرباء", ac: "تكييف", painting: "دهانات",
@@ -70,20 +72,21 @@ export async function handleBot(req: Request): Promise<Response> {
     const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null };
 
     if (apiKey) {
-      // External API consumer auth
-      const { data: consumer } = await supabase
-        .from('api_consumers')
-        .select('id, name, is_active, channel')
-        .eq('api_key', apiKey)
-        .eq('is_active', true)
-        .maybeSingle();
-
+      // External API consumer auth (المفاتيح مخزّنة كبصمة SHA-256)
+      const consumer = await findApiConsumer(supabase, apiKey);
       if (consumer) {
         authenticated = true;
         consumerId = consumer.id;
         caller.isApiConsumer = true;
+        touchApiConsumer(supabase, consumer);
+      } else {
+        return jsonResponse(
+          { success: false, error: 'Invalid or inactive API key', message_ar: 'مفتاح API غير صالح أو معطل' },
+          403,
+        );
       }
     }
+
 
     // Also check Supabase JWT (for internal app usage)
     const authHeader = req.headers.get('Authorization');
@@ -117,11 +120,17 @@ export async function handleBot(req: Request): Promise<Response> {
       });
     }
 
-    const { action, payload, session_id, metadata } = await req.json();
+    const parsedBody = await req.json().catch(() => ({}));
+    const { action, session_id, metadata } = parsedBody ?? {};
+    const payload = (parsedBody?.payload ?? {}) as Record<string, unknown>;
 
-    if (!action || !payload) {
-      return jsonResponse({ success: false, error: 'action and payload are required' }, 400);
+    if (!action) {
+      return jsonResponse(
+        { success: false, error: 'action is required', message_ar: 'الحقل action مطلوب' },
+        400,
+      );
     }
+
 
     // Log the gateway request
     await supabase.from('api_gateway_logs').insert({
