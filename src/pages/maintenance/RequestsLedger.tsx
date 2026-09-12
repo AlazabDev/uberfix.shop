@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PricingGapPanel } from "@/components/maintenance/PricingGapPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -185,6 +186,14 @@ export default function RequestsLedger() {
             كل الطلبات بدورة حياة كاملة: الفرع، المهنة، الفني، البنود والفاتورة
           </p>
         </div>
+
+        <PricingGapPanel
+          onFocus={() => {
+            setInvoiceStatus("draft");
+            setStage(ALL);
+            setPage(0);
+          }}
+        />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
