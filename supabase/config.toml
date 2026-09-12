@@ -90,6 +90,16 @@ import_map = "./functions/import_map.json"
 verify_jwt = false
 # Unified API Gateway. Authentication is enforced in code by channel and action.
 
+[functions.bot-gateway]
+verify_jwt = false
+# Deprecated path shim -> gateway. Auth enforced downstream in code.
+
+[functions.maintenance-gateway]
+verify_jwt = false
+# Deprecated path shim -> gateway. Auth enforced downstream in code.
+
+
+
 [functions.submit-public-request]
 verify_jwt = false
 # Public request adapter. Validation and rate limiting are enforced in code.
