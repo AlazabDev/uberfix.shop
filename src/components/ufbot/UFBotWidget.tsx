@@ -20,10 +20,12 @@ interface Message {
 const UFBOT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ufbot`;
 
 const QUICK_ACTIONS = [
-  "ما هي خدمات الشركة؟",
-  "أريد عرض سعر تشطيب",
-  "ما هي أسعار التشطيب؟",
-  "ما هي فروع الشركة؟",
+  "أريد تقديم طلب صيانة جديد",
+  "أين وصل طلب الصيانة الخاص بي؟",
+  "ما هي أنواع الصيانة المتاحة؟",
+  "كم تكلفة زيارة الصيانة؟",
+  "أريد التحدث مع فني متخصص",
+  "ما هو أقرب فرع لي؟",
 ];
 
 type TabType = 'text' | 'voice';
@@ -248,19 +250,19 @@ export function UFBotWidget() {
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-6 z-[9999] h-14 w-14 rounded-full shadow-lg",
+          "fixed bottom-6 right-6 z-[9999] h-10 w-10 rounded-full shadow-lg",
           "bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#111]",
           "transition-all duration-300 ease-in-out"
         )}
         size="icon"
         aria-label="عزبوت"
       >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        {isOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </Button>
 
       {isOpen && (
         <div
-          className="fixed bottom-24 right-6 z-[9998] w-[340px] sm:w-[380px] rounded-2xl shadow-2xl border border-border bg-[#f5f4ef] flex flex-col overflow-hidden"
+          className="fixed bottom-20 right-6 z-[9998] w-[340px] sm:w-[380px] rounded-2xl shadow-2xl border border-border bg-[#f5f4ef] flex flex-col overflow-hidden"
           style={{ height: '560px', maxHeight: '80vh' }}
           dir="rtl"
         >
