@@ -4,6 +4,8 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../../_shared/cors.ts';
+import { findApiConsumer } from '../../_shared/api-consumer.ts';
+
 import { AZURE, chatCompletion, chatCompletionStream } from '../ai/azure-client.ts';
 import { runAgent } from '../ai/agent-runtime.ts';
 
@@ -25,8 +27,9 @@ async function resolveCaller(req: Request): Promise<{ user_id: string | null; co
     user_id = data?.user?.id ?? null;
   }
   if (apiKey) {
-    const { data } = await admin.from('api_consumers').select('id').eq('api_key', apiKey).maybeSingle();
-    consumer_id = data?.id ?? null;
+    const consumer = await findApiConsumer(admin, apiKey);
+    consumer_id = consumer?.id ?? null;
+
   }
   return { user_id, consumer_id };
 }
