@@ -186,6 +186,14 @@ export default function RequestsLedger() {
           </p>
         </div>
 
+        <PricingGapPanel
+          onFocus={() => {
+            setInvoiceStatus("draft");
+            setStage(ALL);
+            setPage(0);
+          }}
+        />
+
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
