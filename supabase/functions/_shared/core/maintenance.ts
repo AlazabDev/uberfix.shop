@@ -44,6 +44,9 @@ interface GatewayRequest {
   request_id?: string;
   request_number?: string;
   to_stage?: string;
+  // Required (1-5) when closing a request.
+  rating?: number;
+  feedback?: string;
   reason?: string;
   note?: string;
   client_name: string;
@@ -617,6 +620,28 @@ async function handleConsumerAction(
     if (!body.to_stage) {
       return errorResponse('to_stage is required', 'مطلوب to_stage', 400);
     }
+
+    // إغلاق الطلب يستلزم تقييمًا من 1 إلى 5 — نسمح بتمريره مع نفس الطلب.
+    if (body.to_stage === 'closed') {
+      const rating = Number(body.rating);
+      if (Number.isInteger(rating) && rating >= 1 && rating <= 5) {
+        const patch: Record<string, unknown> = { rating };
+        if (typeof body.feedback === 'string' && body.feedback.trim()) {
+          patch.feedback_comment = body.feedback.trim();
+        }
+        const { error: ratingErr } = await supabaseAdmin
+          .from('maintenance_requests')
+          .update(patch)
+          .eq('id', row.id);
+        if (ratingErr) {
+          await logAction(400, { error: ratingErr.message, stage: 'rating_update' });
+          return errorResponse(ratingErr.message, `تعذر حفظ التقييم: ${ratingErr.message}`, 400);
+        }
+      } else if (body.rating !== undefined) {
+        return errorResponse('rating must be an integer between 1 and 5', 'التقييم يجب أن يكون رقمًا من 1 إلى 5', 400);
+      }
+    }
+
     const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('fn_transition_request_stage', {
       p_request_id: row.id,
       p_to_stage: body.to_stage,
