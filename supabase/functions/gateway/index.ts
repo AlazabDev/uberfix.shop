@@ -350,10 +350,30 @@ const handleRestRequest = async (c: any) => {
   const parsed = await c.req.json().catch(() => ({}));
   const body: Record<string, unknown> =
     parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+
+  // توافق: عميل MCP أرسل JSON-RPC إلى الجذر بدل /gateway/mcp — نمرّره للـ MCP.
+  if (typeof body.jsonrpc === 'string') {
+    const headers = new Headers(c.req.raw.headers);
+    headers.set('Content-Type', 'application/json');
+    if (!(headers.get('accept') ?? '').includes('text/event-stream')) {
+      headers.set('accept', 'application/json, text/event-stream');
+    }
+    const mcpReq = new Request(`${INTERNAL_BASE}/gateway/mcp`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    const res = await mcpHandler(mcpReq);
+    const outHeaders = new Headers(res.headers);
+    for (const [key, value] of Object.entries(corsHeaders)) outHeaders.set(key, value);
+    return new Response(res.body, { status: res.status, headers: outHeaders });
+  }
+
   const isMaintenance = typeof body.channel === 'string';
   const result = await invokeEngine(isMaintenance ? 'maintenance' : 'bot', body);
   return c.json(result.body, result.status as 200, corsHeaders);
 };
+
 
 app.post('/', handleRestRequest);
 app.post('/rest', handleRestRequest);
