@@ -6,6 +6,7 @@ import { PricingGapPanel } from "@/components/maintenance/PricingGapPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -225,103 +226,119 @@ export default function RequestsLedger() {
           <CardHeader>
             <CardTitle className="text-base">الفلاتر</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-5">
-            <div className="relative md:col-span-1">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="رقم الطلب أو العنوان أو العميل"
-                className="pr-9"
-              />
-            </div>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="relative sm:col-span-2 xl:col-span-1">
+                <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder="رقم الطلب أو العنوان أو العميل"
+                  className="pr-9"
+                />
+              </div>
 
-            <Select
-              value={branch}
-              onValueChange={(v) => {
-                setBranch(v);
-                setPage(0);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="الفرع" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value={ALL}>كل الفروع</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {b}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">الفرع</Label>
+                <Select
+                  value={branch}
+                  onValueChange={(v) => {
+                    setBranch(v);
+                    setPage(0);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="كل الفروع" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value={ALL}>كل الفروع</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Select
-              value={trade}
-              onValueChange={(v) => {
-                setTrade(v);
-                setPage(0);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="المهنة" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value={ALL}>كل المهن</SelectItem>
-                {trades.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">المهنة</Label>
+                <Select
+                  value={trade}
+                  onValueChange={(v) => {
+                    setTrade(v);
+                    setPage(0);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="كل المهن" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value={ALL}>كل المهن</SelectItem>
+                    {trades.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Select
-              value={stage}
-              onValueChange={(v) => {
-                setStage(v);
-                setPage(0);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="المرحلة" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value={ALL}>كل المراحل</SelectItem>
-                {Object.entries(stageLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">المرحلة</Label>
+                <Select
+                  value={stage}
+                  onValueChange={(v) => {
+                    setStage(v);
+                    setPage(0);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="كل المراحل" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value={ALL}>كل المراحل</SelectItem>
+                    {Object.entries(stageLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex gap-2">
-              <Select
-                value={invoiceStatus}
-                onValueChange={(v) => {
-                  setInvoiceStatus(v);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="الفاتورة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL}>كل الفواتير</SelectItem>
-                  {Object.entries(invoiceLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" onClick={resetFilters} title="إعادة تعيين">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">الفاتورة</Label>
+                <Select
+                  value={invoiceStatus}
+                  onValueChange={(v) => {
+                    setInvoiceStatus(v);
+                    setPage(0);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="كل الفواتير" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>كل الفواتير</SelectItem>
+                    {Object.entries(invoiceLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button variant="outline" onClick={resetFilters} className="w-full gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  إعادة تعيين
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
