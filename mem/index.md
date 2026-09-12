@@ -1,1 +1,2 @@
 - [Historical Lifecycle Completion](mem://features/maintenance/historical-lifecycle-completion) — 2,900 طلب أُغلق بدورة كاملة مع فواتير، بلا أرشفة، وview v_maintenance_requests_full وصفحة /requests-ledger
+- [Backend Two Doors](mem://architecture/backend-two-door-topology) — بابان فقط: REST /functions/v1/api وMCP /functions/v1/mcp، المنطق في _shared/core، والمسارات القديمة shims
