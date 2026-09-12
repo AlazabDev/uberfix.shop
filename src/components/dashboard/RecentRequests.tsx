@@ -24,7 +24,7 @@ const priorityConfig = {
 
 export const RecentRequests = () => {
   const navigate = useNavigate();
-  const { requests, loading, error } = useMaintenanceRequests();
+  const { requests, loading, error } = useMaintenanceRequests({ maxRows: 10 });
   const recentRequests = requests.slice(0, 3);
 
   if (loading) {

@@ -13,7 +13,7 @@ import {
 export type { WorkflowStage } from "@/constants/workflowStages";
 export type { MaintenanceRequest } from "@/types/maintenance";
 
-export function useMaintenanceRequests() {
+export function useMaintenanceRequests(options: { maxRows?: number } = {}) {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -29,7 +29,7 @@ export function useMaintenanceRequests() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchAllRequests();
+      const data = await fetchAllRequests(0, 500, options.maxRows);
       setRequests(data);
     } catch (err) {
       console.error('Error fetching requests:', err);
