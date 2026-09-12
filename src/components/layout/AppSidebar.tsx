@@ -122,7 +122,12 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    tooltip={item.label}
+                    className="justify-start group-data-[collapsible=icon]:justify-center"
+                  >
                     <NavLink to={item.href} end>
                       <item.icon className="h-4 w-4" />
                       {state !== "collapsed" && (
