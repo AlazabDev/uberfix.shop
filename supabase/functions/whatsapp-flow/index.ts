@@ -440,6 +440,32 @@ async function getNextScreen(
   }
 
   if (action === "data_exchange") {
+    // ---- قرار العميل على موعد الزيارة (موافق / أرفض / موعد آخر) ----
+    const d = data as Record<string, unknown>;
+    if (
+      screen === "APPOINTMENT_CONFIRM" ||
+      d.flow_action === "appointment_decision" ||
+      d.decision !== undefined
+    ) {
+      const reply = await handleFlowDecisionPayload({
+        ...d,
+        appointment_id: d.appointment_id ?? flow_token,
+      });
+      return {
+        version,
+        screen: "SUCCESS",
+        data: {
+          extension_message_response: {
+            params: {
+              flow_token,
+              result: reply ? "ok" : "invalid_decision",
+              message: reply ?? "برجاء اختيار أحد الخيارات المتاحة",
+            },
+          },
+        },
+      };
+    }
+
     // ---- Track request flow ----
     if ((data as Record<string, unknown>).flow_action === "track_request") {
       const requestNumber = (data as Record<string, unknown>)
