@@ -288,4 +288,5 @@ export async function handleAgentTick(req: Request): Promise<Response> {
     console.error('agent-tick fatal', message);
     return json({ ok: false, error: message }, 500);
   }
-});
+}
+
