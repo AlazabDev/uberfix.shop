@@ -207,6 +207,9 @@ const handleRestRequest = async (c: any) => {
 app.post('/', handleRestRequest);
 app.post('/rest', handleRestRequest);
 
+// منبّه الوكيل الذاتي — تُناديه مهمة pg_cron. لا يفعل شيئًا إن لم يوجد منبّه مستحق.
+app.post('/agent/tick', (c) => handleAgentTick(c.req.raw));
+
 app.get('/ai/health', (c) => handleAiHealth(c.req.raw));
 app.post('/ai/agent', (c) => handleAiAgent(c.req.raw));
 app.post('/ai/chat', (c) => handleAiChat(c.req.raw));
