@@ -223,12 +223,30 @@ async function handleTimer(
     return 'no_contact';
   }
 
-  const recipient =
+  let recipient =
     t.timer_kind === 'pre_visit_reminder' && tech.phone ? tech.phone : contact.notify_phone;
 
   // رقم الإرسال الموحّد للمنصّة، وإلا رقم الدور نفسه.
   const fromLevel = sender?.level ?? contact.level;
   const fromPhoneId = sender?.phoneNumberId ?? contact.phone_number_id;
+
+  // واتساب يرفض إرسال رسالة من الرقم إلى نفسه → وجّه التنبيه للمستوى الأعلى المتاح.
+  const digits = (v: string | null) => (v ?? '').replace(/\D/g, '');
+  if (sender?.phone && digits(recipient) === digits(sender.phone)) {
+    const fallback = [...contacts.values()]
+      .filter((c) => c.level > contact.level && digits(c.notify_phone) !== digits(sender.phone))
+      .sort((a, b) => a.level - b.level)[0];
+    if (!fallback) {
+      await admin.rpc('fn_settle_agent_timer', {
+        p_timer_id: t.timer_id, p_state: 'failed', p_decision: null,
+        p_error: 'recipient equals platform sender number and no higher contact available',
+        p_retry_in_minutes: null,
+      });
+      await logEvent(t, 'agent_timer_failed', { error: 'self_send_no_fallback' });
+      return 'self_send_no_fallback';
+    }
+    recipient = fallback.notify_phone;
+  }
 
   const body = (await agentCompose(t, tech.name, contact)) ?? fallbackMessage(t, tech.name, contact);
 
