@@ -196,6 +196,7 @@ async function technicianName(id: string | null): Promise<{ name: string; phone:
 interface Sender {
   level: number;
   phoneNumberId: string;
+  phone: string | null;
 }
 
 async function handleTimer(
@@ -311,13 +312,17 @@ export async function handleAgentTick(req: Request): Promise<Response> {
     const { data: cfgRows } = await admin
       .from('agent_runtime_config')
       .select('key, value')
-      .in('key', ['sender_phone_number_id', 'sender_token_level']);
+      .in('key', ['sender_phone_number_id', 'sender_token_level', 'sender_phone']);
     const cfg = new Map<string, string>(
       ((cfgRows ?? []) as Array<{ key: string; value: string }>).map((r) => [r.key, r.value]),
     );
     const senderPhoneId = cfg.get('sender_phone_number_id');
     const sender: Sender | null = senderPhoneId
-      ? { phoneNumberId: senderPhoneId, level: Number(cfg.get('sender_token_level') ?? 0) }
+      ? {
+          phoneNumberId: senderPhoneId,
+          level: Number(cfg.get('sender_token_level') ?? 0),
+          phone: cfg.get('sender_phone') ?? null,
+        }
       : null;
 
     const results: Record<string, number> = {};
