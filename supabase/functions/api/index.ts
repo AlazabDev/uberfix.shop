@@ -23,6 +23,7 @@ import {
   handleAiClassify,
   handleAiSummarize,
 } from '../_shared/core/ai.ts';
+import { handleAgentTick } from '../_shared/core/agent-timers.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -205,6 +206,9 @@ const handleRestRequest = async (c: any) => {
 
 app.post('/', handleRestRequest);
 app.post('/rest', handleRestRequest);
+
+// منبّه الوكيل الذاتي — تُناديه مهمة pg_cron. لا يفعل شيئًا إن لم يوجد منبّه مستحق.
+app.post('/agent/tick', (c) => handleAgentTick(c.req.raw));
 
 app.get('/ai/health', (c) => handleAiHealth(c.req.raw));
 app.post('/ai/agent', (c) => handleAiAgent(c.req.raw));
