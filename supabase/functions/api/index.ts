@@ -23,6 +23,7 @@ import {
   handleAiClassify,
   handleAiSummarize,
 } from '../_shared/core/ai.ts';
+import { handleAgentTick } from '../_shared/core/agent-timers.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
