@@ -193,7 +193,16 @@ async function technicianName(id: string | null): Promise<{ name: string; phone:
   return { name: 'غير معيَّن', phone: null };
 }
 
-async function handleTimer(t: DueTimer, contacts: Map<number, Contact>): Promise<string> {
+interface Sender {
+  level: number;
+  phoneNumberId: string;
+}
+
+async function handleTimer(
+  t: DueTimer,
+  contacts: Map<number, Contact>,
+  sender: Sender | null,
+): Promise<string> {
   // الطلب تحرّك بالفعل → لا تصعيد، أوقف بقية المنبّهات.
   const stage = (t.workflow_stage ?? '').toLowerCase();
   if (SETTLED_STAGES.has(stage) && t.timer_kind !== 'pre_visit_reminder') {
@@ -204,7 +213,7 @@ async function handleTimer(t: DueTimer, contacts: Map<number, Contact>): Promise
 
   const tech = await technicianName(t.assigned_technician_id);
 
-  // المستوى 0 (تذكير/تحقق) يُرسل من حساب مسؤول الصيانات إلى الفني إن وُجد رقمه، وإلا للمسؤول.
+  // المستوى 0 (تذكير/تحقق) يُرسل إلى الفني إن وُجد رقمه، وإلا إلى مسؤول الصيانات.
   const contact = contacts.get(Math.max(t.escalation_level, 1)) ?? null;
   if (!contact) {
     await admin.rpc('fn_settle_agent_timer', {
@@ -217,10 +226,14 @@ async function handleTimer(t: DueTimer, contacts: Map<number, Contact>): Promise
   const recipient =
     t.timer_kind === 'pre_visit_reminder' && tech.phone ? tech.phone : contact.notify_phone;
 
+  // رقم الإرسال الموحّد للمنصّة، وإلا رقم الدور نفسه.
+  const fromLevel = sender?.level ?? contact.level;
+  const fromPhoneId = sender?.phoneNumberId ?? contact.phone_number_id;
+
   const body = (await agentCompose(t, tech.name, contact)) ?? fallbackMessage(t, tech.name, contact);
 
   try {
-    const messageId = await sendWhatsApp(contact.level, contact.phone_number_id, recipient, body);
+    const messageId = await sendWhatsApp(fromLevel, fromPhoneId, recipient, body);
     await admin.rpc('fn_settle_agent_timer', {
       p_timer_id: t.timer_id, p_state: 'done',
       p_decision: `notified:${contact.role_label}`, p_error: null, p_retry_in_minutes: null,
