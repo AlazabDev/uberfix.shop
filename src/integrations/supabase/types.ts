@@ -1017,14 +1017,20 @@ export type Database = {
         Row: {
           appointment_date: string
           appointment_time: string
+          confirmation_message_id: string | null
+          confirmation_sent_at: string | null
           created_at: string
           created_by: string | null
+          customer_decision: string | null
+          customer_decision_at: string | null
           customer_email: string | null
           customer_email_enc: string | null
           customer_id: string
           customer_name: string
+          customer_note: string | null
           customer_phone: string | null
           customer_phone_enc: string | null
+          customer_requested_date: string | null
           description: string | null
           duration_minutes: number
           id: string
@@ -1043,14 +1049,20 @@ export type Database = {
         Insert: {
           appointment_date: string
           appointment_time: string
+          confirmation_message_id?: string | null
+          confirmation_sent_at?: string | null
           created_at?: string
           created_by?: string | null
+          customer_decision?: string | null
+          customer_decision_at?: string | null
           customer_email?: string | null
           customer_email_enc?: string | null
           customer_id: string
           customer_name: string
+          customer_note?: string | null
           customer_phone?: string | null
           customer_phone_enc?: string | null
+          customer_requested_date?: string | null
           description?: string | null
           duration_minutes?: number
           id?: string
@@ -1069,14 +1081,20 @@ export type Database = {
         Update: {
           appointment_date?: string
           appointment_time?: string
+          confirmation_message_id?: string | null
+          confirmation_sent_at?: string | null
           created_at?: string
           created_by?: string | null
+          customer_decision?: string | null
+          customer_decision_at?: string | null
           customer_email?: string | null
           customer_email_enc?: string | null
           customer_id?: string
           customer_name?: string
+          customer_note?: string | null
           customer_phone?: string | null
           customer_phone_enc?: string | null
+          customer_requested_date?: string | null
           description?: string | null
           duration_minutes?: number
           id?: string

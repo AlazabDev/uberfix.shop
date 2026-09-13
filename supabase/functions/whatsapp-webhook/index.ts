@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  handleOperatorReply,
+  handleAppointmentButton,
+  handleFlowDecisionPayload,
+} from "../_shared/core/agent-dialog.ts";
 
 /**
  * WhatsApp Webhook - UberFix (v2 - AI-Powered)
@@ -518,6 +523,7 @@ serve(async (req) => {
               case 'interactive':
                 if (message.interactive?.type === 'button_reply') content = message.interactive.button_reply?.title || message.interactive.button_reply?.id || '';
                 else if (message.interactive?.type === 'list_reply') content = message.interactive.list_reply?.title || message.interactive.list_reply?.id || '';
+                else if (message.interactive?.type === 'nfm_reply') content = message.interactive.nfm_reply?.response_json || 'رد نموذج';
                 break;
               default: content = `[${messageType}]`;
             }
@@ -529,6 +535,36 @@ serve(async (req) => {
               status: 'received',
               metadata: { sender_name: senderName, message_type: messageType, media_id: mediaId, timestamp, type: 'incoming' }
             });
+
+            // ===== 1) قرار العميل على موعد الزيارة (زر تفاعلي أو شاشة Flow) =====
+            try {
+              const btnId = message.interactive?.button_reply?.id as string | undefined;
+              if (btnId?.startsWith('uf_appt_')) {
+                const reply = await handleAppointmentButton(btnId);
+                if (reply) { await sendWhatsAppMessage(from, reply); continue; }
+              }
+              const nfm = message.interactive?.nfm_reply?.response_json as string | undefined;
+              if (nfm) {
+                const parsed = JSON.parse(nfm) as Record<string, unknown>;
+                const reply = await handleFlowDecisionPayload(parsed);
+                if (reply) { await sendWhatsAppMessage(from, reply); continue; }
+              }
+            } catch (e) {
+              console.error('appointment decision handling failed:', e);
+            }
+
+            // ===== 2) رد مسؤول الصيانة/التصعيد: تحديد الموعد والفني =====
+            if (messageType === 'text' && content) {
+              try {
+                const operatorReply = await handleOperatorReply(from, content);
+                if (operatorReply) {
+                  await sendWhatsAppMessage(from, operatorReply);
+                  continue;
+                }
+              } catch (e) {
+                console.error('operator reply handling failed:', e);
+              }
+            }
 
             // Process with AI and respond
             const aiResponse = await processWithAI(from, senderName, content, messageType, mediaId);

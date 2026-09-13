@@ -31,22 +31,32 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Fetch invoice via the existing public RPC
-    const { data: invData, error: invErr } = await supabase
-      .rpc('public_get_invoice_by_request', { p_request_id: request_id });
+    // Fetch the invoice row directly (service role) — the public RPC returns a nested shape
+    const { data: invoice, error: invErr } = await supabase
+      .from('invoices')
+      .select('id, invoice_number, status, amount, subtotal, total_amount, customer_name, customer_email, customer_phone')
+      .eq('request_id', request_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (invErr || !invData || (invData as any).error) {
-      return json({ error: 'Invoice not found for this request' }, 404);
+    if (invErr) {
+      console.error('[paytabs-create] invoice lookup failed:', invErr.message);
+      return json({ error: 'تعذر قراءة الفاتورة', details: invErr.message }, 500);
     }
-
-    const invoice = invData as any;
+    if (!invoice) {
+      return json({ error: 'لا توجد فاتورة مرتبطة بهذا الطلب' }, 404);
+    }
     if (invoice.status === 'paid') {
-      return json({ error: 'Invoice already paid', already_paid: true }, 409);
+      return json({ error: 'الفاتورة مدفوعة بالفعل', already_paid: true }, 409);
+    }
+    if (invoice.status === 'cancelled') {
+      return json({ error: 'هذه الفاتورة ملغاة' }, 409);
     }
 
-    const amount = Number(invoice.amount || 0);
-    if (amount <= 0) {
-      return json({ error: 'Invalid invoice amount' }, 400);
+    const amount = Number(invoice.total_amount ?? invoice.amount ?? invoice.subtotal ?? 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return json({ error: 'قيمة الفاتورة غير محددة بعد — برجاء التواصل مع الدعم لاستكمال التسعير' }, 400);
     }
 
     // Build cart_id (UF- prefix + invoice number + timestamp for uniqueness)
