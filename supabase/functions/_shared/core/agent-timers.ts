@@ -196,6 +196,7 @@ async function technicianName(id: string | null): Promise<{ name: string; phone:
 interface Sender {
   level: number;
   phoneNumberId: string;
+  phone: string | null;
 }
 
 async function handleTimer(
@@ -223,12 +224,30 @@ async function handleTimer(
     return 'no_contact';
   }
 
-  const recipient =
+  let recipient =
     t.timer_kind === 'pre_visit_reminder' && tech.phone ? tech.phone : contact.notify_phone;
 
   // رقم الإرسال الموحّد للمنصّة، وإلا رقم الدور نفسه.
   const fromLevel = sender?.level ?? contact.level;
   const fromPhoneId = sender?.phoneNumberId ?? contact.phone_number_id;
+
+  // واتساب يرفض إرسال رسالة من الرقم إلى نفسه → وجّه التنبيه للمستوى الأعلى المتاح.
+  const digits = (v: string | null) => (v ?? '').replace(/\D/g, '');
+  if (sender?.phone && digits(recipient) === digits(sender.phone)) {
+    const fallback = [...contacts.values()]
+      .filter((c) => c.level > contact.level && digits(c.notify_phone) !== digits(sender.phone))
+      .sort((a, b) => a.level - b.level)[0];
+    if (!fallback) {
+      await admin.rpc('fn_settle_agent_timer', {
+        p_timer_id: t.timer_id, p_state: 'failed', p_decision: null,
+        p_error: 'recipient equals platform sender number and no higher contact available',
+        p_retry_in_minutes: null,
+      });
+      await logEvent(t, 'agent_timer_failed', { error: 'self_send_no_fallback' });
+      return 'self_send_no_fallback';
+    }
+    recipient = fallback.notify_phone;
+  }
 
   const body = (await agentCompose(t, tech.name, contact)) ?? fallbackMessage(t, tech.name, contact);
 
@@ -293,13 +312,17 @@ export async function handleAgentTick(req: Request): Promise<Response> {
     const { data: cfgRows } = await admin
       .from('agent_runtime_config')
       .select('key, value')
-      .in('key', ['sender_phone_number_id', 'sender_token_level']);
+      .in('key', ['sender_phone_number_id', 'sender_token_level', 'sender_phone']);
     const cfg = new Map<string, string>(
       ((cfgRows ?? []) as Array<{ key: string; value: string }>).map((r) => [r.key, r.value]),
     );
     const senderPhoneId = cfg.get('sender_phone_number_id');
     const sender: Sender | null = senderPhoneId
-      ? { phoneNumberId: senderPhoneId, level: Number(cfg.get('sender_token_level') ?? 0) }
+      ? {
+          phoneNumberId: senderPhoneId,
+          level: Number(cfg.get('sender_token_level') ?? 0),
+          phone: cfg.get('sender_phone') ?? null,
+        }
       : null;
 
     const results: Record<string, number> = {};
