@@ -289,9 +289,22 @@ export async function handleAgentTick(req: Request): Promise<Response> {
       ((contactRows ?? []) as Contact[]).map((c) => [c.level, c]),
     );
 
+    // رقم الإرسال الموحّد (اختياري): إن ضُبط، تُرسل كل التنبيهات منه.
+    const { data: cfgRows } = await admin
+      .from('agent_runtime_config')
+      .select('key, value')
+      .in('key', ['sender_phone_number_id', 'sender_token_level']);
+    const cfg = new Map<string, string>(
+      ((cfgRows ?? []) as Array<{ key: string; value: string }>).map((r) => [r.key, r.value]),
+    );
+    const senderPhoneId = cfg.get('sender_phone_number_id');
+    const sender: Sender | null = senderPhoneId
+      ? { phoneNumberId: senderPhoneId, level: Number(cfg.get('sender_token_level') ?? 0) }
+      : null;
+
     const results: Record<string, number> = {};
     for (const timer of timers) {
-      const outcome = await handleTimer(timer, contacts);
+      const outcome = await handleTimer(timer, contacts, sender);
       results[outcome] = (results[outcome] ?? 0) + 1;
     }
 
