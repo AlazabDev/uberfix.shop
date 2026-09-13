@@ -102,6 +102,9 @@ verify_jwt = false
 verify_jwt = false
 # Deprecated path shim -> api. Auth enforced downstream in code.
 
+[functions.agent-tick]
+verify_jwt = false
+# Agent self-alarm dispatcher. Called by pg_cron; only acts on timers that are actually due.
 
 
 [functions.submit-public-request]
