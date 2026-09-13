@@ -149,6 +149,180 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_escalation_contacts: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          level: number
+          notify_phone: string
+          phone_number_id: string
+          role_label: string
+          updated_at: string
+          waba_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level: number
+          notify_phone: string
+          phone_number_id: string
+          role_label: string
+          updated_at?: string
+          waba_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          notify_phone?: string
+          phone_number_id?: string
+          role_label?: string
+          updated_at?: string
+          waba_id?: string
+        }
+        Relationships: []
+      }
+      agent_runtime_config: {
+        Row: {
+          created_at: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      agent_timers: {
+        Row: {
+          appointment_id: string | null
+          attempts: number
+          created_at: string
+          decision: string | null
+          due_at: string
+          escalation_level: number
+          fired_at: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          max_attempts: number
+          payload: Json
+          request_id: string
+          scheduled_visit_at: string | null
+          state: string
+          timer_kind: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          decision?: string | null
+          due_at: string
+          escalation_level?: number
+          fired_at?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          request_id: string
+          scheduled_visit_at?: string | null
+          state?: string
+          timer_kind: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          decision?: string | null
+          due_at?: string
+          escalation_level?: number
+          fired_at?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          request_id?: string
+          scheduled_visit_at?: string | null
+          state?: string
+          timer_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_timers_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_public_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_timers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_sessions: {
         Row: {
           channel: string
@@ -11538,9 +11712,36 @@ export type Database = {
           vendor_name: string
         }[]
       }
+      fn_agent_timers_sync_dispatcher: { Args: never; Returns: undefined }
       fn_backfill_lifecycle_batch: {
         Args: { p_limit?: number }
         Returns: number
+      }
+      fn_cancel_agent_timers: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: undefined
+      }
+      fn_claim_due_agent_timers: {
+        Args: { p_limit?: number }
+        Returns: {
+          appointment_id: string
+          assigned_technician_id: string
+          attempts: number
+          client_name: string
+          client_phone: string
+          description: string
+          due_at: string
+          escalation_level: number
+          location: string
+          priority: string
+          request_id: string
+          request_number: string
+          scheduled_visit_at: string
+          timer_id: string
+          timer_kind: string
+          title: string
+          workflow_stage: string
+        }[]
       }
       fn_create_api_consumer: {
         Args: {
@@ -11584,6 +11785,24 @@ export type Database = {
       fn_issue_client_secret: { Args: { p_id: string }; Returns: Json }
       fn_revoke_api_consumer: { Args: { p_id: string }; Returns: undefined }
       fn_rotate_api_consumer: { Args: { p_id: string }; Returns: Json }
+      fn_schedule_agent_timers: {
+        Args: {
+          p_appointment_id: string
+          p_request_id: string
+          p_visit_at: string
+        }
+        Returns: undefined
+      }
+      fn_settle_agent_timer: {
+        Args: {
+          p_decision?: string
+          p_error?: string
+          p_retry_in_minutes?: number
+          p_state: string
+          p_timer_id: string
+        }
+        Returns: undefined
+      }
       fn_toggle_api_consumer: {
         Args: { p_active: boolean; p_id: string }
         Returns: undefined
