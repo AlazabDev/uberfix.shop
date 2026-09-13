@@ -247,8 +247,10 @@ async function handleTimer(t: DueTimer, contacts: Map<number, Contact>): Promise
   }
 }
 
-Deno.serve(async (req) => {
+/** نقطة الدخول: تُنادى من باب REST على المسار POST /api/agent/tick. */
+export async function handleAgentTick(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
 
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
