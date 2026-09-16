@@ -16,6 +16,7 @@ export interface ApiConsumerRow {
   scopes: string[] | null;
   storage_target: string | null;
   total_requests: number | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export async function sha256Hex(value: string): Promise<string> {
@@ -26,7 +27,7 @@ export async function sha256Hex(value: string): Promise<string> {
 }
 
 const SELECT_COLS =
-  'id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, total_requests';
+  'id, name, channel, is_active, rate_limit_per_minute, allowed_origins, company_id, branch_id, scopes, storage_target, total_requests, metadata';
 
 /** يعيد المستهلك المطابق للمفتاح أو null. لا يرمي استثناءات. */
 export async function findApiConsumer(
