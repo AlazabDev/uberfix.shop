@@ -11,11 +11,9 @@ const SERVICE_TYPE_LABELS: Record<string, string> = {
   finishing: "تشطيبات", renovation: "ترميم",
 };
 
-// المراحل المسموح للبوت طلبها (لا يستطيع البوت الإغلاق المالي/الفوترة).
 // ملاحظة: أي انتقال مرحلة يمر عبر fn_transition_request_stage ولا يُكتب مباشرة على العمود.
-const BOT_ALLOWED_STAGES = new Set([
-  'submitted', 'on_hold', 'cancelled', 'scheduled',
-]);
+// قانونية الانتقال تُحكم بجدول workflow_transitions ودور الـactor، ولا تُكرَّر هنا.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // الحالات النهائية - لا يجوز التعديل عليها
 const TERMINAL_STAGES = new Set(['closed', 'paid', 'cancelled']);
@@ -31,6 +29,8 @@ interface CallerCtx {
   isStaff: boolean;
   isApiConsumer: boolean;
   userId: string | null;
+  /** الفاعل الحقيقي المستخدم في fn_transition_request_stage (مستخدم مفوَّض أو مستخدم مصادق) */
+  actorId: string | null;
 }
 
 /** يتحقق من ملكية الطلب عبر رقم الهاتف — إلزامي للمتصلين العموميين */
@@ -70,7 +70,7 @@ export async function handleBot(req: Request): Promise<Response> {
     const apiKey = req.headers.get('x-api-key');
     let authenticated = false;
     let consumerId: string | null = null;
-    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null };
+    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null, actorId: null };
 
     if (apiKey) {
       // External API consumer auth (المفاتيح مخزّنة كبصمة SHA-256)
@@ -79,6 +79,11 @@ export async function handleBot(req: Request): Promise<Response> {
         authenticated = true;
         consumerId = consumer.id;
         caller.isApiConsumer = true;
+        // هوية تشغيلية مفوَّضة للمفتاح (لا نستخدم معرّف المستهلك نفسه كـactor)
+        const delegated = (consumer.metadata as Record<string, unknown> | null)?.delegated_actor_id;
+        if (typeof delegated === 'string' && UUID_RE.test(delegated)) {
+          caller.actorId = delegated;
+        }
         touchApiConsumer(supabase, consumer);
       } else {
         return jsonResponse(
@@ -105,6 +110,7 @@ export async function handleBot(req: Request): Promise<Response> {
         if (user) {
           authenticated = true;
           caller.userId = user.id;
+          caller.actorId = user.id;
           const { data: staffRoles } = await supabase
             .from('user_roles')
             .select('role')
@@ -151,7 +157,7 @@ export async function handleBot(req: Request): Promise<Response> {
 
     switch (action) {
       case 'create_request':
-        result = await handleCreateRequest(supabase, supabaseUrl, supabaseServiceKey, payload, metadata);
+        result = await handleCreateRequest(supabase, supabaseUrl, payload, metadata);
         break;
       case 'check_status':
         result = await handleCheckStatus(supabase, payload);
@@ -204,7 +210,7 @@ export async function handleBot(req: Request): Promise<Response> {
   }
 }
 
-async function handleCreateRequest(supabase: any, supabaseUrl: string, serviceKey: string, payload: any, metadata?: any) {
+async function handleCreateRequest(supabase: any, supabaseUrl: string, payload: any, metadata?: any) {
   const { client_name, client_phone, client_email, location, service_type, title, description, priority, latitude, longitude } = payload;
 
   if (!client_name || !client_phone || !location || !title || !description) {
@@ -421,7 +427,7 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
   // جلب الطلب الحالي للتحقق
   const { data: current, error: fetchErr } = await supabase
     .from('maintenance_requests')
-    .select('id, status, workflow_stage, client_phone, branch_id, company_id')
+    .select('id, status, workflow_stage, workflow_stage_v2, client_phone, branch_id, company_id')
     .eq('id', request_id)
     .maybeSingle();
 
@@ -431,9 +437,10 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
 
-  // منع التعديل في المراحل النهائية
-  if (TERMINAL_STAGES.has(current.workflow_stage)) {
-    return { success: false, error: `لا يمكن تعديل طلب في حالة ${current.workflow_stage}` };
+  // منع التعديل في المراحل النهائية (workflow_stage_v2 هو مصدر الحقيقة)
+  const currentStage = current.workflow_stage_v2 ?? current.workflow_stage;
+  if (TERMINAL_STAGES.has(currentStage)) {
+    return { success: false, error: `لا يمكن تعديل طلب في حالة ${currentStage}` };
   }
 
   // فقط الحقول المسموحة من البوت
