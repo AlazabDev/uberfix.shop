@@ -503,7 +503,7 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
   const { data: transition, error } = await supabase.rpc('fn_transition_request_stage', {
     p_request_id: request_id,
     p_to_stage: 'cancelled',
-    p_actor: caller.actorId ?? null,
+    p_actor: caller.userId ?? null,
     p_reason: reason ? `إلغاء عبر البوت: ${reason}` : 'تم الإلغاء عبر البوت',
     p_metadata: {
       source: 'bot_gateway',
