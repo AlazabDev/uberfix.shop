@@ -445,12 +445,13 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
     }
   }
 
-  // تغيير المرحلة فقط ضمن المسموح
+  // انتقال المرحلة ممنوع من هنا: workflow_stage_v2 هو مصدر الحقيقة
+  // ويجب أن يمر أي انتقال عبر fn_transition_request_stage (مسار transition الرسمي).
   if (updates.workflow_stage) {
-    if (!BOT_ALLOWED_STAGES.has(updates.workflow_stage)) {
-      return { success: false, error: `البوت لا يستطيع الانتقال إلى مرحلة ${updates.workflow_stage}` };
-    }
-    safeUpdates.workflow_stage = updates.workflow_stage;
+    return {
+      success: false,
+      error: 'انتقال المرحلة لا يتم عبر update_request — استخدم إجراء transition_stage الرسمي',
+    };
   }
 
   if (Object.keys(safeUpdates).length === 0) {
@@ -498,16 +499,30 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
     return { success: false, error: `لا يمكن إلغاء طلب في حالة ${current.workflow_stage}` };
   }
 
-  const { error } = await supabase
-    .from('maintenance_requests')
-    .update({
-      workflow_stage: 'cancelled',
-      status: 'Cancelled',
-      customer_notes: reason ? `إلغاء: ${reason}` : 'تم الإلغاء عبر البوت',
-    })
-    .eq('id', request_id);
+  // الإلغاء يمر عبر محرك الانتقالات الرسمي حتى لا نكسر audit/domain_events
+  const { data: transition, error } = await supabase.rpc('fn_transition_request_stage', {
+    p_request_id: request_id,
+    p_to_stage: 'cancelled',
+    p_actor: caller.actorId ?? null,
+    p_reason: reason ? `إلغاء عبر البوت: ${reason}` : 'تم الإلغاء عبر البوت',
+    p_metadata: {
+      source: 'bot_gateway',
+      consumer_id: consumerId,
+      caller_is_staff: caller.isStaff,
+    },
+  });
 
   if (error) return { success: false, error: error.message };
+  if (transition && transition.success === false) {
+    return { success: false, error: transition.error || 'تعذر إلغاء الطلب' };
+  }
+
+  if (reason) {
+    await supabase
+      .from('maintenance_requests')
+      .update({ customer_notes: `إلغاء: ${reason}` })
+      .eq('id', request_id);
+  }
 
   await supabase.from('audit_logs').insert({
     action: 'BOT_CANCEL_REQUEST',
