@@ -104,7 +104,7 @@ const VALID_CHANNELS: Channel[] = [
 const SERVICE_MAP: Record<string, string> = {
   'سباكة': 'plumbing', 'plumbing': 'plumbing',
   'كهرباء': 'electrical', 'electrical': 'electrical',
-  'تكييف': 'ac', 'ac': 'ac', 'تبريد': 'ac',
+  'تكييف': 'ac', 'ac': 'ac', 'تبريد': 'ac', 'hvac': 'ac',
   'نجارة': 'carpentry', 'carpentry': 'carpentry',
   'حدادة': 'metalwork', 'metalwork': 'metalwork',
   'دهانات': 'painting', 'painting': 'painting',
@@ -157,6 +157,19 @@ function normalizePriority(raw: string | undefined): string {
   if (p.includes('متوسط') || p === 'medium') return 'medium';
   if (p.includes('عادي') || p === 'normal' || p === 'low') return 'low';
   return VALID_PRIORITIES.includes(p) ? p : 'medium';
+}
+
+/** الصلاحية المطلوبة لكل إجراء — مصدر واحد للحقيقة لمفاتيح API وتوكنات OAuth. */
+const ACTION_SCOPES: Record<string, string> = {
+  create_request: 'requests:write',
+  get_status: 'requests:read',
+  transition_stage: 'workflow:transition',
+  cancel: 'workflow:cancel',
+  add_note: 'requests:write',
+};
+
+function requiredScopeFor(action: string): string {
+  return ACTION_SCOPES[action] ?? 'requests:write';
 }
 
 function errorResponse(message: string, messageAr: string, status: number, extra?: Record<string, unknown>) {
@@ -546,13 +559,7 @@ async function handleConsumerAction(
 ): Promise<Response> {
   const scopes = consumer.scopes ?? [];
   const hasConsumerScope = (required: string) => scopes.includes('*') || scopes.includes(required);
-  const requiredScope = action === 'get_status'
-    ? 'requests:read'
-    : action === 'transition_stage'
-      ? 'workflow:transition'
-      : action === 'cancel'
-        ? 'workflow:cancel'
-        : 'requests:write';
+  const requiredScope = requiredScopeFor(action);
 
   if (!hasConsumerScope(requiredScope)) {
     return errorResponse(
@@ -782,15 +789,10 @@ export async function handleMaintenance(req: Request): Promise<Response> {
       }
 
       if (consumer) {
-        // Scope check (only enforced for OAuth2 — API key clients are legacy/unscoped).
-        if (oauthPayload && !hasScope(oauthPayload, ['requests:write', '*'])) {
-          return errorResponse(
-            'Insufficient scope',
-            'الصلاحيات غير كافية. مطلوب requests:write',
-            403,
-            { required_scope: 'requests:write' }
-          );
-        }
+        // ملاحظة: التحقق من الصلاحيات يحدث بعد تحديد الإجراء (action) أدناه،
+        // لأن كل إجراء له صلاحية مختلفة (read / write / transition / cancel).
+
+
 
         // Distributed (Redis) rate limiting per consumer
         const consumerLimit = consumer.rate_limit_per_minute || 30;
