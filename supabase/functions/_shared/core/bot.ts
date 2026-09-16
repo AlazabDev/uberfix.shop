@@ -492,7 +492,7 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
 
   const { data: current } = await supabase
     .from('maintenance_requests')
-    .select('id, workflow_stage, client_phone, request_number')
+    .select('id, workflow_stage, workflow_stage_v2, client_phone, request_number, created_by, customer_id')
     .eq('id', request_id)
     .maybeSingle();
 
@@ -501,21 +501,44 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
 
-  // لا يمكن إلغاء طلب بدأ تنفيذه أو أُغلق
-  if (['in_progress', 'inspection', 'completed', 'billed', 'paid', 'closed', 'cancelled'].includes(current.workflow_stage)) {
-    return { success: false, error: `لا يمكن إلغاء طلب في حالة ${current.workflow_stage}` };
+  const stage = current.workflow_stage_v2 ?? current.workflow_stage;
+
+  // إلغاء متكرر: نجاح idempotent بدون محاولة انتقال
+  if (stage === 'cancelled') {
+    return { success: true, message: `الطلب ${current.request_number} ملغى بالفعل` };
+  }
+  if (stage === 'closed' || stage === 'rejected') {
+    return { success: false, error: `الطلب ${current.request_number} في حالة ${stage} ولا يمكن إلغاؤه` };
   }
 
-  // الإلغاء يمر عبر محرك الانتقالات الرسمي حتى لا نكسر audit/domain_events
+  // تحديد الفاعل: المفوَّض للمفتاح، أو المستخدم المصادق، أو صاحب الطلب للمتصل العام
+  let actorId = caller.actorId;
+  if (!actorId && !caller.isStaff && !caller.isApiConsumer) {
+    const candidates = [current.customer_id, current.created_by].filter(
+      (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v),
+    );
+    for (const candidate of candidates) {
+      const { data: roleRow } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('user_id', candidate)
+        .eq('role', 'customer')
+        .maybeSingle();
+      if (roleRow) { actorId = candidate; break; }
+    }
+  }
+
+  // قانونية الانتقال تُحكم بـ fn_transition_request_stage + workflow_transitions + دور الفاعل
   const { data: transition, error } = await supabase.rpc('fn_transition_request_stage', {
     p_request_id: request_id,
     p_to_stage: 'cancelled',
-    p_actor: caller.userId ?? null,
+    p_actor: actorId ?? null,
     p_reason: reason ? `إلغاء عبر البوت: ${reason}` : 'تم الإلغاء عبر البوت',
     p_metadata: {
       source: 'bot_gateway',
       consumer_id: consumerId,
       caller_is_staff: caller.isStaff,
+      delegated_actor_id: caller.actorId,
     },
   });
 
