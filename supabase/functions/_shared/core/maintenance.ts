@@ -104,7 +104,7 @@ const VALID_CHANNELS: Channel[] = [
 const SERVICE_MAP: Record<string, string> = {
   'سباكة': 'plumbing', 'plumbing': 'plumbing',
   'كهرباء': 'electrical', 'electrical': 'electrical',
-  'تكييف': 'ac', 'ac': 'ac', 'تبريد': 'ac',
+  'تكييف': 'ac', 'ac': 'ac', 'تبريد': 'ac', 'hvac': 'ac',
   'نجارة': 'carpentry', 'carpentry': 'carpentry',
   'حدادة': 'metalwork', 'metalwork': 'metalwork',
   'دهانات': 'painting', 'painting': 'painting',
@@ -157,6 +157,19 @@ function normalizePriority(raw: string | undefined): string {
   if (p.includes('متوسط') || p === 'medium') return 'medium';
   if (p.includes('عادي') || p === 'normal' || p === 'low') return 'low';
   return VALID_PRIORITIES.includes(p) ? p : 'medium';
+}
+
+/** الصلاحية المطلوبة لكل إجراء — مصدر واحد للحقيقة لمفاتيح API وتوكنات OAuth. */
+const ACTION_SCOPES: Record<string, string> = {
+  create_request: 'requests:write',
+  get_status: 'requests:read',
+  transition_stage: 'workflow:transition',
+  cancel: 'workflow:cancel',
+  add_note: 'requests:write',
+};
+
+function requiredScopeFor(action: string): string {
+  return ACTION_SCOPES[action] ?? 'requests:write';
 }
 
 function errorResponse(message: string, messageAr: string, status: number, extra?: Record<string, unknown>) {
@@ -546,13 +559,7 @@ async function handleConsumerAction(
 ): Promise<Response> {
   const scopes = consumer.scopes ?? [];
   const hasConsumerScope = (required: string) => scopes.includes('*') || scopes.includes(required);
-  const requiredScope = action === 'get_status'
-    ? 'requests:read'
-    : action === 'transition_stage'
-      ? 'workflow:transition'
-      : action === 'cancel'
-        ? 'workflow:cancel'
-        : 'requests:write';
+  const requiredScope = requiredScopeFor(action);
 
   if (!hasConsumerScope(requiredScope)) {
     return errorResponse(
@@ -782,15 +789,10 @@ export async function handleMaintenance(req: Request): Promise<Response> {
       }
 
       if (consumer) {
-        // Scope check (only enforced for OAuth2 — API key clients are legacy/unscoped).
-        if (oauthPayload && !hasScope(oauthPayload, ['requests:write', '*'])) {
-          return errorResponse(
-            'Insufficient scope',
-            'الصلاحيات غير كافية. مطلوب requests:write',
-            403,
-            { required_scope: 'requests:write' }
-          );
-        }
+        // ملاحظة: التحقق من الصلاحيات يحدث بعد تحديد الإجراء (action) أدناه،
+        // لأن كل إجراء له صلاحية مختلفة (read / write / transition / cancel).
+
+
 
         // Distributed (Redis) rate limiting per consumer
         const consumerLimit = consumer.rate_limit_per_minute || 30;
@@ -817,6 +819,26 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     // ─── Action Routing ──────────────────────────────────────────
     // Default action = 'create_request' for backward compatibility
     const action = body.action || 'create_request';
+
+    // ─── Scope enforcement per action (OAuth + API key) ──────────
+    if (consumer) {
+      const requiredScope = requiredScopeFor(action);
+      const consumerScopes = consumer.scopes ?? [];
+      const scopeDenied = oauthPayload
+        ? !hasScope(oauthPayload, [requiredScope, '*'])
+        : action === 'create_request'
+          ? !consumerScopes.some((s) => s === '*' || s === requiredScope)
+          : false; // باقي الإجراءات يتحقق منها handleConsumerAction
+
+      if (scopeDenied) {
+        return errorResponse(
+          'Insufficient scope',
+          `الصلاحيات غير كافية. مطلوب ${requiredScope}`,
+          403,
+          { required_scope: requiredScope },
+        );
+      }
+    }
 
     if (action !== 'create_request') {
       // All non-create actions require an authenticated consumer (API key or OAuth).
@@ -849,11 +871,42 @@ export async function handleMaintenance(req: Request): Promise<Response> {
           },
         });
       }
-      await reserveIdempotency({
+
+      // نتيجة القفل ملزمة: لو مستهلك آخر يملك نفس المفتاح لا ننشئ طلبًا مكررًا.
+      const gotLock = await reserveIdempotency({
         consumerId: consumer.id,
         idempotencyKey,
         requestHash,
       });
+
+      if (!gotLock) {
+        const replay = await checkIdempotency({
+          consumerId: consumer.id,
+          idempotencyKey,
+          requestHash,
+        });
+        if (replay && replay.status !== 425) {
+          return new Response(JSON.stringify(replay.body), {
+            status: replay.status,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Idempotent-Replay': 'true',
+            },
+          });
+        }
+        return new Response(
+          JSON.stringify({
+            error: 'Request still being processed',
+            message_ar: 'نفس مفتاح التكرار قيد المعالجة الآن، أعد المحاولة بعد ثانيتين',
+            retry_after: 2,
+          }),
+          {
+            status: 425,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '2' },
+          },
+        );
+      }
     }
 
     // ─── Validate Client Name ────────────────────────────────────

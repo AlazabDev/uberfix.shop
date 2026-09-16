@@ -103,53 +103,13 @@ var track_request_default = defineTool4({
   }
 });
 
-// src/lib/mcp/tools/create-request.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.23.0";
-import { z as z5 } from "npm:zod@^4.4.3";
-var create_request_default = defineTool5({
-  name: "create_maintenance_request",
-  title: "Create maintenance request",
-  description: "\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0639\u0627\u0645 \u0639\u0628\u0631 \u0628\u0648\u0627\u0628\u0629 UberFix. \u064A\u0639\u064A\u062F \u0631\u0642\u0645 \u0637\u0644\u0628 \u0644\u062A\u062A\u0628\u0639\u0647 \u0644\u0627\u062D\u0642\u0627\u064B.",
-  inputSchema: {
-    client_name: z5.string().trim().min(2),
-    client_phone: z5.string().trim().min(6).describe("\u0647\u0627\u062A\u0641 \u0645\u0635\u0631\u064A \u0628\u0635\u064A\u063A\u0629 \u062F\u0648\u0644\u064A\u0629 \u0645\u0641\u0636\u0644\u0627\u064B."),
-    service_type: z5.string().trim().min(2).describe("\u0646\u0648\u0639 \u0627\u0644\u062E\u062F\u0645\u0629 (\u0643\u0647\u0631\u0628\u0627\u0621\u060C \u0633\u0628\u0627\u0643\u0629\u060C \u062A\u0643\u064A\u064A\u0641...)."),
-    description: z5.string().trim().min(5),
-    location: z5.string().trim().min(2).optional(),
-    priority: z5.enum(["low", "medium", "high", "urgent"]).optional()
-  },
-  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-  handler: async (args) => {
-    const env = globalThis?.process?.env ?? {};
-    const base = env.SUPABASE_URL ?? "";
-    const anon = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "";
-    if (!base || !anon) return errorResult("Supabase env missing.");
-    try {
-      const res = await fetch(`${base}/functions/v1/api`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: anon,
-          Authorization: `Bearer ${anon}`
-        },
-        body: JSON.stringify({ channel: "mcp-public", ...args })
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) return errorResult(`api ${res.status}: ${JSON.stringify(body)}`);
-      return textResult(body);
-    } catch (e) {
-      return errorResult(e?.message ?? String(e));
-    }
-  }
-});
-
 // src/lib/mcp/index.ts
 var mcp_default = defineMcp({
   name: "uberfix-mcp",
-  title: "UberFix",
-  version: "0.1.0",
-  instructions: "\u0623\u062F\u0648\u0627\u062A \u0639\u0627\u0645\u0629 \u0644\u0646\u0638\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 UberFix. \u062A\u0635\u0641\u062D \u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0648\u0627\u0644\u0641\u0631\u0648\u0639\u060C \u062C\u062F \u0623\u0642\u0631\u0628 \u0641\u0631\u0639\u060C \u0623\u0646\u0634\u0626 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u062C\u062F\u064A\u062F\u060C \u0623\u0648 \u062A\u062A\u0628\u0651\u0639 \u062D\u0627\u0644\u0629 \u0637\u0644\u0628 \u0628\u0631\u0642\u0645\u0647 \u0627\u0644\u0639\u0627\u0645.",
-  tools: [list_services_default, list_branches_default, find_nearest_branch_default, track_request_default, create_request_default]
+  title: "UberFix (read-only)",
+  version: "0.2.0",
+  instructions: "\u0623\u062F\u0648\u0627\u062A \u0639\u0627\u0645\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0641\u0642\u0637 \u0641\u064A \u0646\u0638\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 UberFix: \u062A\u0635\u0641\u062D \u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0648\u0627\u0644\u0641\u0631\u0648\u0639\u060C \u062C\u062F \u0623\u0642\u0631\u0628 \u0641\u0631\u0639\u060C \u0623\u0648 \u062A\u062A\u0628\u0651\u0639 \u062D\u0627\u0644\u0629 \u0637\u0644\u0628 \u0628\u0631\u0642\u0645\u0647 \u0627\u0644\u0639\u0627\u0645. \u0644\u0627 \u064A\u0645\u0643\u0646 \u0625\u0646\u0634\u0627\u0621 \u0623\u0648 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u062E\u0627\u062F\u0645 \u0627\u0644\u0639\u0627\u0645.",
+  tools: [list_services_default, list_branches_default, find_nearest_branch_default, track_request_default]
 });
 
 // lovable-mcp-supabase-entry.ts

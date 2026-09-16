@@ -8,8 +8,8 @@
   "mcp": {
     "server": {
       "name": "uberfix-mcp",
-      "version": "0.1.0",
-      "title": "UberFix"
+      "version": "0.2.0",
+      "title": "UberFix (read-only)"
     },
     "tools": [
       {
@@ -107,60 +107,6 @@
           },
           "required": [
             "request_number"
-          ]
-        },
-        "outputSchema": null
-      },
-      {
-        "name": "create_maintenance_request",
-        "title": "Create maintenance request",
-        "description": "إنشاء طلب صيانة عام عبر بوابة UberFix. يعيد رقم طلب لتتبعه لاحقاً.",
-        "annotations": {
-          "readOnlyHint": false,
-          "destructiveHint": false,
-          "openWorldHint": true
-        },
-        "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "type": "object",
-          "properties": {
-            "client_name": {
-              "type": "string",
-              "minLength": 2
-            },
-            "client_phone": {
-              "type": "string",
-              "minLength": 6,
-              "description": "هاتف مصري بصيغة دولية مفضلاً."
-            },
-            "service_type": {
-              "type": "string",
-              "minLength": 2,
-              "description": "نوع الخدمة (كهرباء، سباكة، تكييف...)."
-            },
-            "description": {
-              "type": "string",
-              "minLength": 5
-            },
-            "location": {
-              "type": "string",
-              "minLength": 2
-            },
-            "priority": {
-              "type": "string",
-              "enum": [
-                "low",
-                "medium",
-                "high",
-                "urgent"
-              ]
-            }
-          },
-          "required": [
-            "client_name",
-            "client_phone",
-            "service_type",
-            "description"
           ]
         },
         "outputSchema": null
