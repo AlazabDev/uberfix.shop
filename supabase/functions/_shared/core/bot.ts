@@ -538,6 +538,7 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
       source: 'bot_gateway',
       consumer_id: consumerId,
       caller_is_staff: caller.isStaff,
+      actor_id: actorId,
       delegated_actor_id: caller.actorId,
     },
   });
