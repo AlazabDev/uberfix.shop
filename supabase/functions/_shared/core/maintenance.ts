@@ -820,6 +820,26 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     // Default action = 'create_request' for backward compatibility
     const action = body.action || 'create_request';
 
+    // ─── Scope enforcement per action (OAuth + API key) ──────────
+    if (consumer) {
+      const requiredScope = requiredScopeFor(action);
+      const consumerScopes = consumer.scopes ?? [];
+      const scopeDenied = oauthPayload
+        ? !hasScope(oauthPayload, [requiredScope, '*'])
+        : action === 'create_request'
+          ? !consumerScopes.some((s) => s === '*' || s === requiredScope)
+          : false; // باقي الإجراءات يتحقق منها handleConsumerAction
+
+      if (scopeDenied) {
+        return errorResponse(
+          'Insufficient scope',
+          `الصلاحيات غير كافية. مطلوب ${requiredScope}`,
+          403,
+          { required_scope: requiredScope },
+        );
+      }
+    }
+
     if (action !== 'create_request') {
       // All non-create actions require an authenticated consumer (API key or OAuth).
       if (!consumer) {
@@ -851,11 +871,42 @@ export async function handleMaintenance(req: Request): Promise<Response> {
           },
         });
       }
-      await reserveIdempotency({
+
+      // نتيجة القفل ملزمة: لو مستهلك آخر يملك نفس المفتاح لا ننشئ طلبًا مكررًا.
+      const gotLock = await reserveIdempotency({
         consumerId: consumer.id,
         idempotencyKey,
         requestHash,
       });
+
+      if (!gotLock) {
+        const replay = await checkIdempotency({
+          consumerId: consumer.id,
+          idempotencyKey,
+          requestHash,
+        });
+        if (replay && replay.status !== 425) {
+          return new Response(JSON.stringify(replay.body), {
+            status: replay.status,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Idempotent-Replay': 'true',
+            },
+          });
+        }
+        return new Response(
+          JSON.stringify({
+            error: 'Request still being processed',
+            message_ar: 'نفس مفتاح التكرار قيد المعالجة الآن، أعد المحاولة بعد ثانيتين',
+            retry_after: 2,
+          }),
+          {
+            status: 425,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '2' },
+          },
+        );
+      }
     }
 
     // ─── Validate Client Name ────────────────────────────────────
