@@ -22,11 +22,15 @@ export const TOOLS: ToolDef[] = [
     parameters: o({
       client_name: s(), client_phone: s(), service_type: s(), description: s(),
       priority: { type: 'string', enum: ['low','medium','high','urgent'] },
-      location: s(), channel: s(),
+      location: s(),
     }, ['client_name','client_phone','service_type','description']) } },
   { type: 'function', function: { name: 'transition_request_stage',
-    description: 'نقل الطلب لمرحلة جديدة.',
-    parameters: o({ request_id: s(), request_number: s(), to_stage: s(), reason: s() }, ['to_stage']) } },
+    description: 'نقل الطلب لمرحلة جديدة. عند الإغلاق مرّر rating من 1 إلى 5.',
+    parameters: o({
+      request_id: s(), request_number: s(), to_stage: s(), reason: s(),
+      rating: { type: 'integer', minimum: 1, maximum: 5, description: 'تقييم العميل (مطلوب عند الإغلاق).' },
+      feedback: s('ملاحظة العميل على الخدمة.'),
+    }, ['to_stage']) } },
   { type: 'function', function: { name: 'get_request_status',
     description: 'استعلام حالة طلب.',
     parameters: o({ request_id: s(), request_number: s() }) } },
@@ -51,6 +55,14 @@ export const TOOLS: ToolDef[] = [
       ['search_term']) } },
 ];
 
+const MAINTENANCE_ACTIONS: Record<string, string> = {
+  create_maintenance_request: 'create_request',
+  transition_request_stage:   'transition_stage',
+  get_request_status:         'get_status',
+  cancel_request:             'cancel',
+  add_request_note:           'add_note',
+};
+
 /** Execute one tool call by routing to the right engine. */
 export async function executeTool(
   name: string,
@@ -61,23 +73,35 @@ export async function executeTool(
   if (ctx.apiKey) baseHeaders['x-api-key'] = ctx.apiKey;
   if (ctx.authHeader) baseHeaders['Authorization'] = ctx.authHeader;
 
-  const maintenanceMap: Record<string, string> = {
-    create_maintenance_request: 'create',
-    transition_request_stage:   'transition_stage',
-    get_request_status:         'get_status',
-    cancel_request:             'cancel',
-    add_request_note:           'add_note',
-  };
+  // القناة لا تُحدد من الوكيل أبدًا.
+  const { channel: _ignoredChannel, ...safeArgs } = args ?? {};
 
   let body: any;
   let handler: (req: Request) => Promise<Response>;
 
-  if (name in maintenanceMap) {
-    body = { channel: args.channel ?? 'ai-agent', action: maintenanceMap[name], client_name: args.client_name ?? 'ai-agent', ...args };
+  if (name in MAINTENANCE_ACTIONS) {
+    if (!ctx.apiKey) {
+      return {
+        error: 'Authentication required',
+        message_ar: 'العمليات على طلبات الصيانة تتطلب مفتاح API صالح (x-api-key).',
+      };
+    }
+    body = {
+      channel: 'api',
+      action: MAINTENANCE_ACTIONS[name],
+      client_name: safeArgs.client_name ?? 'ai-agent',
+      ...safeArgs,
+    };
     handler = handleMaintenance;
   } else {
     const action = name === 'check_status_quick' ? 'check_status' : name;
-    body = { action, payload: args, metadata: { source: 'ai-agent' } };
+    const payload: Record<string, any> = { ...safeArgs };
+    // bot handler يتوقع latitude/longitude
+    if (name === 'find_nearest_branch') {
+      if (payload.lat !== undefined) { payload.latitude = payload.lat; delete payload.lat; }
+      if (payload.lng !== undefined) { payload.longitude = payload.lng; delete payload.lng; }
+    }
+    body = { action, payload, metadata: { source: 'ai-agent' } };
     handler = handleBot;
   }
 
