@@ -211,6 +211,7 @@ export const protectedRoutes = [
   { path: "/properties/archived", element: <ArchivedProperties />, withLayout: true },
   { path: "/properties/:id", element: <PropertyDetails />, withLayout: true },
   { path: "/properties/edit/:id", element: <EditProperty />, withLayout: true },
+  { path: "/properties/bulk-import", element: <PropertyBulkImport />, withLayout: true },
 
   // Other
   { path: "/appointments", element: <Appointments />, withLayout: true },
