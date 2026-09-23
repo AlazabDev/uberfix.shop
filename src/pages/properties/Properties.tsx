@@ -44,6 +44,13 @@ export default function Properties() {
         
         <div className="flex gap-2">
           <Button
+            variant="outline"
+            onClick={() => navigate("/properties/bulk-import")}
+          >
+            <Upload className="h-4 w-4 ml-2" />
+            استيراد بالجملة
+          </Button>
+          <Button
             onClick={() => navigate("/properties/add")}
             className="bg-primary hover:bg-primary/90"
           >
