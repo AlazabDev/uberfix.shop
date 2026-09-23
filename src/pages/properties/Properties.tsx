@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProperties } from "@/hooks/useProperties";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, LayoutGrid } from "lucide-react";
+import { Plus, Loader2, LayoutGrid, Upload } from "lucide-react";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyFilters } from "@/components/properties/PropertyFilters";
 import { PropertyStatsCards } from "@/components/properties/PropertyStatsCards";
@@ -43,6 +43,13 @@ export default function Properties() {
         <PropertySettingsMenu />
         
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/properties/bulk-import")}
+          >
+            <Upload className="h-4 w-4 ml-2" />
+            استيراد بالجملة
+          </Button>
           <Button
             onClick={() => navigate("/properties/add")}
             className="bg-primary hover:bg-primary/90"

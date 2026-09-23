@@ -51,6 +51,9 @@ const CompanyBranchImport = lazy(
   () => import("@/pages/admin/CompanyBranchImport")
 );
 const DataImport = lazy(() => import("@/pages/admin/DataImport"));
+const PropertyBulkImport = lazy(
+  () => import("@/pages/properties/PropertyBulkImport")
+);
 const StoresDirectory = lazy(() => import("@/pages/admin/StoresDirectory"));
 const MaintenanceArchive = lazy(() => import("@/pages/admin/MaintenanceArchive"));
 const MaintenanceMirror = lazy(() => import("@/pages/maintenance/MaintenanceMirror"));
@@ -208,6 +211,7 @@ export const protectedRoutes = [
   { path: "/properties/archived", element: <ArchivedProperties />, withLayout: true },
   { path: "/properties/:id", element: <PropertyDetails />, withLayout: true },
   { path: "/properties/edit/:id", element: <EditProperty />, withLayout: true },
+  { path: "/properties/bulk-import", element: <PropertyBulkImport />, withLayout: true },
 
   // Other
   { path: "/appointments", element: <Appointments />, withLayout: true },
