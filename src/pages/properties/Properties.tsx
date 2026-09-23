@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProperties } from "@/hooks/useProperties";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, LayoutGrid } from "lucide-react";
+import { Plus, Loader2, LayoutGrid, Upload } from "lucide-react";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { PropertyFilters } from "@/components/properties/PropertyFilters";
 import { PropertyStatsCards } from "@/components/properties/PropertyStatsCards";
