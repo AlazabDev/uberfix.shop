@@ -222,6 +222,8 @@ export const AccountSettings = () => {
           </Form>
         </CardContent>
       </Card>
+
+      <UserEmailsSettings />
     </div>
   );
 };
