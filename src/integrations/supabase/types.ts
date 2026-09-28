@@ -5297,6 +5297,7 @@ export type Database = {
           bathrooms: number | null
           city_id: number | null
           code: string | null
+          company_id: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -5332,6 +5333,7 @@ export type Database = {
           bathrooms?: number | null
           city_id?: number | null
           code?: string | null
+          company_id?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -5367,6 +5369,7 @@ export type Database = {
           bathrooms?: number | null
           city_id?: number | null
           code?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -5401,6 +5404,13 @@ export type Database = {
             columns: ["city_id"]
             isOneToOne: false
             referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -7512,6 +7522,39 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      user_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_primary: boolean
+          is_verified: boolean
+          label: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          label?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          label?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
