@@ -41,7 +41,7 @@ type NormalizedRow = {
   errors: string[];
 };
 
-type OwnerOption = { id: string; label: string };
+type OwnerOption = { id: string; label: string; companyId: string | null };
 
 const VALID_TYPES = Object.keys(PROPERTY_TYPES);
 const VALID_STATUS = Object.keys(PROPERTY_STATUS);
@@ -129,7 +129,7 @@ export default function PropertyBulkImport() {
     (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, auth_user_id, full_name, name, email")
+        .select("id, auth_user_id, full_name, name, email, company_id")
         .eq("is_deleted", false)
         .order("full_name", { ascending: true })
         .limit(500);
@@ -139,6 +139,7 @@ export default function PropertyBulkImport() {
           .map((p) => ({
             id: (p.auth_user_id as string | null) ?? (p.id as string),
             label: (p.full_name as string) || (p.name as string) || (p.email as string) || "بدون اسم",
+            companyId: (p.company_id as string | null) ?? null,
           }))
           .filter((o) => !!o.id)
       );
@@ -154,6 +155,7 @@ export default function PropertyBulkImport() {
       if (!currentUserId) throw new Error("يجب تسجيل الدخول أولًا");
 
       const managerId = ownerId || currentUserId;
+      const ownerCompanyId = owners.find((o) => o.id === managerId)?.companyId ?? null;
 
       // مطابقة أسماء المدن والأحياء بالمعرفات
       const [{ data: cities }, { data: districts }] = await Promise.all([
