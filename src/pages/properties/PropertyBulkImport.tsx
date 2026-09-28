@@ -203,6 +203,7 @@ export default function PropertyBulkImport() {
           description: r.description,
           manager_id: managerId,
           created_by: currentUserId,
+          ...(ownerCompanyId ? { company_id: ownerCompanyId } : {}),
         }));
 
         const { error } = await supabase.from("properties").insert(payload);
