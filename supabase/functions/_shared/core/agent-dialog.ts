@@ -140,24 +140,32 @@ async function parseOperatorReply(text: string): Promise<OperatorParse | null> {
   }
 }
 
-/** الطلب المستهدف: المذكور صراحة، أو آخر طلب صعّد الوكيل بشأنه. */
-async function resolveTargetRequest(parsed: OperatorParse) {
+const REQ_COLS = 'id, request_number, title, client_name, client_phone, location, customer_id, created_by, workflow_stage, property_id, branch_id';
+
+/**
+ * الطلب المستهدف: المذكور صراحة، أو — فقط إن كان واضحًا — الطلب الوحيد الذي نُبِّه به
+ * هذا المسؤول نفسه خلال آخر 12 ساعة. أي غموض ⇒ null ونطلب رقم الطلب.
+ */
+async function resolveTargetRequest(parsed: OperatorParse, roleLabel: string) {
   if (parsed.request_number) {
     const { data } = await admin
       .from('maintenance_requests')
-      .select('id, request_number, title, client_name, client_phone, location, customer_id, created_by, workflow_stage, property_id, branch_id')
+      .select(REQ_COLS)
       .eq('request_number', parsed.request_number.trim())
       .maybeSingle();
-    if (data) return data;
+    return data ?? null;
   }
+  const since = new Date(Date.now() - 12 * 3600_000).toISOString();
   const { data } = await admin
     .from('agent_timers')
-    .select('request_id, fired_at, maintenance_requests!inner(id, request_number, title, client_name, client_phone, location, customer_id, created_by, workflow_stage, property_id, branch_id)')
-    .not('fired_at', 'is', null)
-    .order('fired_at', { ascending: false })
-    .limit(1);
-  const row = (data ?? [])[0] as unknown as { maintenance_requests?: Record<string, unknown> } | undefined;
-  return (row?.maintenance_requests as Record<string, unknown> | undefined) ?? null;
+    .select('request_id')
+    .eq('decision', `notified:${roleLabel}`)
+    .gte('fired_at', since)
+    .limit(20);
+  const ids = [...new Set((data ?? []).map((r) => r.request_id as string))];
+  if (ids.length !== 1) return null;
+  const { data: req } = await admin.from('maintenance_requests').select(REQ_COLS).eq('id', ids[0]).maybeSingle();
+  return req ?? null;
 }
 
 /**
@@ -173,8 +181,8 @@ export async function handleOperatorReply(
   const parsed = await parseOperatorReply(text);
   if (!parsed || (!parsed.visit_date && !parsed.visit_time && !parsed.technician_name)) return null;
 
-  const request = await resolveTargetRequest(parsed) as Record<string, any> | null;
-  if (!request) return 'لم أتمكن من تحديد الطلب المقصود. برجاء إرسال رقم الطلب مع الموعد والفني.';
+  const request = await resolveTargetRequest(parsed, contact.role_label as string) as Record<string, any> | null;
+  if (!request) return 'لم أتمكن من تحديد الطلب المقصود بدقة. برجاء إرسال رقم الطلب مع الموعد والفني (مثال: AZ-UF-26-09-001091 غدًا 11:00 الفني أحمد).';
   if (!parsed.visit_date || !parsed.visit_time) {
     return `استلمت ردك بخصوص الطلب ${request.request_number}. برجاء تحديد تاريخ ووقت الزيارة بشكل صريح (مثال: 15/09 الساعة 11:00).`;
   }
@@ -239,10 +247,22 @@ export async function handleOperatorReply(
     appointmentId = created.id as string;
   }
 
-  // تحريك الطلب إلى scheduled + تسجيل الفني
-  const patch: Record<string, unknown> = { workflow_stage: 'scheduled' };
-  if (technicianId) patch.assigned_technician_id = technicianId;
-  await admin.from('maintenance_requests').update(patch).eq('id', request.id);
+  // تسجيل الفني ثم الانتقال الرسمي إلى scheduled عبر محرك الحالة (لا كتابة مباشرة للمرحلة)
+  if (technicianId) {
+    await admin.from('maintenance_requests').update({ assigned_technician_id: technicianId }).eq('id', request.id);
+  }
+  let transitionNote = '';
+  if (request.workflow_stage !== 'scheduled') {
+    const cfg = await runtimeConfig();
+    const { error: trErr } = await admin.rpc('fn_transition_request_stage', {
+      p_request_id: request.id,
+      p_to_stage: 'scheduled',
+      p_actor: cfg.agent_actor_id ?? null,
+      p_reason: 'agent_operator_schedule',
+      p_metadata: { via: 'whatsapp_operator', operator_role: contact.role_label, appointment_id: appointmentId },
+    });
+    if (trErr) transitionNote = `تنبيه: الموعد سُجّل لكن لم تنتقل حالة الطلب (${trErr.message}).`;
+  }
 
   const visitIso = new Date(`${parsed.visit_date}T${parsed.visit_time.length === 5 ? parsed.visit_time : parsed.visit_time.slice(0, 5)}:00+03:00`).toISOString();
   await logEvent('agent_schedule_recorded', request.id,
