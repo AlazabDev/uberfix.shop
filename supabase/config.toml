@@ -144,3 +144,6 @@ verify_jwt = false
 [functions.eta-callback]
 verify_jwt = false
 # ETA notification webhook (رابط الاتصال). Shared-secret token validated in code.
+
+[functions.mcp-ops]
+verify_jwt = false
