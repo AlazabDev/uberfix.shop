@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { foundryConfigured, streamFoundryAgent } from "./foundry.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -90,6 +91,11 @@ serve(async (req) => {
         JSON.stringify({ error: 'الرسالة مطلوبة (حد أقصى 3000 حرف)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Primary: Azure AI Foundry agent (az-agent-maint). Legacy Gemini path is fallback only.
+    if (foundryConfigured) {
+      return await streamFoundryAgent(chatMessages, corsHeaders);
     }
 
     if (!LOVABLE_API_KEY) {
