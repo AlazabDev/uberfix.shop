@@ -558,7 +558,7 @@ const Testing = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const { data, error } = await supabase.functions.invoke('chatbot', {
+      const { data, error } = await supabase.functions.invoke('ufbot', {
         body: { message: 'test', type: 'system_check' }
       });
       
