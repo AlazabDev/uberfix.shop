@@ -274,6 +274,7 @@ export async function handleOperatorReply(
     `تم تسجيل الموعد للطلب ${request.request_number}.`,
     `الزيارة: ${fmtCairo(visitIso)}`,
     `الفني: ${technicianName ?? 'غير محدد'}`,
+    ...(transitionNote ? [transitionNote] : []),
     notify.ok ? 'وتم إرسال طلب التأكيد للعميل على واتساب.' : `لم يُرسل تأكيد العميل: ${notify.error}`,
   ].join('\n');
 }
