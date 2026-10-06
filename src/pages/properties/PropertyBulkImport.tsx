@@ -92,7 +92,8 @@ function normalizeRows(rows: ParsedRow[]): NormalizedRow[] {
         address,
         city: pick(raw, ["city", "governorate", "المدينة", "المحافظة"]),
         district: pick(raw, ["district", "الحي", "المنطقة"]),
-...
+        latitude: toNum(pick(raw, ["latitude", "lat", "خط_العرض"])),
+        longitude: toNum(pick(raw, ["longitude", "lng", "long", "خط_الطول"])),
         area: toNum(pick(raw, ["area", "area_sqm", "space", "المساحة"])),
         floors: toInt(pick(raw, ["floors", "الادوار", "الطوابق"])),
         rooms: toInt(pick(raw, ["rooms", "الغرف"])),
