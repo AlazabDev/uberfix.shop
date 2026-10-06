@@ -1,0 +1,11 @@
+CREATE SCHEMA IF NOT EXISTS archive;
+REVOKE ALL ON SCHEMA archive FROM anon, authenticated;
+DROP VIEW IF EXISTS public.messages;
+DROP VIEW IF EXISTS public.whatsapp_messages;
+DROP VIEW IF EXISTS public.notification;
+ALTER TABLE public._legacy_messages SET SCHEMA archive;
+ALTER TABLE public._legacy_whatsapp_messages SET SCHEMA archive;
+ALTER TABLE public._legacy_notification SET SCHEMA archive;
+ALTER TABLE public.chatbot_messages SET SCHEMA archive;
+ALTER TABLE public.chatbot_conversations SET SCHEMA archive;
+REVOKE ALL ON ALL TABLES IN SCHEMA archive FROM anon, authenticated;

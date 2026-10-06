@@ -83,23 +83,16 @@ Deno.serve(async (req) => {
 
     // Update message status in database
     const { data: message, error: updateError } = await supabase
-      .from('whatsapp_messages')
+      .from('communication_logs')
       .update({
         status: statusUpdate.MessageStatus,
-        error_code: statusUpdate.ErrorCode || null,
-        error_message: statusUpdate.ErrorMessage || null,
-        delivered_at: statusUpdate.MessageStatus === 'delivered' 
-          ? new Date().toISOString() 
-          : null,
-        read_at: statusUpdate.MessageStatus === 'read' 
-          ? new Date().toISOString() 
-          : null,
-        failed_at: statusUpdate.MessageStatus === 'failed' 
-          ? new Date().toISOString() 
-          : null,
+        error_message: statusUpdate.ErrorMessage || (statusUpdate.ErrorCode ? `code ${statusUpdate.ErrorCode}` : null),
+        ...(statusUpdate.MessageStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
+        ...(statusUpdate.MessageStatus === 'read' ? { read_at: new Date().toISOString() } : {}),
+        ...(statusUpdate.MessageStatus === 'failed' ? { failed_at: new Date().toISOString() } : {}),
         updated_at: new Date().toISOString(),
       })
-      .eq('message_sid', statusUpdate.MessageSid)
+      .eq('external_message_id', statusUpdate.MessageSid)
       .select()
       .single();
 
