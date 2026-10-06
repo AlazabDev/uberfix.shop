@@ -126,15 +126,8 @@ export function NewInvoiceForm({ onSuccess, onCancel }: NewInvoiceFormProps) {
       // Send email if requested and email is provided
       if (sendEmail && data.customer_email) {
         try {
-          await supabase.functions.invoke('send-invoice-email', {
-            body: {
-              invoice: {
-                ...invoice,
-                items: invoiceItems,
-                total_amount: totalAmount,
-              },
-              customer_email: data.customer_email,
-            },
+          await supabase.functions.invoke('send-invoice', {
+            body: { invoice_id: invoice.id, recipient_email: data.customer_email, recipient_name: data.customer_name },
           });
           
           toast({
