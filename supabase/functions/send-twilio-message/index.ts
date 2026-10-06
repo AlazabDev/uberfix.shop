@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizePhone } from "../_shared/phone.ts";
 
 /**
  * SMS Messaging via Twilio
@@ -21,33 +22,10 @@ interface SMSMessageRequest {
   requestId?: string;
 }
 
-// التحقق من صحة رقم الهاتف (صيغة دولية)
-function validatePhoneNumber(phone: string): boolean {
-  const phoneRegex = /^\+[1-9]\d{9,14}$/;
-  return phoneRegex.test(phone);
-}
-
 // التحقق من طول الرسالة
 function validateMessage(msg: string): boolean {
   const maxLength = 1600; // SMS limit
   return msg.length > 0 && msg.length <= maxLength;
-}
-
-// تنسيق رقم الهاتف
-function formatPhoneNumber(phone: string): string {
-  let formatted = phone;
-  
-  if (!phone.startsWith('+')) {
-    if (phone.startsWith('01')) {
-      formatted = `+2${phone}`;
-    } else if (phone.startsWith('201')) {
-      formatted = `+${phone}`;
-    } else {
-      formatted = `+${phone}`;
-    }
-  }
-  
-  return formatted;
 }
 
 serve(async (req) => {
@@ -150,11 +128,10 @@ serve(async (req) => {
 
     console.log('📤 Sending SMS via Twilio:', { to, requestId });
 
-    // تنسيق رقم الهاتف
-    const toNumber = formatPhoneNumber(to);
+    // تنسيق وتحقق موحّد عبر _shared/phone.ts
+    const toNumber = normalizePhone(to);
 
-    // التحقق من صحة الرقم
-    if (!validatePhoneNumber(toNumber)) {
+    if (!toNumber) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid phone number format. Use international format: +201234567890' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

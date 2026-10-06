@@ -30,9 +30,12 @@ export const UserEmailsSettings = () => {
 
   const load = async () => {
     setLoading(true);
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData.user?.id ?? "";
     const { data, error } = await supabase
       .from("user_emails")
       .select("id, email, label, is_primary, is_verified, created_at")
+      .eq("user_id", currentUserId)
       .order("is_primary", { ascending: false })
       .order("created_at", { ascending: true });
 
