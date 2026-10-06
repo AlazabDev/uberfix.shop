@@ -33,6 +33,7 @@ export const UserEmailsSettings = () => {
     const { data, error } = await supabase
       .from("user_emails")
       .select("id, email, label, is_primary, is_verified, created_at")
+      .eq("user_id", userId)
       .order("is_primary", { ascending: false })
       .order("created_at", { ascending: true });
 
