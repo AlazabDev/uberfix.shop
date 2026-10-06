@@ -1,3 +1,4 @@
+import { getStatusConfig } from "@/constants/maintenanceStatusConstants";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -268,27 +269,8 @@ export function QuickRequestForm({ property, locale }: QuickRequestFormProps) {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'Open': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Assigned': 'bg-purple-100 text-purple-800 border-purple-200',
-      'In Progress': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Completed': 'bg-green-100 text-green-800 border-green-200',
-      'Closed': 'bg-gray-100 text-gray-800 border-gray-200',
-    };
-    return statusMap[status] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const getStatusText = (status: string) => {
-    const statusMap: Record<string, { ar: string; en: string }> = {
-      'Open': { ar: 'جديد', en: 'New' },
-      'Assigned': { ar: 'تم التعيين', en: 'Assigned' },
-      'In Progress': { ar: 'قيد التنفيذ', en: 'In Progress' },
-      'Completed': { ar: 'مكتمل', en: 'Completed' },
-      'Closed': { ar: 'مغلق', en: 'Closed' },
-    };
-    return isArabic ? statusMap[status]?.ar || status : statusMap[status]?.en || status;
-  };
+  const getStatusColor = (status: string) => getStatusConfig(status).bgColor + ' ' + getStatusConfig(status).color;
+  const getStatusText = (status: string) => getStatusConfig(status).label;
 
   if (submitted) {
     return (
