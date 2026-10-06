@@ -173,12 +173,7 @@ export function NewRequestForm({ onSuccess, onCancel, initialPropertyId }: NewRe
           description: "سيتم التواصل معك قريباً",
         });
 
-        // الإشعارات تُرسل تلقائيًا من محرك الإشعارات الموحد عند إنشاء الطلب else {
-          toast({
-            title: "ملاحظة",
-            description: "لم يتم تحديد موقع - سيتم تعيين فني يدوياً",
-          });
-        }
+        // الإشعارات تُرسل تلقائيًا من محرك الإشعارات الموحد عند إنشاء الطلب
 
         // حفظ معرف الطلب قبل مسح البيانات
         const requestId = result.id;
