@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTTS } from "@/hooks/useTTS";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -36,7 +37,7 @@ export function UFBotWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: 'مرحباً! أنا عزبوت 👋\nكيف يمكنني مساعدتك؟',
+      content: 'مرحباً! أنا UF.Bot 👋\nكيف يمكنني مساعدتك؟',
       role: 'assistant',
       timestamp: new Date()
     }
@@ -52,6 +53,7 @@ export function UFBotWidget() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { speak, isSpeaking, speakingMessageId } = useTTS();
 
   const scrollToBottom = useCallback(() => {
@@ -140,11 +142,12 @@ export function UFBotWidget() {
   };
 
   const streamChat = async (allMessages: { role: string; content: string }[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
     const resp = await fetch(UFBOT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: allMessages, session_id: 'widget' }),
@@ -176,6 +179,12 @@ export function UFBotWidget() {
         if (jsonStr === '[DONE]') break;
         try {
           const parsed = JSON.parse(jsonStr);
+          const action = parsed.ufbot_action;
+          if (action?.type === 'navigate' && typeof action.path === 'string' && action.path.startsWith('/') && !action.path.startsWith('//')) {
+            navigate(action.path);
+            continue;
+          }
+          if (parsed.ufbot_tool) continue;
           const delta = parsed.choices?.[0]?.delta?.content;
           if (delta) {
             assistantContent += delta;
@@ -255,7 +264,7 @@ export function UFBotWidget() {
           "transition-all duration-300 ease-in-out"
         )}
         size="icon"
-        aria-label="عزبوت"
+        aria-label="UF.Bot"
       >
         {isOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </Button>
@@ -277,7 +286,7 @@ export function UFBotWidget() {
             </button>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <h3 className="font-bold text-sm leading-tight">عزبوت (AzaBot)</h3>
+                <h3 className="font-bold text-sm leading-tight">UF.Bot</h3>
                 <p className="text-[11px] opacity-75 leading-tight">المساعد الذكي - متصل الآن</p>
               </div>
               <div className="bg-[#f5bf23] text-[#1a1b3a] rounded-full h-10 w-10 flex items-center justify-center">
@@ -326,7 +335,7 @@ export function UFBotWidget() {
                       <div className="bg-[#f5bf23]/15 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-3">
                         <MessageSquare className="h-8 w-8 text-[#f5bf23]" fill="currentColor" />
                       </div>
-                      <p className="font-bold text-base mb-1 text-[#1a1b3a]">مرحباً! أنا عزبوت 👋</p>
+                      <p className="font-bold text-base mb-1 text-[#1a1b3a]">مرحباً! أنا UF.Bot 👋</p>
                       <p className="text-sm text-muted-foreground">كيف يمكنني مساعدتك؟</p>
                     </div>
                   ) : (

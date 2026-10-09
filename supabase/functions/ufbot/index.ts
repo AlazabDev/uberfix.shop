@@ -95,7 +95,7 @@ serve(async (req) => {
 
     // Primary: Azure AI Foundry agent (az-agent-maint). Legacy Gemini path is fallback only.
     if (foundryConfigured) {
-      return await streamFoundryAgent(chatMessages, corsHeaders);
+      return await streamFoundryAgent(chatMessages, corsHeaders, req.headers.get('Authorization'));
     }
 
     if (!LOVABLE_API_KEY) {
@@ -215,12 +215,12 @@ serve(async (req) => {
 
     const servicesList = Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => `${k}: ${v}`).join(', ');
 
-    const systemPrompt = `أنت عزبوت (AzaBot) - المساعد الذكي لمنصة UberFix لإدارة الصيانة.
+    const systemPrompt = `أنت UF.Bot - المساعد الذكي لمنصة UberFix لإدارة الصيانة.
 
 ## هويتك:
-- اسمك عزبوت (AzaBot) مساعد ذكي متخصص في خدمات الصيانة والتشطيبات والعقارات
+- اسمك UF.Bot مساعد ذكي متخصص في خدمات الصيانة والتشطيبات والعقارات
 - تجيب بالعربية دائماً بأسلوب مهني وودي ومختصر
-- عند تقديم نفسك قل "أنا عزبوت" وليس "UFBot"
+- عند تقديم نفسك قل "أنا UF.Bot"
 
 ## قدراتك الأساسية:
 1. **إنشاء طلبات صيانة**: يمكنك جمع بيانات العميل عبر المحادثة وإنشاء طلب صيانة مباشرة
