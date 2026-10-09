@@ -23,14 +23,17 @@ serve(async (req) => {
 
     const { text, voiceId } = await req.json();
 
-    if (!text || typeof text !== 'string' || text.length > 5000) {
+    // حد أقصى أصغر لمنع استنزاف رصيد الخدمة من زوار مجهولين
+    if (!text || typeof text !== 'string' || text.length > 1500) {
       return new Response(JSON.stringify({ error: 'Invalid text input' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const selectedVoice = voiceId || VOICE_ID;
+    // لا نقبل إلا أصواتًا معتمدة (يمنع حقن مسار في عنوان الخدمة)
+    const ALLOWED_VOICES = [VOICE_ID];
+    const selectedVoice = ALLOWED_VOICES.includes(voiceId) ? voiceId : VOICE_ID;
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,

@@ -14,10 +14,20 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { request_id, return_url } = await req.json();
-    if (!request_id) {
-      return json({ error: 'request_id is required' }, 400);
+    const body = await req.json();
+    const request_id = body?.request_id;
+    if (typeof request_id !== 'string' || !/^[0-9a-f-]{36}$/i.test(request_id)) {
+      return json({ error: 'رقم الطلب غير صالح' }, 400);
     }
+    // منع إعادة التوجيه إلى مواقع خارجية بعد الدفع
+    const ALLOWED_HOSTS = ['uberfix.alazab.com', 'uberfix.shop', 'www.uberfix.shop', 'uberfix.site', 'www.uberfix.site', 'uberfiix.lovable.app'];
+    let return_url: string | undefined;
+    try {
+      if (body?.return_url) {
+        const u = new URL(String(body.return_url));
+        if (u.protocol === 'https:' && (ALLOWED_HOSTS.includes(u.hostname) || u.hostname.endsWith('.lovable.app'))) return_url = u.toString();
+      }
+    } catch { /* ignore invalid url */ }
 
     const profileId = Deno.env.get('PAYTABS_PROFILE_ID');
     const serverKey = Deno.env.get('PAYTABS_SERVER_KEY');
@@ -42,7 +52,7 @@ Deno.serve(async (req) => {
 
     if (invErr) {
       console.error('[paytabs-create] invoice lookup failed:', invErr.message);
-      return json({ error: 'تعذر قراءة الفاتورة', details: invErr.message }, 500);
+      return json({ error: 'تعذر قراءة الفاتورة' }, 500);
     }
     if (!invoice) {
       return json({ error: 'لا توجد فاتورة مرتبطة بهذا الطلب' }, 404);
