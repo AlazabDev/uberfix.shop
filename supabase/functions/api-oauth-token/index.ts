@@ -16,7 +16,6 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import * as bcrypt from 'https://deno.land/x/bcrypt@v0.4.1/mod.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { signGatewayToken } from '../_shared/jwt-gateway.ts';
 import { cacheIncr } from '../_shared/redis.ts';
@@ -116,8 +115,10 @@ Deno.serve(async (req) => {
       return oauthError('invalid_client', 'Client has no secret configured', 401);
     }
 
-    const ok = await bcrypt.compare(clientSecret, consumer.client_secret_hash);
-    if (!ok) {
+    // client_secret_hash is stored as SHA-256 hex (see fn_issue_client_secret)
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientSecret));
+    const hex = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    if (hex !== consumer.client_secret_hash) {
       return oauthError('invalid_client', 'Invalid client_secret', 401);
     }
 

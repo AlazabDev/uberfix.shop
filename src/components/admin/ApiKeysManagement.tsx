@@ -44,6 +44,7 @@ export function ApiKeysManagement() {
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [revealKey, setRevealKey] = useState<{ key: string; name: string } | null>(null);
+  const [revealSecret, setRevealSecret] = useState<{ clientId: string; secret: string; name: string } | null>(null);
 
   // form state
   const [name, setName] = useState('');
@@ -100,6 +101,17 @@ export function ApiKeysManagement() {
     }
     const result = data as { api_key: string };
     setRevealKey({ key: result.api_key, name: itemName });
+    load();
+  };
+
+  const handleIssueSecret = async (id: string, itemName: string) => {
+    const { data, error } = await supabase.rpc('fn_issue_client_secret', { p_id: id });
+    if (error) {
+      toast({ title: 'فشل إصدار السر', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const result = data as { client_id: string; client_secret: string };
+    setRevealSecret({ clientId: result.client_id, secret: result.client_secret, name: itemName });
     load();
   };
 
@@ -251,6 +263,28 @@ export function ApiKeysManagement() {
                           </AlertDialogContent>
                         </AlertDialog>
 
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" title="إصدار سر OAuth (client_secret)">
+                              <KeyRound className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent dir="rtl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>إصدار سر OAuth؟</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                سيتم توليد client_secret جديد لـ "{item.name}" وتفعيل مصادقة OAuth2 (hybrid). أي سر سابق سيتم إلغاؤه فوراً.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleIssueSecret(item.id, item.name)}>
+                                نعم، أصدر السر
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
                         <Button size="sm" variant="outline"
                           title={item.is_active ? 'تعطيل' : 'تفعيل'}
                           onClick={() => handleToggle(item.id, !item.is_active)}>
@@ -310,6 +344,41 @@ export function ApiKeysManagement() {
               <Copy className="h-4 w-4 ml-2" />نسخ
             </Button>
             <Button onClick={() => setRevealKey(null)}>تم الحفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reveal-once OAuth secret dialog */}
+      <Dialog open={!!revealSecret} onOpenChange={(o) => !o && setRevealSecret(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              احفظ بيانات OAuth الآن
+            </DialogTitle>
+            <DialogDescription>
+              الـ client_secret لن يظهر مرة أخرى. خزّنه في مكان آمن. ({revealSecret?.name})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>client_id</Label>
+              <div className="bg-muted p-3 rounded-lg break-all font-mono text-sm" dir="ltr">
+                {revealSecret?.clientId}
+              </div>
+            </div>
+            <div>
+              <Label>client_secret</Label>
+              <div className="bg-muted p-3 rounded-lg break-all font-mono text-sm" dir="ltr">
+                {revealSecret?.secret}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => revealSecret && copy(revealSecret.secret)}>
+              <Copy className="h-4 w-4 ml-2" />نسخ السر
+            </Button>
+            <Button onClick={() => setRevealSecret(null)}>تم الحفظ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
