@@ -207,6 +207,55 @@ const handleRestRequest = async (c: any) => {
 app.post('/', handleRestRequest);
 app.post('/rest', handleRestRequest);
 
+/**
+ * مسارات الأدوات — مسار مستقل لكل إجراء لتوافق OpenAPI (فوندري وغيره).
+ * POST /api/tools/{action} بجسم = payload مباشرة.
+ */
+const BOT_TOOL_ACTIONS = new Set([
+  'create_request', 'check_status', 'get_request_details', 'update_request', 'cancel_request',
+  'add_note', 'list_technicians', 'list_categories', 'list_services', 'get_branches',
+  'find_nearest_branch', 'collect_customer_info', 'get_quote',
+]);
+
+app.post('/tools/create_payment_link', async (c) => {
+  // يتطلب مفتاح API صالح — نتحقق عبر محرك البوت بإجراء قراءة خفيف.
+  const probe = await invokeEngine('bot', { action: 'list_categories', payload: {} });
+  if (probe.status === 401 || probe.status === 403) return c.json(probe.body, probe.status as 401, corsHeaders);
+
+  const p = await c.req.json().catch(() => ({})) as Record<string, unknown>;
+  let requestId = typeof p.request_id === 'string' ? p.request_id.trim() : '';
+  const requestNumber = typeof p.request_number === 'string' ? p.request_number.trim() : '';
+  if (!requestId && requestNumber) {
+    const { data } = await supabaseAdmin.from('maintenance_requests')
+      .select('id').eq('request_number', requestNumber).maybeSingle();
+    requestId = data?.id ?? '';
+  }
+  if (!/^[0-9a-f-]{36}$/i.test(requestId)) {
+    return c.json({ success: false, error: 'request_not_found', message_ar: 'الطلب غير موجود' }, 404, corsHeaders);
+  }
+  const res = await fetch(`${INTERNAL_BASE}/paytabs-create-payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+    },
+    body: JSON.stringify({ request_id: requestId }),
+  });
+  const r = await responseToResult(res);
+  return c.json(r.body, r.status as 200, corsHeaders);
+});
+
+app.post('/tools/:action', async (c) => {
+  const action = c.req.param('action');
+  if (!BOT_TOOL_ACTIONS.has(action)) {
+    return c.json({ success: false, error: 'unknown_tool', message_ar: 'أداة غير معروفة' }, 404, corsHeaders);
+  }
+  const payload = await c.req.json().catch(() => ({}));
+  const result = await invokeEngine('bot', { action, payload });
+  return c.json(result.body, result.status as 200, corsHeaders);
+});
+
 // منبّه الوكيل الذاتي — تُناديه مهمة pg_cron. لا يفعل شيئًا إن لم يوجد منبّه مستحق.
 app.post('/agent/tick', (c) => handleAgentTick(c.req.raw));
 
