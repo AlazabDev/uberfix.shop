@@ -173,9 +173,8 @@ async function pump(res: Response, emit: (t: string) => void): Promise<{ respons
       try {
         const ev = JSON.parse(json);
         if (ev.response?.id) responseId = ev.response.id;
-        if (ev.type === 'response.output_item.done') console.log('item', JSON.stringify(ev.item).slice(0, 400));
         if (ev.type === 'response.output_text.delta' && ev.delta) emit(ev.delta);
-        if (ev.type === 'response.output_item.done' && ['reasoning', 'function_call', 'message'].includes(ev.item?.type)) items.push(ev.item);
+        if (ev.type === 'response.output_item.done' && ev.item?.id) items.push({ type: 'item_reference', id: ev.item.id });
         if (ev.type === 'response.output_item.done' && ev.item?.type === 'function_call') {
           calls.push({ call_id: ev.item.call_id, name: ev.item.name, arguments: ev.item.arguments ?? '{}' });
         } else if (ev.type === 'response.failed' || ev.type === 'error') {
