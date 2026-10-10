@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
       };
     } catch (e) {
       console.error('voice token error', e);
-      fail('تعذر تجهيز جلسة الصوت');
+      fail('تعذر تجهيز جلسة الصوت'); console.error('detail', String(e).slice(0, 300));
     }
   };
   return response;
