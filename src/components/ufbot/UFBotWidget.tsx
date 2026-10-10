@@ -11,7 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import { VoiceConversation } from './VoiceConversation';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
-import type { VoiceState } from './VoiceOrb';
+import { useVoiceLive } from '@/hooks/useVoiceLive';
 
 interface Message {
   id: string;
@@ -69,6 +69,10 @@ export function UFBotWidget() {
     if (!voiceModeRef.current) toast({ title: 'الصوت', description: message, variant: 'destructive' });
   });
   const isRecording = recognition.isListening;
+  const live = useVoiceLive((role, content) => {
+    setShowQuickActions(false);
+    setMessages(prev => [...prev, { id: `${Date.now()}-${role}`, content, role, timestamp: new Date() }]);
+  });
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,6 +105,7 @@ export function UFBotWidget() {
   };
   const closeVoice = (text = false) => {
     voiceModeRef.current = false;
+    live.disconnect();
     stopVoice();
     setVoiceError('');
     setActiveTab('text');
@@ -247,7 +252,6 @@ export function UFBotWidget() {
   };
   sendRef.current = text => { void sendMessage(text); };
   const latestReply = [...messages].reverse().find(message => message.role === 'assistant' && message.id !== '1')?.content ?? '';
-  const voiceState: VoiceState = voiceError ? 'error' : isRecording ? 'listening' : isPreparing ? 'preparing' : isSpeaking ? 'speaking' : isLoading ? 'thinking' : 'idle';
 
   const handleSpeakMessage = async (message: Message) => {
     try {
@@ -273,12 +277,12 @@ export function UFBotWidget() {
         {isOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </Button>
 
-      <VoiceConversation open={isOpen && activeTab === 'voice'} state={voiceState}
-        analyserRef={isRecording ? recognition.analyserRef : analyserRef}
-        transcript={recognition.transcript} reply={latestReply} error={voiceError} muted={voiceMuted}
-        onClose={() => closeVoice()} onText={() => closeVoice(true)} onMic={toggleVoiceRecording}
-        onStop={stopVoice} onSend={text => { void sendMessage(text); }}
-        onMute={() => { mutedRef.current = !mutedRef.current; setVoiceMuted(mutedRef.current); if (mutedRef.current) stop(); }} />
+      <VoiceConversation open={isOpen && activeTab === 'voice'}
+        state={live.state === 'listening' && !live.micOn ? 'idle' : live.state} analyserRef={live.analyserRef}
+        transcript={live.transcript} reply={live.reply} error={live.error} muted={voiceMuted}
+        onClose={() => closeVoice()} onText={() => closeVoice(true)} onMic={live.toggleMic}
+        onStop={live.interrupt} onSend={live.sendText}
+        onMute={() => { mutedRef.current = !mutedRef.current; setVoiceMuted(mutedRef.current); live.setMuted(mutedRef.current); }} />
 
       {isOpen && activeTab === 'text' && (
         <div
@@ -309,7 +313,7 @@ export function UFBotWidget() {
           {/* Tabs — voice on the left, text on the right (RTL) */}
           <div className="flex bg-[#1a1b3a] text-white/80 border-b border-black/10">
             <button
-              onClick={() => { recognition.cancel(); stop(); voiceModeRef.current = true; setVoiceError(''); setActiveTab('voice'); }}
+              onClick={() => { recognition.cancel(); stop(); voiceModeRef.current = true; setVoiceError(''); setActiveTab('voice'); void live.connect(); }}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors relative",
                 "text-white/60 hover:text-white/90"

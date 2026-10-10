@@ -13,7 +13,8 @@
 
 const ENDPOINT = (Deno.env.get('AZ_FOUNDRY_PROJECT_ENDPOINT') ?? '').replace(/\/+$/, '');
 const AGENT_NAME = Deno.env.get('AZ_FOUNDRY_AGENT_NAME') ?? 'az-agent-maint';
-const AGENT_VERSION = Deno.env.get('AZ_FOUNDRY_AGENT_VERSION') ?? '';
+// No version pin: always the latest published agent version (auto-update).
+const AGENT_VERSION = '';
 const TENANT = Deno.env.get('AZ_TENANT_ID') ?? '';
 const CLIENT_ID = Deno.env.get('AZ_CLIENT_ID') ?? '';
 const CLIENT_SECRET = Deno.env.get('AZ_CLIENT_SECRET') ?? '';

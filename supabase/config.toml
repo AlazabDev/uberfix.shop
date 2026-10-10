@@ -55,6 +55,9 @@ verify_jwt = false
 verify_jwt = true
 
 
+[functions.ufbot-voice]
+verify_jwt = false
+
 [functions.ufbot]
 verify_jwt = false
 
