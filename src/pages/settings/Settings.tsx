@@ -48,7 +48,7 @@ export default function Settings() {
       </div>
       
       <Tabs defaultValue={defaultTab} dir="rtl" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 lg:grid-cols-13 gap-1 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 lg:grid-cols-[repeat(13,minmax(0,1fr))] gap-1 h-auto p-1">
           <TabsTrigger value="account" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-2">
             <User className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">الحساب</span>
