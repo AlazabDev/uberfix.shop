@@ -140,3 +140,7 @@ verify_jwt = false
 
 [functions.mcp-ops]
 verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false
+# Universal AI Connector — the MCP SDK validates OAuth 2.1 tokens itself.

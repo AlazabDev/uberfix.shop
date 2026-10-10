@@ -40,25 +40,17 @@ curl -X POST "$A" -H "Content-Type: application/json" -H "x-api-key: $UF_KEY" \
        "service_type":"electrical","description":"قطع كهرباء","priority":"high"}'
 ```
 
-## 2) MCP Server — `/functions/v1/mcp`
+## 2) MCP Server — `/functions/v1/mcp` (Universal AI Connector)
 
-خادم MCP مستقل للوكلاء، أدواته تُكتب في `src/lib/mcp/tools/` وتُبنى تلقائيًا إلى
-`supabase/functions/mcp/`. الأدوات الحالية: `list_services`, `list_branches`,
-`find_nearest_branch`, `track_maintenance_request`, `create_maintenance_request`
-(تنفّذ عبر REST بنفس قواعد الأمان).
+خادم MCP واحد لأي وكيل متوافق (Streamable HTTP). محمي بـ OAuth 2.1 + PKCE عبر Supabase Auth
+(اكتشاف عبر `/.well-known/oauth-protected-resource`)، وشاشة الموافقة على `/.lovable/oauth/consent`.
+كل أداة تعمل بتوكن المستخدم نفسه (RLS)، والكتابة تمر عبر قناة `internal` في `/api`.
 
-```json
-{
-  "mcpServers": {
-    "uberfix": {
-      "url": "https://zrrffsjbfkphridqyais.supabase.co/functions/v1/mcp"
-    }
-  }
-}
-```
+أدوات القراءة: `check_request_status`, `get_request_details`, `list_services`, `list_categories`,
+`list_branches`, `find_nearest_branch`. أدوات الكتابة: `create_maintenance_request`, `get_quote`
+(ينشئ طلب عرض سعر فعلي), `add_request_note`, `cancel_request` (destructive).
 
-عمليات التشغيل الحساسة (نقل المرحلة، الإلغاء، الملاحظات، إسناد الفنيين) تبقى على
-REST بمفتاح صالح، ولا تُعرَض كأدوات عامة بدون مصادقة.
+الربط من المستخدم: الإعدادات ← الذكاء الاصطناعي ← نسخ الرابط. `mcp-ops` يبقى للوكلاء الآليين بـ `x-api-key`.
 
 ## 3) المسارات المهجورة
 
