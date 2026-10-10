@@ -11,6 +11,7 @@ import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
 import { VoiceConversation } from './VoiceConversation';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
+import { useVoiceLive } from '@/hooks/useVoiceLive';
 import type { VoiceState } from './VoiceOrb';
 
 interface Message {
@@ -69,6 +70,10 @@ export function UFBotWidget() {
     if (!voiceModeRef.current) toast({ title: 'الصوت', description: message, variant: 'destructive' });
   });
   const isRecording = recognition.isListening;
+  const live = useVoiceLive((role, content) => {
+    setShowQuickActions(false);
+    setMessages(prev => [...prev, { id: `${Date.now()}-${role}`, content, role, timestamp: new Date() }]);
+  });
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,6 +106,7 @@ export function UFBotWidget() {
   };
   const closeVoice = (text = false) => {
     voiceModeRef.current = false;
+    live.disconnect();
     stopVoice();
     setVoiceError('');
     setActiveTab('text');
@@ -273,12 +279,12 @@ export function UFBotWidget() {
         {isOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </Button>
 
-      <VoiceConversation open={isOpen && activeTab === 'voice'} state={voiceState}
-        analyserRef={isRecording ? recognition.analyserRef : analyserRef}
-        transcript={recognition.transcript} reply={latestReply} error={voiceError} muted={voiceMuted}
-        onClose={() => closeVoice()} onText={() => closeVoice(true)} onMic={toggleVoiceRecording}
-        onStop={stopVoice} onSend={text => { void sendMessage(text); }}
-        onMute={() => { mutedRef.current = !mutedRef.current; setVoiceMuted(mutedRef.current); if (mutedRef.current) stop(); }} />
+      <VoiceConversation open={isOpen && activeTab === 'voice'}
+        state={live.state === 'listening' && !live.micOn ? 'idle' : live.state} analyserRef={live.analyserRef}
+        transcript={live.transcript} reply={live.reply} error={live.error} muted={voiceMuted}
+        onClose={() => closeVoice()} onText={() => closeVoice(true)} onMic={live.toggleMic}
+        onStop={live.interrupt} onSend={live.sendText}
+        onMute={() => { mutedRef.current = !mutedRef.current; setVoiceMuted(mutedRef.current); live.setMuted(mutedRef.current); }} />
 
       {isOpen && activeTab === 'text' && (
         <div
