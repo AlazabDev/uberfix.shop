@@ -9,6 +9,9 @@ import { useTTS } from "@/hooks/useTTS";
 import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { useNavigate } from "react-router-dom";
+import { VoiceConversation } from './VoiceConversation';
+import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
+import type { VoiceState } from './VoiceOrb';
 
 interface Message {
   id: string;
@@ -45,16 +48,27 @@ export function UFBotWidget() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(true);
-  const [autoSpeak, setAutoSpeak] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [voiceMuted, setVoiceMuted] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  const voiceModeRef = useRef(false);
+  const mutedRef = useRef(false);
+  const chatAbortRef = useRef<AbortController | null>(null);
+  const sendRef = useRef<(text: string) => void>(() => {});
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ url: string; name: string; type: string } | null>(null);
-  const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { speak, isSpeaking, speakingMessageId } = useTTS();
+  const { speak, stop, isSpeaking, isPreparing, speakingMessageId, analyserRef } = useTTS();
+  const recognition = useVoiceRecognition(text => {
+    if (voiceModeRef.current) sendRef.current(text);
+    else setInput(text);
+  }, message => {
+    setVoiceError(message);
+    if (!voiceModeRef.current) toast({ title: 'الصوت', description: message, variant: 'destructive' });
+  });
+  const isRecording = recognition.isListening;
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -62,59 +76,35 @@ export function UFBotWidget() {
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  // Cleanup speech recognition on unmount
   useEffect(() => {
-    return () => {
-      try { recognitionRef.current?.stop?.(); } catch { /* ignore */ }
-    };
+    if (!document.querySelector('link[data-uberfix-cairo]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap';
+      link.dataset.uberfixCairo = 'true';
+      document.head.appendChild(link);
+    }
+    return () => chatAbortRef.current?.abort();
   }, []);
 
   const toggleVoiceRecording = () => {
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      toast({ title: "غير مدعوم", description: "متصفحك لا يدعم التعرف على الصوت. استخدم Chrome أو Edge.", variant: "destructive" });
-      return;
-    }
-    if (isRecording) {
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      setIsRecording(false);
-      return;
-    }
-    const rec = new SR();
-    rec.lang = 'ar-EG';
-    rec.interimResults = true;
-    rec.continuous = false;
-    rec.onresult = (e: any) => {
-      let transcript = '';
-      for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
-      setInput(transcript);
-    };
-    rec.onend = () => {
-      setIsRecording(false);
-      // Auto-send if we have text and voice tab
-      setTimeout(() => {
-        setInput((current) => {
-          if (current.trim() && activeTab === 'voice') {
-            sendMessage(current);
-            return '';
-          }
-          return current;
-        });
-      }, 100);
-    };
-    rec.onerror = (e: any) => {
-      setIsRecording(false);
-      if (e.error !== 'aborted' && e.error !== 'no-speech') {
-        toast({ title: "خطأ", description: "تعذر تشغيل الميكروفون", variant: "destructive" });
-      }
-    };
-    recognitionRef.current = rec;
-    try {
-      rec.start();
-      setIsRecording(true);
-    } catch {
-      setIsRecording(false);
-    }
+    setVoiceError('');
+    if (isRecording) recognition.finish();
+    else { stop(); void recognition.start(); }
+  };
+
+  const stopVoice = () => {
+    recognition.cancel();
+    stop();
+    chatAbortRef.current?.abort();
+    setIsLoading(false);
+  };
+  const closeVoice = (text = false) => {
+    voiceModeRef.current = false;
+    stopVoice();
+    setVoiceError('');
+    setActiveTab('text');
+    if (!text) setIsOpen(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +132,8 @@ export function UFBotWidget() {
   };
 
   const streamChat = async (allMessages: { role: string; content: string }[]) => {
+    const controller = new AbortController();
+    chatAbortRef.current = controller;
     const { data: { session } } = await supabase.auth.getSession();
     const resp = await fetch(UFBOT_URL, {
       method: 'POST',
@@ -151,11 +143,12 @@ export function UFBotWidget() {
         'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: allMessages, session_id: 'widget' }),
+      signal: controller.signal,
     });
 
     if (!resp.ok || !resp.body) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || 'فشل الاتصال بالمساعد الذكي');
+      throw new Error(err.message || err.error || 'فشل الاتصال بالمساعد الذكي');
     }
 
     const reader = resp.body.getReader();
@@ -201,17 +194,22 @@ export function UFBotWidget() {
     }
 
     // Auto-speak if voice tab is active
-    if (autoSpeak && assistantContent) {
+    if (voiceModeRef.current && !mutedRef.current && assistantContent && !controller.signal.aborted) {
       try {
         await speak(assistantContent, streamMsgId);
-      } catch { /* TTS error, non-critical */ }
+      } catch (error) {
+        setVoiceError(error instanceof Error ? error.message : 'تعذر تشغيل الرد الصوتي');
+      }
     }
   };
 
   const sendMessage = async (text?: string) => {
     const message = (text || input).trim();
-    if ((!message && !pendingAttachment) || isLoading) return;
+    if ((!message && !pendingAttachment) || isLoading || chatAbortRef.current && !chatAbortRef.current.signal.aborted && isPreparing) return;
 
+    recognition.cancel();
+    stop();
+    setVoiceError('');
     setShowQuickActions(false);
     const attachment = pendingAttachment;
     const userMsg: Message = {
@@ -238,12 +236,18 @@ export function UFBotWidget() {
 
     try {
       await streamChat(chatHistory);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message || "حدث خطأ في الاتصال", variant: "destructive" });
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      const description = err instanceof Error ? err.message : 'حدث خطأ في الاتصال';
+      setVoiceError(description);
+      toast({ title: "خطأ", description, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
+  sendRef.current = text => { void sendMessage(text); };
+  const latestReply = [...messages].reverse().find(message => message.role === 'assistant' && message.id !== '1')?.content ?? '';
+  const voiceState: VoiceState = voiceError ? 'error' : isRecording ? 'listening' : isPreparing ? 'preparing' : isSpeaking ? 'speaking' : isLoading ? 'thinking' : 'idle';
 
   const handleSpeakMessage = async (message: Message) => {
     try {
@@ -260,7 +264,7 @@ export function UFBotWidget() {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-6 right-6 z-[9999] h-10 w-10 rounded-full shadow-lg",
-          "bg-[#f5bf23] hover:bg-[#e0ad1c] text-[#111]",
+          "bg-secondary hover:bg-secondary/80 text-secondary-foreground",
           "transition-all duration-300 ease-in-out"
         )}
         size="icon"
@@ -269,7 +273,14 @@ export function UFBotWidget() {
         {isOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </Button>
 
-      {isOpen && (
+      <VoiceConversation open={isOpen && activeTab === 'voice'} state={voiceState}
+        analyserRef={isRecording ? recognition.analyserRef : analyserRef}
+        transcript={recognition.transcript} reply={latestReply} error={voiceError} muted={voiceMuted}
+        onClose={() => closeVoice()} onText={() => closeVoice(true)} onMic={toggleVoiceRecording}
+        onStop={stopVoice} onSend={text => { void sendMessage(text); }}
+        onMute={() => { mutedRef.current = !mutedRef.current; setVoiceMuted(mutedRef.current); if (mutedRef.current) stop(); }} />
+
+      {isOpen && activeTab === 'text' && (
         <div
           className="fixed bottom-20 right-6 z-[9998] w-[340px] sm:w-[380px] rounded-2xl shadow-2xl border border-border bg-[#f5f4ef] flex flex-col overflow-hidden"
           style={{ height: '560px', maxHeight: '80vh' }}
@@ -298,20 +309,17 @@ export function UFBotWidget() {
           {/* Tabs — voice on the left, text on the right (RTL) */}
           <div className="flex bg-[#1a1b3a] text-white/80 border-b border-black/10">
             <button
-              onClick={() => { setActiveTab('voice'); setAutoSpeak(true); }}
+              onClick={() => { recognition.cancel(); stop(); voiceModeRef.current = true; setVoiceError(''); setActiveTab('voice'); }}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors relative",
-                activeTab === 'voice' ? "text-white" : "text-white/60 hover:text-white/90"
+                "text-white/60 hover:text-white/90"
               )}
             >
               <Mic className="h-4 w-4" />
               محادثة صوتية
-              {activeTab === 'voice' && (
-                <span className="absolute bottom-0 left-4 right-4 h-[3px] rounded-full bg-[#f5bf23]" />
-              )}
             </button>
             <button
-              onClick={() => { setActiveTab('text'); setAutoSpeak(false); }}
+              onClick={() => closeVoice(true)}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors relative",
                 activeTab === 'text' ? "text-white" : "text-white/60 hover:text-white/90"
