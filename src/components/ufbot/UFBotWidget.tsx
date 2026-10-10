@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { VoiceConversation } from './VoiceConversation';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { useVoiceLive } from '@/hooks/useVoiceLive';
-import type { VoiceState } from './VoiceOrb';
 
 interface Message {
   id: string;
