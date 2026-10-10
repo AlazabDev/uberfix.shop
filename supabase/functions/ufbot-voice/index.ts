@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         auth = /invalid_client|client secret|AAD7000215/i.test(m) ? 'secret-rejected' : 'token-error';
       }
     }
-    return new Response(JSON.stringify({ ok: auth === 'ok', agent: AGENT_NAME, version: 'latest', configured, auth }), {
+    return new Response(JSON.stringify({ ok: auth === 'ok', agent: AGENT_NAME, version: 'latest', configured, auth, clientIdPrefix: CLIENT_ID.slice(0, 8) }), {
       status: auth === 'ok' ? 200 : 503,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
     });
