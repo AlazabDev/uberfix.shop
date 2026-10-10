@@ -253,7 +253,6 @@ export function UFBotWidget() {
   };
   sendRef.current = text => { void sendMessage(text); };
   const latestReply = [...messages].reverse().find(message => message.role === 'assistant' && message.id !== '1')?.content ?? '';
-  const voiceState: VoiceState = voiceError ? 'error' : isRecording ? 'listening' : isPreparing ? 'preparing' : isSpeaking ? 'speaking' : isLoading ? 'thinking' : 'idle';
 
   const handleSpeakMessage = async (message: Message) => {
     try {
@@ -315,7 +314,7 @@ export function UFBotWidget() {
           {/* Tabs — voice on the left, text on the right (RTL) */}
           <div className="flex bg-[#1a1b3a] text-white/80 border-b border-black/10">
             <button
-              onClick={() => { recognition.cancel(); stop(); voiceModeRef.current = true; setVoiceError(''); setActiveTab('voice'); }}
+              onClick={() => { recognition.cancel(); stop(); voiceModeRef.current = true; setVoiceError(''); setActiveTab('voice'); void live.connect(); }}
               className={cn(
                 "flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-1.5 transition-colors relative",
                 "text-white/60 hover:text-white/90"
