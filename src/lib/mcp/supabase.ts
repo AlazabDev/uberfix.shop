@@ -1,6 +1,8 @@
 // Import-safe helpers: env is read and clients are built at call time only.
 import { createClient } from "@supabase/supabase-js";
-import { ToolError, type ToolContext } from "@lovable.dev/mcp-js";
+import type { ToolContext } from "@lovable.dev/mcp-js";
+
+export class ToolFailure extends Error {}
 
 type RuntimeGlobals = typeof globalThis & {
   Deno?: { env?: { get?: (name: string) => string | undefined } };
@@ -51,7 +53,7 @@ export function supabasePublishableKey(): string {
 
 function requireToken(ctx: ToolContext): string {
   const token = ctx.getToken();
-  if (!ctx.isAuthenticated() || !token) throw new ToolError("يلزم تسجيل الدخول إلى UberFix عبر OAuth.");
+  if (!ctx.isAuthenticated() || !token) throw new ToolFailure("يلزم تسجيل الدخول إلى UberFix عبر OAuth.");
   return token;
 }
 
@@ -78,12 +80,11 @@ export async function callApi(ctx: ToolContext, body: Record<string, unknown>) {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
-    signal: ctx.signal,
   });
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok || data.success === false) {
     const msg = (data.message_ar ?? data.error ?? data.message ?? `HTTP ${res.status}`) as string;
-    throw new ToolError(typeof msg === "string" ? msg : JSON.stringify(msg));
+    throw new ToolFailure(typeof msg === "string" ? msg : JSON.stringify(msg));
   }
   return data;
 }
@@ -94,6 +95,15 @@ export function textResult(payload: unknown) {
 
 export function errorResult(message: string) {
   return { content: [{ type: "text" as const, text: message }], isError: true };
+}
+
+/** يحوّل أي فشل متوقَّع إلى نتيجة خطأ مقروءة للوكيل بدل خطأ عام. */
+export async function guarded<T>(fn: () => Promise<T>) {
+  try {
+    return await fn();
+  } catch (e) {
+    return errorResult(e instanceof Error ? e.message : String(e));
+  }
 }
 
 export const REQUEST_FIELDS =
