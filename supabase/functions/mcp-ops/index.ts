@@ -55,9 +55,9 @@ const TOOLS: { name: string; action: string; description: string; readOnly: bool
     schema: { type: 'object', properties: { request_id: s('معرّف الطلب'), client_phone: s('هاتف العميل'), reason: s('سبب الإلغاء') }, required: ['request_id', 'client_phone', 'reason'] },
   },
   {
-    name: 'get_quote', action: 'get_quote', readOnly: true,
-    description: 'تقدير مبدئي للتكلفة حسب نوع الخدمة والمساحة.',
-    schema: { type: 'object', properties: { service_type: s('نوع الخدمة', { enum: SERVICE_TYPES }), description: s('الوصف'), location: s('الموقع'), area_sqm: n('المساحة م²') }, required: ['service_type'] },
+    name: 'get_quote', action: 'get_quote', readOnly: false,
+    description: 'تسجيل طلب عرض سعر رسمي — يُنشئ طلبًا فعليًا ويتواصل الفريق خلال 24 ساعة. ليس تقديرًا فوريًا.',
+    schema: { type: 'object', properties: { service_type: s('نوع الخدمة', { enum: SERVICE_TYPES }), description: s('الوصف'), client_name: s('اسم العميل'), client_phone: s('هاتف العميل'), location: s('الموقع'), area_sqm: n('المساحة م²') }, required: ['service_type', 'description', 'client_name', 'client_phone'] },
   },
   { name: 'list_services', action: 'list_services', readOnly: true, description: 'قائمة الخدمات المتاحة.', schema: { type: 'object', properties: {} } },
   { name: 'list_categories', action: 'list_categories', readOnly: true, description: 'تصنيفات الصيانة.', schema: { type: 'object', properties: {} } },

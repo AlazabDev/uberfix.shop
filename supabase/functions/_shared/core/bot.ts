@@ -328,7 +328,10 @@ async function handleGetQuote(supabase: any, payload: any, metadata?: any) {
   const { data: company } = await supabase
     .from('companies').select('id').order('created_at').limit(1).maybeSingle();
   const { data: branch } = await supabase
-    .from('branches').select('id').eq('company_id', company!.id).order('created_at').limit(1).maybeSingle();
+    .from('branches').select('id').eq('company_id', company?.id ?? '').order('created_at').limit(1).maybeSingle();
+  if (!company?.id || !branch?.id) {
+    return { success: false, error: 'لا توجد شركة/فرع افتراضي لتسجيل عرض السعر' };
+  }
 
   const { data: request, error } = await supabase
     .from('maintenance_requests')
