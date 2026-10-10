@@ -24,7 +24,6 @@ import {
 } from "@/constants/technicianConstants";
 import { WORKFLOW_STAGES, WorkflowStage } from "@/constants/workflowStages";
 import { openWhatsApp } from "@/config/whatsapp";
-// @ts-ignore - markerclusterer types optional
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
 declare global { interface Window { google?: any } }
