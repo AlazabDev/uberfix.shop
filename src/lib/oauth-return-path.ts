@@ -1,5 +1,5 @@
 export function oauthReturnPath(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) return "/";
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || Array.from(value).some((c) => c === "\\" || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) return "/";
   // A fixed parsing origin keeps validation independent of the current host.
   const origin = "https://app.invalid";
   try {
