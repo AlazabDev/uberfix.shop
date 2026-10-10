@@ -1,3 +1,4 @@
 - [Historical Lifecycle Completion](mem://features/maintenance/historical-lifecycle-completion) — 2,900 طلب أُغلق بدورة كاملة مع فواتير، بلا أرشفة، وview v_maintenance_requests_full وصفحة /requests-ledger
 - [Backend Two Doors](mem://architecture/backend-two-door-topology) — بابان فقط: REST /functions/v1/api وMCP /functions/v1/mcp، المنطق في _shared/core، والمسارات القديمة shims
+- [UF.Bot voice interface](mem://features/bot/voice-interface.md) — واجهة صوتية كاملة بدائرة متحركة؛ عدم حذف العناصر البصرية التي يضيفها المستخدم قبل التحقق من غرضها
 - [Property Bulk Import & Company Scope](mem://features/properties/bulk-import-and-company-scope) — /properties/bulk-import بملف CSV ومالك واحد، properties.company_id لمشاركة عقارات الشركة، وجدول user_emails للبريد المتعدد
