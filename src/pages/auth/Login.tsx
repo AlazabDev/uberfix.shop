@@ -13,6 +13,7 @@ import { resolveUserRedirectAfterAuth, savePendingOAuthContext, clearPendingOAut
 import { useAuth } from "@/contexts/AuthContext";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { cn } from "@/lib/utils";
+import { oauthReturnPath, savePendingConsent, takePendingConsent } from "@/lib/oauth-return-path";
 import { detectRegion, normalizePhoneForRegion, maskPhone } from "@/lib/phoneRegion";
 
 /**
@@ -63,6 +64,10 @@ export default function Login() {
   const isSignup = mode === "signup";
   const redirectTo = useMemo(() => `${window.location.origin}/auth/callback`, []);
 
+  // عودة لشاشة تفويض مساعد ذكاء اصطناعي بعد أي طريقة دخول (بريد/اجتماعي/واتساب)
+  const nextParam = params.get("next");
+  useEffect(() => { savePendingConsent(nextParam); }, [nextParam]);
+
   const setMode = (m: Mode) => {
     const next = new URLSearchParams(params);
     if (m === "signup") next.set("mode", "signup"); else next.delete("mode");
@@ -74,6 +79,8 @@ export default function Login() {
   useEffect(() => {
     if (authLoading || !user || redirecting) return;
     setRedirecting(true);
+    const consent = takePendingConsent();
+    if (consent) { window.location.href = oauthReturnPath(consent); return; }
     const from = (location.state as { from?: string } | null)?.from;
     resolveUserRedirectAfterAuth(user.id, user.email)
       .then((info) => {

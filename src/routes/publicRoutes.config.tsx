@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 const Index = lazy(() => import("@/pages/public/Index"));
 const LegacyAuthRedirect = lazy(() => import("@/pages/auth/LegacyAuthRedirect"));
 const Login = lazy(() => import("@/pages/auth/Login"));
+const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
 const AuthCallback = lazy(() => import("@/pages/auth/AuthCallback"));
 const UpdatePassword = lazy(() => import("@/pages/auth/UpdatePassword"));
@@ -63,6 +64,7 @@ export const publicRoutes = [
   { path: "/", element: <Index /> },
   { path: "/role-selection", element: <LegacyAuthRedirect /> },
   { path: "/login", element: <Login /> },
+  { path: "/.lovable/oauth/consent", element: <OAuthConsent /> },
   { path: "/register", element: <LegacyAuthRedirect /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/auth/callback", element: <AuthCallback /> },

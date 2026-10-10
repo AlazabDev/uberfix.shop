@@ -3,19 +3,80 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { defineMcp } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.23.0";
 
-// src/lib/mcp/tools/list-services.ts
+// src/lib/mcp/tools/create-request.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.23.0";
 import { z } from "npm:zod@^4.4.3";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.110.7";
-function anonClient() {
-  const env = globalThis?.process?.env ?? {};
-  const url = env.SUPABASE_URL ?? "https://sentinel.invalid";
-  const key = env.SUPABASE_PUBLISHABLE_KEY ?? env.SUPABASE_ANON_KEY ?? "sentinel";
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+var ToolFailure = class extends Error {
+};
+function runtimeEnv(name) {
+  const runtime = globalThis;
+  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name];
+}
+function configuredEnv(names) {
+  for (const name of names) {
+    const value = runtimeEnv(name)?.trim();
+    if (value) return value;
+  }
+  return void 0;
+}
+function supabaseProjectUrl() {
+  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
+  if (!url) throw new Error("SUPABASE_URL is required");
+  return url;
+}
+function supabasePublishableKey() {
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
+  if (direct) return direct;
+  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyset) {
+    try {
+      const parsed = JSON.parse(keyset);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const keys = parsed;
+        const key = [keys.default, ...Object.values(keys)].find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
+        if (key) return key;
+      }
+    } catch {
+    }
+  }
+  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"]);
+  if (legacy) return legacy;
+  throw new Error("Supabase publishable key is required");
+}
+function requireToken(ctx) {
+  const token = ctx.getToken();
+  if (!ctx.isAuthenticated() || !token) throw new ToolFailure("\u064A\u0644\u0632\u0645 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0625\u0644\u0649 UberFix \u0639\u0628\u0631 OAuth.");
+  return token;
+}
+function supabaseForUser(ctx) {
+  const token = requireToken(ctx);
+  return createClient(supabaseProjectUrl(), supabasePublishableKey(), {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+async function callApi(ctx, body) {
+  const token = requireToken(ctx);
+  const res = await fetch(`${supabaseProjectUrl()}/functions/v1/api`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabasePublishableKey(),
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    const msg = data.message_ar ?? data.error ?? data.message ?? `HTTP ${res.status}`;
+    throw new ToolFailure(typeof msg === "string" ? msg : JSON.stringify(msg));
+  }
+  return data;
 }
 function textResult(payload) {
   return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
@@ -23,42 +84,245 @@ function textResult(payload) {
 function errorResult(message) {
   return { content: [{ type: "text", text: message }], isError: true };
 }
+async function guarded(fn) {
+  try {
+    return await fn();
+  } catch (e) {
+    return errorResult(e instanceof Error ? e.message : String(e));
+  }
+}
+var REQUEST_FIELDS = "id, request_number, title, status, workflow_stage, priority, service_type, location, created_at, updated_at, branch_id, company_id";
+
+// src/lib/mcp/tools/create-request.ts
+var SERVICE_TYPES = [
+  "plumbing",
+  "electrical",
+  "ac",
+  "painting",
+  "carpentry",
+  "cleaning",
+  "general",
+  "appliance",
+  "pest_control",
+  "landscaping"
+];
+var create_request_default = defineTool({
+  name: "create_maintenance_request",
+  title: "Create maintenance request",
+  description: "\u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0628\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0645\u0633\u062C\u0651\u0644. \u0627\u0644\u0634\u0631\u0643\u0629 \u062A\u064F\u062D\u062F\u064E\u0651\u062F \u0645\u0646 \u062D\u0633\u0627\u0628\u0647\u060C \u0648\u0627\u0644\u0641\u0631\u0639 \u0645\u0646 \u0627\u0644\u0639\u0642\u0627\u0631 \u0625\u0646 \u0623\u064F\u0631\u0633\u0644 property_id. \u064A\u0639\u064A\u062F \u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628.",
+  inputSchema: {
+    title: z.string().trim().min(3).describe("\u0639\u0646\u0648\u0627\u0646 \u0645\u062E\u062A\u0635\u0631 \u0644\u0644\u0645\u0634\u0643\u0644\u0629."),
+    description: z.string().trim().min(5).describe("\u0648\u0635\u0641 \u0627\u0644\u0645\u0634\u0643\u0644\u0629."),
+    service_type: z.enum(SERVICE_TYPES).optional().describe("\u0646\u0648\u0639 \u0627\u0644\u062E\u062F\u0645\u0629."),
+    priority: z.enum(["low", "medium", "high"]).optional(),
+    location: z.string().trim().min(2).optional().describe("\u0627\u0644\u0639\u0646\u0648\u0627\u0646."),
+    client_name: z.string().trim().min(2).optional().describe("\u0627\u0633\u0645 \u0627\u0644\u0639\u0645\u064A\u0644 (\u0627\u0641\u062A\u0631\u0627\u0636\u064A: \u0635\u0627\u062D\u0628 \u0627\u0644\u062D\u0633\u0627\u0628)."),
+    client_phone: z.string().trim().min(6).optional().describe("\u0647\u0627\u062A\u0641 \u0627\u0644\u062A\u0648\u0627\u0635\u0644."),
+    property_id: z.string().uuid().optional().describe("\u0639\u0642\u0627\u0631 \u064A\u0645\u0644\u0643\u0647 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u062F\u0627\u062E\u0644 \u0634\u0631\u0643\u062A\u0647.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: (args, ctx) => guarded(async () => {
+    const data = await callApi(ctx, {
+      channel: "internal",
+      ...args,
+      client_name: args.client_name ?? ctx.getUserEmail() ?? "UberFix user",
+      client_email: ctx.getUserEmail() ?? void 0,
+      metadata: { source: "mcp", oauth_client_id: ctx.getClientId() ?? null }
+    });
+    return textResult(data);
+  })
+});
+
+// src/lib/mcp/tools/check-request-status.ts
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z2 } from "npm:zod@^4.4.3";
+var check_request_status_default = defineTool2({
+  name: "check_request_status",
+  title: "Check request status",
+  description: "\u062D\u0627\u0644\u0629 \u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u062A\u064A \u064A\u0645\u0644\u0643 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0635\u0644\u0627\u062D\u064A\u0629 \u0631\u0624\u064A\u062A\u0647\u0627: \u0628\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628\u060C \u0623\u0648 \u0623\u062D\u062F\u062B \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0625\u0646 \u0644\u0645 \u064A\u064F\u0631\u0633\u0644 \u0631\u0642\u0645.",
+  inputSchema: {
+    request_number: z2.string().trim().min(3).optional().describe("\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628 \u0645\u062B\u0644 UF/MR/YYMMDD/SEQ."),
+    limit: z2.number().int().min(1).max(50).optional().describe("\u0639\u062F\u062F \u0627\u0644\u0637\u0644\u0628\u0627\u062A (\u0627\u0641\u062A\u0631\u0627\u0636\u064A 10).")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: ({ request_number, limit }, ctx) => guarded(async () => {
+    let q = supabaseForUser(ctx).from("maintenance_requests").select(REQUEST_FIELDS).order("created_at", { ascending: false }).limit(limit ?? 10);
+    if (request_number) q = q.eq("request_number", request_number);
+    const { data, error } = await q;
+    if (error) return errorResult(error.message);
+    if (request_number && !data?.length) return errorResult("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0623\u0648 \u0644\u064A\u0633 \u0644\u062F\u064A\u0643 \u0635\u0644\u0627\u062D\u064A\u0629 \u0639\u0644\u064A\u0647.");
+    return textResult({ count: data?.length ?? 0, requests: data ?? [] });
+  })
+});
+
+// src/lib/mcp/tools/get-request-details.ts
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z3 } from "npm:zod@^4.4.3";
+
+// src/lib/mcp/tools/request-access.ts
+async function resolveVisibleRequest(ctx, ref, fields) {
+  if (!ref.request_id && !ref.request_number) throw new ToolFailure("request_id \u0623\u0648 request_number \u0645\u0637\u0644\u0648\u0628.");
+  let q = supabaseForUser(ctx).from("maintenance_requests").select(fields).limit(1);
+  q = ref.request_id ? q.eq("id", ref.request_id) : q.eq("request_number", ref.request_number);
+  const { data, error } = await q.maybeSingle();
+  if (error) throw new ToolFailure(error.message);
+  if (!data) throw new ToolFailure("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0623\u0648 \u0644\u064A\u0633 \u0644\u062F\u064A\u0643 \u0635\u0644\u0627\u062D\u064A\u0629 \u0639\u0644\u064A\u0647.");
+  return data;
+}
+
+// src/lib/mcp/tools/get-request-details.ts
+var get_request_details_default = defineTool3({
+  name: "get_request_details",
+  title: "Get request details",
+  description: "\u062A\u0641\u0627\u0635\u064A\u0644 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0648\u0627\u062D\u062F \u064A\u0645\u0644\u0643 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0635\u0644\u0627\u062D\u064A\u0629 \u0631\u0624\u064A\u062A\u0647.",
+  inputSchema: {
+    request_id: z3.string().uuid().optional(),
+    request_number: z3.string().trim().min(3).optional()
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: (ref, ctx) => guarded(async () => {
+    const data = await resolveVisibleRequest(
+      ctx,
+      ref,
+      `${REQUEST_FIELDS}, description, client_name, estimated_cost, actual_cost, sla_complete_due, customer_notes`
+    );
+    return textResult({ request: data });
+  })
+});
+
+// src/lib/mcp/tools/add-request-note.ts
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z4 } from "npm:zod@^4.4.3";
+var add_request_note_default = defineTool4({
+  name: "add_request_note",
+  title: "Add request note",
+  description: "\u0625\u0636\u0627\u0641\u0629 \u0645\u0644\u0627\u062D\u0638\u0629 \u0625\u0644\u0649 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u064A\u0645\u0644\u0643 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0635\u0644\u0627\u062D\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u064A\u0647.",
+  inputSchema: {
+    request_id: z4.string().uuid().optional(),
+    request_number: z4.string().trim().min(3).optional(),
+    note: z4.string().trim().min(2).max(2e3).describe("\u0646\u0635 \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0629.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: ({ note, ...ref }, ctx) => guarded(async () => {
+    const req = await resolveVisibleRequest(ctx, ref, "id, client_phone");
+    const data = await callApi(ctx, {
+      action: "add_note",
+      payload: { request_id: req.id, note, client_phone: req.client_phone },
+      metadata: { source: "mcp" }
+    });
+    return textResult(data);
+  })
+});
+
+// src/lib/mcp/tools/cancel-request.ts
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z5 } from "npm:zod@^4.4.3";
+var cancel_request_default = defineTool5({
+  name: "cancel_request",
+  title: "Cancel request",
+  description: "\u0625\u0644\u063A\u0627\u0621 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0628\u0637\u0644\u0628 \u0635\u0631\u064A\u062D \u0645\u0646 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0645\u0639 \u0630\u0643\u0631 \u0627\u0644\u0633\u0628\u0628. \u0642\u0627\u0646\u0648\u0646\u064A\u0629 \u0627\u0644\u0625\u0644\u063A\u0627\u0621 \u062A\u062D\u0643\u0645\u0647\u0627 \u062F\u0648\u0631\u0629 \u0627\u0644\u0639\u0645\u0644 \u0648\u0635\u0644\u0627\u062D\u064A\u0629 \u062F\u0648\u0631 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645.",
+  inputSchema: {
+    request_id: z5.string().uuid().optional(),
+    request_number: z5.string().trim().min(3).optional(),
+    reason: z5.string().trim().min(3).max(500).describe("\u0633\u0628\u0628 \u0627\u0644\u0625\u0644\u063A\u0627\u0621.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  handler: ({ reason, ...ref }, ctx) => guarded(async () => {
+    const req = await resolveVisibleRequest(ctx, ref, "id, client_phone");
+    const data = await callApi(ctx, {
+      action: "cancel_request",
+      payload: { request_id: req.id, reason, client_phone: req.client_phone },
+      metadata: { source: "mcp" }
+    });
+    return textResult(data);
+  })
+});
+
+// src/lib/mcp/tools/get-quote.ts
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z6 } from "npm:zod@^4.4.3";
+var get_quote_default = defineTool6({
+  name: "get_quote",
+  title: "Request a quote",
+  description: "\u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0639\u0631\u0636 \u0633\u0639\u0631 \u0631\u0633\u0645\u064A (\u064A\u064F\u0646\u0634\u0626 \u0637\u0644\u0628\u064B\u0627 \u0641\u0639\u0644\u064A\u064B\u0627 \u0641\u064A \u0634\u0631\u0643\u0629 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0648\u064A\u062A\u0648\u0627\u0635\u0644 \u0627\u0644\u0641\u0631\u064A\u0642 \u062E\u0644\u0627\u0644 24 \u0633\u0627\u0639\u0629). \u0627\u0637\u0644\u0628 \u0645\u0648\u0627\u0641\u0642\u0629 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0623\u0648\u0644\u064B\u0627.",
+  inputSchema: {
+    service_type: z6.enum(SERVICE_TYPES),
+    description: z6.string().trim().min(5),
+    location: z6.string().trim().min(2).optional(),
+    area_sqm: z6.number().positive().optional().describe("\u0627\u0644\u0645\u0633\u0627\u062D\u0629 \u0645\xB2."),
+    client_phone: z6.string().trim().min(6).optional()
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: ({ service_type, description, location, area_sqm, client_phone }, ctx) => guarded(async () => {
+    const data = await callApi(ctx, {
+      channel: "internal",
+      title: `\u0637\u0644\u0628 \u0639\u0631\u0636 \u0633\u0639\u0631 - ${service_type}`,
+      description: `${description}${area_sqm ? `
+\u0627\u0644\u0645\u0633\u0627\u062D\u0629: ${area_sqm} \u0645\xB2` : ""}`,
+      service_type,
+      location,
+      client_phone,
+      client_name: ctx.getUserEmail() ?? "UberFix user",
+      client_email: ctx.getUserEmail() ?? void 0,
+      priority: "medium",
+      metadata: { source: "mcp", kind: "quote", oauth_client_id: ctx.getClientId() ?? null }
+    });
+    return textResult(data);
+  })
+});
 
 // src/lib/mcp/tools/list-services.ts
-var list_services_default = defineTool({
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z7 } from "npm:zod@^4.4.3";
+var list_services_default = defineTool7({
   name: "list_services",
   title: "List services",
   description: "\u0642\u0627\u0626\u0645\u0629 \u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0645\u062A\u0627\u062D\u0629 \u0641\u064A UberFix (\u0627\u0633\u0645\u060C \u0641\u0626\u0629\u060C \u0633\u0639\u0631 \u062A\u0642\u0631\u064A\u0628\u064A).",
-  inputSchema: { limit: z.number().int().min(1).max(200).optional().describe("\u0639\u062F\u062F \u0627\u0644\u0646\u062A\u0627\u0626\u062C (\u0627\u0641\u062A\u0631\u0627\u0636\u064A 100).") },
+  inputSchema: { limit: z7.number().int().min(1).max(200).optional().describe("\u0639\u062F\u062F \u0627\u0644\u0646\u062A\u0627\u0626\u062C (\u0627\u0641\u062A\u0631\u0627\u0636\u064A 100).") },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ limit }) => {
-    const { data, error } = await anonClient().from("services").select("id, code, name, category, description, base_price, currency, is_active").eq("is_active", true).limit(limit ?? 100);
+  handler: ({ limit }, ctx) => guarded(async () => {
+    const { data, error } = await supabaseForUser(ctx).from("services").select("id, code, name, category, description, base_price, currency, is_active").eq("is_active", true).limit(limit ?? 100);
     if (error) return errorResult(error.message);
     return textResult({ count: data?.length ?? 0, services: data ?? [] });
-  }
+  })
+});
+
+// src/lib/mcp/tools/list-categories.ts
+import { defineTool as defineTool8 } from "npm:@lovable.dev/mcp-js@0.23.0";
+var list_categories_default = defineTool8({
+  name: "list_categories",
+  title: "List categories",
+  description: "\u062A\u0635\u0646\u064A\u0641\u0627\u062A \u0627\u0644\u0635\u064A\u0627\u0646\u0629 \u0627\u0644\u0645\u0641\u0639\u0651\u0644\u0629.",
+  inputSchema: {},
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: (_args, ctx) => guarded(async () => {
+    const { data, error } = await supabaseForUser(ctx).from("maintenance_categories").select("id, name, name_ar, slug").eq("is_active", true).order("name");
+    if (error) return errorResult(error.message);
+    return textResult({ count: data?.length ?? 0, categories: data ?? [] });
+  })
 });
 
 // src/lib/mcp/tools/list-branches.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.23.0";
-import { z as z2 } from "npm:zod@^4.4.3";
-var list_branches_default = defineTool2({
+import { defineTool as defineTool9 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z8 } from "npm:zod@^4.4.3";
+var list_branches_default = defineTool9({
   name: "list_branches",
   title: "List branches",
   description: "\u0642\u0627\u0626\u0645\u0629 \u0641\u0631\u0648\u0639 UberFix \u0627\u0644\u0639\u0627\u0645\u0629 (\u0627\u0633\u0645\u060C \u0645\u062F\u064A\u0646\u0629\u060C \u0647\u0627\u062A\u0641\u060C \u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A).",
-  inputSchema: { city: z2.string().trim().min(1).optional().describe("\u062A\u0635\u0641\u064A\u0629 \u0628\u0627\u0644\u0645\u062F\u064A\u0646\u0629.") },
+  inputSchema: { city: z8.string().trim().min(1).optional().describe("\u062A\u0635\u0641\u064A\u0629 \u0628\u0627\u0644\u0645\u062F\u064A\u0646\u0629.") },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ city }) => {
-    let q = anonClient().from("branches").select("id, code, name, city, address, phone, latitude, longitude, is_active").eq("is_active", true).limit(200);
+  handler: ({ city }, ctx) => guarded(async () => {
+    let q = supabaseForUser(ctx).from("branches").select("id, code, name, city, address, phone, latitude, longitude, is_active").eq("is_active", true).limit(200);
     if (city) q = q.ilike("city", `%${city}%`);
     const { data, error } = await q;
     if (error) return errorResult(error.message);
     return textResult({ count: data?.length ?? 0, branches: data ?? [] });
-  }
+  })
 });
 
 // src/lib/mcp/tools/find-nearest-branch.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.23.0";
-import { z as z3 } from "npm:zod@^4.4.3";
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@0.23.0";
+import { z as z9 } from "npm:zod@^4.4.3";
 function haversineKm(a, b) {
   const R = 6371;
   const toRad = (d) => d * Math.PI / 180;
@@ -67,49 +331,46 @@ function haversineKm(a, b) {
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
-var find_nearest_branch_default = defineTool3({
+var find_nearest_branch_default = defineTool10({
   name: "find_nearest_branch",
   title: "Find nearest branch",
   description: "\u0625\u0631\u062C\u0627\u0639 \u0623\u0642\u0631\u0628 \u0641\u0631\u0639 UberFix \u0644\u0625\u062D\u062F\u0627\u062B\u064A\u0627\u062A \u0627\u0644\u0639\u0645\u064A\u0644.",
   inputSchema: {
-    lat: z3.number().describe("\u062E\u0637 \u0627\u0644\u0639\u0631\u0636."),
-    lng: z3.number().describe("\u062E\u0637 \u0627\u0644\u0637\u0648\u0644.")
+    lat: z9.number().describe("\u062E\u0637 \u0627\u0644\u0639\u0631\u0636."),
+    lng: z9.number().describe("\u062E\u0637 \u0627\u0644\u0637\u0648\u0644.")
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ lat, lng }) => {
-    const { data, error } = await anonClient().from("branches").select("id, code, name, city, address, phone, latitude, longitude").eq("is_active", true).not("latitude", "is", null).not("longitude", "is", null);
+  handler: ({ lat, lng }, ctx) => guarded(async () => {
+    const { data, error } = await supabaseForUser(ctx).from("branches").select("id, code, name, city, address, phone, latitude, longitude").eq("is_active", true).not("latitude", "is", null).not("longitude", "is", null);
     if (error) return errorResult(error.message);
     const withDist = (data ?? []).map((b) => ({ ...b, distance_km: haversineKm({ lat, lng }, { lat: Number(b.latitude), lng: Number(b.longitude) }) })).sort((a, b) => a.distance_km - b.distance_km);
     return textResult({ nearest: withDist[0] ?? null, top5: withDist.slice(0, 5) });
-  }
-});
-
-// src/lib/mcp/tools/track-request.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.23.0";
-import { z as z4 } from "npm:zod@^4.4.3";
-var track_request_default = defineTool4({
-  name: "track_maintenance_request",
-  title: "Track maintenance request",
-  description: "\u062A\u062A\u0628\u0639 \u062D\u0627\u0644\u0629 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0639\u0628\u0631 \u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628 \u0627\u0644\u0639\u0627\u0645 (\u0628\u062F\u0648\u0646 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0634\u062E\u0635\u064A\u0629).",
-  inputSchema: {
-    request_number: z4.string().trim().min(3).describe("\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628 \u0645\u062B\u0644 UF/MR/YYMMDD/SEQ.")
-  },
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-  handler: async ({ request_number }) => {
-    const { data, error } = await anonClient().rpc("public_track_request", { p_request_number: request_number });
-    if (error) return errorResult(error.message);
-    if (!data) return errorResult("\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u0639\u062B\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628.");
-    return textResult(data);
-  }
+  })
 });
 
 // src/lib/mcp/index.ts
+var projectRef = "zrrffsjbfkphridqyais";
 var mcp_default = defineMcp({
-  name: "uberfix-mcp",
-  title: "UberFix (read-only)",
-  version: "0.2.0",
-  instructions: "\u0623\u062F\u0648\u0627\u062A \u0639\u0627\u0645\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0641\u0642\u0637 \u0641\u064A \u0646\u0638\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 UberFix: \u062A\u0635\u0641\u062D \u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0648\u0627\u0644\u0641\u0631\u0648\u0639\u060C \u062C\u062F \u0623\u0642\u0631\u0628 \u0641\u0631\u0639\u060C \u0623\u0648 \u062A\u062A\u0628\u0651\u0639 \u062D\u0627\u0644\u0629 \u0637\u0644\u0628 \u0628\u0631\u0642\u0645\u0647 \u0627\u0644\u0639\u0627\u0645. \u0644\u0627 \u064A\u0645\u0643\u0646 \u0625\u0646\u0634\u0627\u0621 \u0623\u0648 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u062E\u0627\u062F\u0645 \u0627\u0644\u0639\u0627\u0645.",
-  tools: [list_services_default, list_branches_default, find_nearest_branch_default, track_request_default]
+  name: "uberfix",
+  title: "UberFix",
+  version: "1.0.0",
+  instructions: "\u0623\u062F\u0648\u0627\u062A \u0646\u0638\u0627\u0645 \u0635\u064A\u0627\u0646\u0629 UberFix \u0628\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0645\u0633\u062C\u0651\u0644: \u062A\u0633\u062C\u064A\u0644 \u0637\u0644\u0628 \u0635\u064A\u0627\u0646\u0629 \u0623\u0648 \u0639\u0631\u0636 \u0633\u0639\u0631\u060C \u0645\u062A\u0627\u0628\u0639\u0629 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u0648\u062A\u0641\u0627\u0635\u064A\u0644\u0647\u0627\u060C \u0625\u0636\u0627\u0641\u0629 \u0645\u0644\u0627\u062D\u0638\u0629\u060C \u0625\u0644\u063A\u0627\u0621 \u0637\u0644\u0628\u060C \u0648\u062A\u0635\u0641\u062D \u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0648\u0627\u0644\u062A\u0635\u0646\u064A\u0641\u0627\u062A \u0648\u0627\u0644\u0641\u0631\u0648\u0639. \u0627\u0637\u0644\u0628 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0642\u0628\u0644 \u0623\u064A \u0625\u0646\u0634\u0627\u0621 \u0623\u0648 \u0625\u0644\u063A\u0627\u0621\u060C \u0648\u0644\u0627 \u062A\u062E\u062A\u0631\u0639 \u0623\u0631\u0642\u0627\u0645 \u0637\u0644\u0628\u0627\u062A.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated"
+  }),
+  tools: [
+    create_request_default,
+    check_request_status_default,
+    get_request_details_default,
+    add_request_note_default,
+    cancel_request_default,
+    get_quote_default,
+    list_services_default,
+    list_categories_default,
+    list_branches_default,
+    find_nearest_branch_default
+  ]
 });
 
 // lovable-mcp-supabase-entry.ts

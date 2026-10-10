@@ -1,6 +1,6 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-import { anonClient, errorResult, textResult } from "../supabase";
+import { errorResult, guarded, supabaseForUser, textResult } from "../supabase";
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371;
@@ -20,8 +20,8 @@ export default defineTool({
     lng: z.number().describe("خط الطول."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: async ({ lat, lng }) => {
-    const { data, error } = await anonClient()
+  handler: ({ lat, lng }, ctx) => guarded(async () => {
+    const { data, error } = await supabaseForUser(ctx)
       .from("branches")
       .select("id, code, name, city, address, phone, latitude, longitude")
       .eq("is_active", true)
@@ -32,5 +32,5 @@ export default defineTool({
       .map((b: any) => ({ ...b, distance_km: haversineKm({ lat, lng }, { lat: Number(b.latitude), lng: Number(b.longitude) }) }))
       .sort((a, b) => a.distance_km - b.distance_km);
     return textResult({ nearest: withDist[0] ?? null, top5: withDist.slice(0, 5) });
-  },
+  }),
 });

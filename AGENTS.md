@@ -1,3 +1,4 @@
 - UF.Bot in-app tools (supabase/functions/ufbot/app-tools.ts) run with the caller session, never the service role — so RLS stays the single authority on what each role can reach.
 - Foundry agent tools are injected per request as an `additional_tools` input item and the loop replays prior output as `item_reference` — Foundry rejects request-level `tools` when an agent is referenced.
 - UF.Bot voice and text share one widget conversation and caller-session agent transport; audio-reactive canvas and cancellable recognition/playback stay in focused frontend modules to avoid duplicate agents or bypassing access controls.
+- The universal AI connector is the single OAuth-protected `mcp` function (src/lib/mcp); its tools run with the caller's OAuth token and write through the `api` door's `internal` channel — so RLS and company pinning stay the only authority. `mcp-ops` stays only for x-api-key server-to-server agents.
