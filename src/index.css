@@ -290,9 +290,9 @@
 .voice-text-input { background: var(--voice-control); border-color: var(--voice-control-hover); }
 @media (max-height: 650px) {
   .voice-main { justify-content: flex-start; }
-  .voice-heading { padding-top: 8px; }
+  .voice-heading { display: none; }
   .voice-heading h2 { font-size: 24px; }
-  .voice-orb-stage { width: min(245px, 42vh); margin: -14px 0 -18px; }
+  .voice-orb-stage { width: min(200px, 34vh); margin: -12px 0 -16px; }
   .voice-caption { min-height: 36px; margin-top: 6px; }
   .voice-footer { padding-bottom: 12px; }
 }

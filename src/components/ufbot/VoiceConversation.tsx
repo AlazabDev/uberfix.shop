@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Mic, MicOff, PhoneOff, Volume2, VolumeX, MessageSquare, X, ArrowUp, Captions, Loader2 } from 'lucide-react';
+import { Mic, MicOff, PhoneOff, Volume2, VolumeX, MessageSquare, X, ArrowUp, Captions, Loader2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,7 @@ export function VoiceConversation(props: Props) {
             <Button variant="ghost" size="icon" className="voice-control" onClick={() => setCaptions(!captions)} aria-label={captions ? 'إخفاء النص' : 'إظهار النص'} aria-pressed={captions} title="النص المكتوب"><Captions /></Button>
             <Button variant="ghost" size="icon" className="voice-control" onClick={props.onMute} aria-label={props.muted ? 'تشغيل صوت الوكيل' : 'كتم صوت الوكيل'} aria-pressed={props.muted} title={props.muted ? 'تشغيل الصوت' : 'كتم الصوت'}>{props.muted ? <VolumeX /> : <Volume2 />}</Button>
             <Button variant="secondary" size="icon" className={cn('voice-mic h-16 w-16 rounded-full', listening && 'voice-mic-active')} disabled={busy} onClick={props.onMic} aria-label={listening ? 'إنهاء الكلام وإرساله' : 'بدء التحدث'} title={listening ? 'إنهاء الكلام' : 'بدء التحدث'}>{listening ? <MicOff className="!h-6 !w-6" /> : <Mic className="!h-6 !w-6" />}</Button>
-            <Button variant="ghost" size="icon" className="voice-control" onClick={props.onStop} disabled={props.state === 'idle' || props.state === 'error'} aria-label="إيقاف المحادثة الحالية" title="إيقاف"><VolumeX /></Button>
+            <Button variant="ghost" size="icon" className="voice-control" onClick={props.onStop} disabled={props.state === 'idle' || props.state === 'error'} aria-label="إيقاف المحادثة الحالية" title="إيقاف"><Square /></Button>
             <Button variant="destructive" size="icon" className="rounded-full" onClick={props.onClose} aria-label="إنهاء المحادثة" title="إنهاء المحادثة"><PhoneOff /></Button>
           </div>
           <form className="voice-text-input mx-auto flex w-full max-w-lg items-center gap-2 rounded-lg border px-2" onSubmit={event => { event.preventDefault(); if (draft.trim()) { props.onSend(draft.trim()); setDraft(''); } }}>
