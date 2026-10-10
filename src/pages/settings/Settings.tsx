@@ -9,6 +9,7 @@ import { TechniciansSettings } from "@/components/settings/TechniciansSettings";
 import { NotificationsSettings } from "@/components/settings/NotificationsSettings";
 import { UISettings } from "@/components/settings/UISettings";
 import { IntegrationsSettings } from "@/components/settings/IntegrationsSettings";
+import { AIConnectionsSettings } from "@/components/settings/AIConnectionsSettings";
 import { ETAInvoicingSettings } from "@/components/settings/ETAInvoicingSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { LauncherSettings } from "@/components/settings/LauncherSettings";
@@ -25,7 +26,8 @@ import {
   Palette,
   Plug,
   Shield,
-  LayoutGrid
+  LayoutGrid,
+  Bot
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
@@ -46,7 +48,7 @@ export default function Settings() {
       </div>
       
       <Tabs defaultValue={defaultTab} dir="rtl" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-1 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-4 md:grid-cols-6 lg:grid-cols-13 gap-1 h-auto p-1">
           <TabsTrigger value="account" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-2">
             <User className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">الحساب</span>
@@ -74,6 +76,10 @@ export default function Settings() {
           <TabsTrigger value="integrations" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-2">
             <Plug className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">التكاملات</span>
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-2">
+            <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">الذكاء الاصطناعي</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-2">
             <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -129,6 +135,10 @@ export default function Settings() {
           <div className="mt-6">
             <UFBotTrainingPanel />
           </div>
+        </TabsContent>
+
+        <TabsContent value="ai">
+          <AIConnectionsSettings />
         </TabsContent>
 
         <TabsContent value="security">

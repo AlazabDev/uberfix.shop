@@ -25,7 +25,7 @@ const STEPS = [
 export function AIConnectionsSettings() {
   const { toast } = useToast();
   const { hasRole } = useUserRoles();
-  const isAdmin = hasRole?.("admin") || hasRole?.("owner");
+  const isAdmin = hasRole("admin") || hasRole("owner");
   const [copied, setCopied] = useState(false);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);

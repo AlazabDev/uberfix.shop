@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clearPendingOAuthContext } from '@/lib/roleRedirect';
+import { takePendingConsent } from '@/lib/oauth-return-path';
+
+const postAuthTarget = () => takePendingConsent() ?? '/auth/confirm-role';
 
 /**
  * OAuth Callback Handler
@@ -158,7 +161,7 @@ const AuthCallback = () => {
       if (exchangedUser && !handledRef.current) {
         handledRef.current = true;
         setMessage('جاري تحديد نوع حسابك...');
-        navigate('/auth/confirm-role', { replace: true });
+        navigate(postAuthTarget(), { replace: true });
       }
     };
 
@@ -175,7 +178,7 @@ const AuthCallback = () => {
     if (handledRef.current || specialHandledRef.current || authLoading || !user) return;
     handledRef.current = true;
     setMessage('جاري تحديد نوع حسابك...');
-    navigate('/auth/confirm-role', { replace: true });
+    navigate(postAuthTarget(), { replace: true });
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
@@ -186,7 +189,7 @@ const AuthCallback = () => {
       if (session?.user && !handledRef.current) {
         handledRef.current = true;
         setMessage('جاري تحديد نوع حسابك...');
-        navigate('/auth/confirm-role', { replace: true });
+        navigate(postAuthTarget(), { replace: true });
       }
     };
 
