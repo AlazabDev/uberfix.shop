@@ -99,21 +99,24 @@ export function useTTS() {
         if (generation !== generationRef.current) return;
         const ended = new Promise<void>((resolve, reject) => {
           finishRef.current = resolve;
-          audio.onended = resolve;
+          audio.onended = () => resolve();
           audio.onerror = () => reject(new Error('تعذر تشغيل التسجيل الصوتي'));
         });
         await audio.play();
+        if (generation !== generationRef.current) { audio.pause(); return; }
         setIsPreparing(false);
         setIsSpeaking(true);
         await ended;
       } finally {
         URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
-        analyserRef.current = null;
-        finishRef.current = null;
-        const context = contextRef.current;
-        contextRef.current = null;
-        if (context && context.state !== 'closed') await context.close().catch(() => {});
+        if (generation === generationRef.current) {
+          audioRef.current = null;
+          analyserRef.current = null;
+          finishRef.current = null;
+          const context = contextRef.current;
+          contextRef.current = null;
+          if (context && context.state !== 'closed') await context.close().catch(() => {});
+        }
       }
       if (generation !== generationRef.current) return;
       setIsSpeaking(false);
