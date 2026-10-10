@@ -36,9 +36,19 @@ const ALLOWED_CLIENT_TYPES = new Set([
 
 Deno.serve(async (req) => {
   if (req.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
-    const ok = !!(RESOURCE && PROJECT && TENANT && CLIENT_ID && CLIENT_SECRET);
-    return new Response(JSON.stringify({ ok, agent: AGENT_NAME, version: 'latest' }), {
-      status: ok ? 200 : 503,
+    const configured = !!(RESOURCE && PROJECT && TENANT && CLIENT_ID && CLIENT_SECRET);
+    let auth = 'not-configured';
+    if (configured) {
+      try {
+        await getToken();
+        auth = 'ok';
+      } catch (e) {
+        const m = String(e?.message ?? e);
+        auth = /invalid_client|client secret|AAD7000215/i.test(m) ? 'secret-rejected' : 'token-error';
+      }
+    }
+    return new Response(JSON.stringify({ ok: auth === 'ok', agent: AGENT_NAME, version: 'latest', configured, auth }), {
+      status: auth === 'ok' ? 200 : 503,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
     });
   }
