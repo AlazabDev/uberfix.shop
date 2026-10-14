@@ -9,6 +9,7 @@ const BranchManagement = lazy(() => import("@/pages/BranchManagement"));
 
 // Maintenance
 const Requests = lazy(() => import("@/pages/maintenance/Requests"));
+const PreventivePlans = lazy(() => import("@/pages/maintenance/PreventivePlans"));
 const RequestDetails = lazy(() => import("@/pages/maintenance/RequestDetails"));
 const RequestLifecycleJourney = lazy(
   () => import("@/pages/maintenance/RequestLifecycleJourney")
@@ -169,6 +170,7 @@ export const protectedRoutes = [
 
   // Maintenance
   { path: "/requests", element: <Requests />, withLayout: true },
+  { path: "/preventive-maintenance-plans", element: <PreventivePlans />, withLayout: true },
   { path: "/requests/:id", element: <RequestDetails />, withLayout: true },
   { path: "/all-requests", element: <AllRequests />, withLayout: true },
   { path: "/requests-ledger", element: <RequestsLedger />, withLayout: true },

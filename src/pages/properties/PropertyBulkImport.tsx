@@ -20,92 +20,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { PROPERTY_STATUS, PROPERTY_TYPES } from "@/constants/propertyConstants";
 
-type ParsedRow = Record<string, unknown>;
-
-type NormalizedRow = {
-  name: string;
-  type: string;
-  status: string;
-  address: string;
-  city: string | null;
-  district: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  area: number | null;
-  floors: number | null;
-  rooms: number | null;
-  bathrooms: number | null;
-  parking_spaces: number | null;
-  code: string | null;
-  description: string | null;
-  errors: string[];
-};
-
+import { useNavigate } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { normalizePropertyRows, normalizePropertyHeader, PROPERTY_IMPORT_COLUMNS, PROPERTY_IMPORT_MAX_BYTES, PROPERTY_IMPORT_MAX_ROWS, type ParsedPropertyRow } from "@/lib/propertyImport";
+type ParsedRow = ParsedPropertyRow;
 type OwnerOption = { id: string; label: string; companyId: string | null };
-
 const VALID_TYPES = Object.keys(PROPERTY_TYPES);
 const VALID_STATUS = Object.keys(PROPERTY_STATUS);
-
-function normalizeHeader(h: string) {
-  return h.trim().toLowerCase().replace(/\s+/g, "_");
-}
-
-function pick(row: ParsedRow, keys: string[]): string | null {
-  for (const k of keys) {
-    const v = row[k];
-    if (typeof v === "string" && v.trim()) return v.trim();
-    if (typeof v === "number") return String(v);
-  }
-  return null;
-}
-
-function toNum(value: string | null): number | null {
-  if (!value) return null;
-  const n = Number(value.replace(/,/g, ""));
-  return Number.isFinite(n) ? n : null;
-}
-
-function toInt(value: string | null): number | null {
-  const n = toNum(value);
-  return n === null ? null : Math.round(n);
-}
-
-function normalizeRows(rows: ParsedRow[]): NormalizedRow[] {
-  return rows
-    .map((raw) => {
-      const name = pick(raw, ["name", "property_name", "الاسم", "اسم_العقار"]);
-      if (!name) return null;
-
-      const type = (pick(raw, ["type", "category", "النوع"]) ?? "commercial").toLowerCase();
-      const status = (pick(raw, ["status", "الحالة"]) ?? "active").toLowerCase();
-      const address = pick(raw, ["address", "location", "العنوان"]) ?? "";
-
-      const errors: string[] = [];
-      if (!VALID_TYPES.includes(type)) errors.push(`نوع غير معروف: ${type}`);
-      if (!VALID_STATUS.includes(status)) errors.push(`حالة غير معروفة: ${status}`);
-      if (address.trim().length < 5) errors.push("العنوان قصير جدًا");
-
-      return {
-        name,
-        type,
-        status,
-        address,
-        city: pick(raw, ["city", "governorate", "المدينة", "المحافظة"]),
-        district: pick(raw, ["district", "الحي", "المنطقة"]),
-        latitude: toNum(pick(raw, ["latitude", "lat", "خط_العرض"])),
-        longitude: toNum(pick(raw, ["longitude", "lng", "long", "خط_الطول"])),
-        area: toNum(pick(raw, ["area", "area_sqm", "space", "المساحة"])),
-        floors: toInt(pick(raw, ["floors", "الادوار", "الطوابق"])),
-        rooms: toInt(pick(raw, ["rooms", "الغرف"])),
-        bathrooms: toInt(pick(raw, ["bathrooms", "الحمامات"])),
-        parking_spaces: toInt(pick(raw, ["parking_spaces", "parking", "مواقف"])),
-        code: pick(raw, ["code", "property_code", "الكود"]),
-        description: pick(raw, ["description", "notes", "الوصف", "ملاحظات"]),
-        errors,
-      } satisfies NormalizedRow;
-    })
-    .filter(Boolean) as NormalizedRow[];
-}
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -115,13 +37,18 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 export default function PropertyBulkImport() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [reading, setReading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [resultText, setResultText] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [owners, setOwners] = useState<OwnerOption[]>([]);
   const [ownerId, setOwnerId] = useState<string>("");
   const [fileName, setFileName] = useState("");
   const [rawRows, setRawRows] = useState<ParsedRow[]>([]);
   const [skipExisting, setSkipExisting] = useState(true);
 
-  const rows = useMemo(() => normalizeRows(rawRows), [rawRows]);
+  const rows = useMemo(() => normalizePropertyRows(rawRows), [rawRows]);
   const validRows = useMemo(() => rows.filter((r) => r.errors.length === 0), [rows]);
   const invalidCount = rows.length - validRows.length;
 
@@ -166,19 +93,27 @@ export default function PropertyBulkImport() {
       const cityMap = new Map<string, number>();
       (cities ?? []).forEach((c) => cityMap.set(String(c.name_ar).trim(), c.id as number));
       const districtMap = new Map<string, number>();
-      (districts ?? []).forEach((d) => districtMap.set(String(d.name_ar).trim(), d.id as number));
+      (districts ?? []).forEach((d) => districtMap.set(`${d.city_id}:${String(d.name_ar).trim()}`, d.id as number));
 
-      let toInsert = validRows;
+      const toResolve = validRows.map(r => {
+        const cityId = r.city ? cityMap.get(r.city) : null;
+        const districtId = r.district ? districtMap.get(`${cityId}:${r.district}`) : null;
+        if (r.city && !cityId) throw new Error(`صف ${r.rowNumber}: المدينة غير معروفة: ${r.city}`);
+        if (r.district && !districtId) throw new Error(`صف ${r.rowNumber}: الحي لا يتبع المدينة المحددة`);
+        return { ...r, cityId, districtId };
+      });
+      let toInsert = toResolve;
+      setProgress(0); setResultText("");
       let skipped = 0;
 
       if (skipExisting) {
-        const { data: existing } = await supabase
-          .from("properties")
-          .select("name")
-          .eq("manager_id", managerId);
-        const existingNames = new Set(
-          (existing ?? []).map((p) => String(p.name ?? "").trim().toLowerCase())
-        );
+        const existingNames = new Set<string>();
+        for (let offset = 0; ; offset += 500) {
+          const { data: existing, error } = await supabase.from("properties").select("name").eq("manager_id", managerId).range(offset, offset + 499);
+          if (error) throw error;
+          for (const p of existing || []) existingNames.add(p.name.trim().toLowerCase());
+          if ((existing?.length || 0) < 500) break;
+        }
         toInsert = toInsert.filter((r) => !existingNames.has(r.name.trim().toLowerCase()));
         skipped = validRows.length - toInsert.length;
       }
@@ -190,8 +125,8 @@ export default function PropertyBulkImport() {
           type: r.type,
           status: r.status,
           address: r.address,
-          city_id: r.city ? cityMap.get(r.city) ?? null : null,
-          district_id: r.district ? districtMap.get(r.district) ?? null : null,
+          city_id: r.cityId ?? null,
+          district_id: r.districtId ?? null,
           latitude: r.latitude,
           longitude: r.longitude,
           area: r.area,
@@ -207,13 +142,18 @@ export default function PropertyBulkImport() {
         }));
 
         const { error } = await supabase.from("properties").insert(payload);
-        if (error) throw error;
+        if (error) {
+          setResultText(`تم حفظ ${inserted} عقار قبل توقف العملية. أعد المحاولة مع تفعيل تخطي الموجود.`);
+          throw error;
+        }
         inserted += payload.length;
+        setProgress(Math.round(inserted / Math.max(1, toInsert.length) * 100));
       }
 
       return { inserted, skipped };
     },
     onSuccess: (res) => {
+      setResultText(`اكتمل الاستيراد: ${res.inserted} عقار محفوظ، ${res.skipped} مكرر تم تخطيه.`);
       toast({
         title: "✅ تم الاستيراد",
         description: `أُضيف ${res.inserted} عقار${res.skipped ? ` (تم تخطي ${res.skipped} مكرر)` : ""}`,
@@ -230,32 +170,61 @@ export default function PropertyBulkImport() {
     },
   });
 
+  const downloadTemplate = async () => {
+    const { Workbook } = await import("exceljs");
+    const workbook = new Workbook();
+    const sheet = workbook.addWorksheet("Properties");
+    sheet.addRow(PROPERTY_IMPORT_COLUMNS);
+    sheet.addRow(["فرع تجريبي", "القاهرة — عنوان العقار", "commercial", "active"]);
+    sheet.columns.forEach(c => { c.width = 24; });
+    const buffer = await workbook.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    const link = document.createElement("a"); link.href = url; link.download = "uberfix-properties-template.xlsx"; link.click(); URL.revokeObjectURL(url);
+  };
   const handleFile = async (file: File | null) => {
-    if (!file) return;
-    setFileName(file.name);
-    const text = await file.text();
-    const result = Papa.parse<ParsedRow>(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: normalizeHeader,
-    });
-    if (result.errors?.length) {
-      toast({
-        title: "⚠️ مشكلة في قراءة الملف",
-        description: result.errors[0]?.message || "تعذر قراءة ملف CSV",
-        variant: "destructive",
-      });
-    }
-    setRawRows((result.data || []).filter(Boolean));
+    if (!file || reading || importMutation.isPending) return;
+    setRawRows([]); setResultText(""); setProgress(0); setFileName("");
+    try {
+      if (file.size > PROPERTY_IMPORT_MAX_BYTES) throw new Error("الحد الأقصى لحجم الملف 10 ميجابايت");
+      if (!/\.(csv|xlsx)$/i.test(file.name)) throw new Error("الملفات المقبولة XLSX أو CSV فقط");
+      setReading(true);
+      let parsed: ParsedRow[];
+      if (/\.xlsx$/i.test(file.name)) {
+        const { Workbook } = await import("exceljs");
+        const book = new Workbook(); await book.xlsx.load(await file.arrayBuffer());
+        const sheet = book.worksheets[0];
+        if (!sheet) throw new Error("الملف لا يحتوي على ورقة بيانات");
+        if (sheet.rowCount > PROPERTY_IMPORT_MAX_ROWS + 1) throw new Error("الحد الأقصى 10000 صف");
+        const headers: string[] = [];
+        sheet.getRow(1).eachCell((cell, col) => { headers[col - 1] = normalizePropertyHeader(cell.text); });
+        parsed = [];
+        sheet.eachRow((row, index) => {
+          if (index === 1) return;
+          const record: ParsedRow = {};
+          headers.forEach((header, col) => { record[header] = row.getCell(col + 1).text; });
+          parsed.push(record);
+        });
+      } else {
+        const result = Papa.parse<ParsedRow>(await file.text(), { header: true, skipEmptyLines: true, transformHeader: normalizePropertyHeader });
+        if (result.errors.length) throw new Error(result.errors[0].message);
+        parsed = result.data;
+      }
+      if (!parsed.length) throw new Error("الملف لا يحتوي على صفوف");
+      if (parsed.length > PROPERTY_IMPORT_MAX_ROWS) throw new Error("الحد الأقصى 10000 صف");
+      setFileName(file.name); setRawRows(parsed);
+    } catch (err) {
+      toast({ title: "تعذر قراءة الملف", description: err instanceof Error ? err.message : "ملف غير صالح", variant: "destructive" });
+    } finally { setReading(false); }
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6" dir="rtl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">إضافة عقارات بالجملة</CardTitle>
-          <CardDescription>
-            ارفع ملف CSV يحتوي على العقارات، واختر المالك المسؤول عنها جميعًا، ثم نفّذ الاستيراد.
+      <div className="flex flex-wrap justify-between gap-3"><h1 className="text-2xl font-bold">استيراد العقارات</h1><Button variant="outline" onClick={() => navigate("/properties")}>الرجوع إلى القائمة</Button></div>
+      <section className="border rounded-md overflow-hidden bg-card">
+        <CardHeader className="bg-primary text-primary-foreground">
+          <CardTitle className="text-2xl">استيراد العقارات دفعة واحدة</CardTitle>
+          <CardDescription className="text-primary-foreground/80">
+            Excel · CSV
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -279,23 +248,7 @@ export default function PropertyBulkImport() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="csv">ملف CSV *</Label>
-              <Input
-                id="csv"
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-              />
-              <a
-                href="/data/properties_sample.csv"
-                download
-                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-              >
-                <Download className="h-4 w-4" />
-                تحميل ملف المثال (دليل الأعمدة)
-              </a>
-            </div>
+            <div className="flex items-end justify-end"><Button variant="outline" className="gap-2" onClick={downloadTemplate}><Download className="h-4 w-4" />تحميل قالب Excel</Button></div>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-4 text-sm space-y-1">
@@ -313,6 +266,11 @@ export default function PropertyBulkImport() {
             </div>
           </div>
 
+          <div onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); void handleFile(e.dataTransfer.files[0] || null); }} className={`border-2 border-dashed rounded-md py-12 px-4 text-center space-y-3 ${dragging ? "border-primary bg-accent" : "border-border"}`}>
+            <Upload className="h-10 w-10 mx-auto text-muted-foreground" /><p className="font-semibold">{reading ? "جاري قراءة الملف..." : fileName || "ملف العقارات"}</p>
+            <p className="text-xs text-muted-foreground">XLSX / CSV · 10 ميجابايت · 10000 صف</p>
+            <Input id="property-file" aria-label="ملف العقارات" type="file" accept=".csv,.xlsx" className="max-w-sm mx-auto" disabled={reading || importMutation.isPending} onChange={e => { void handleFile(e.target.files?.[0] || null); e.target.value = ""; }} />
+          </div>
           <div className="flex items-center gap-3">
             <input
               id="skipExisting"
@@ -344,12 +302,14 @@ export default function PropertyBulkImport() {
             </Button>
           </div>
 
+          {(importMutation.isPending || progress > 0) && <Progress value={progress} aria-label="تقدم الاستيراد" />}
+          {resultText && <p role="status" className="text-sm border-s-4 border-s-primary ps-3">{resultText}</p>}
           {rows.length > 0 && (
             <div className="rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>الاسم</TableHead>
+                    <TableHead>الصف</TableHead><TableHead>الاسم</TableHead>
                     <TableHead>النوع</TableHead>
                     <TableHead>المدينة</TableHead>
                     <TableHead>العنوان</TableHead>
@@ -359,7 +319,7 @@ export default function PropertyBulkImport() {
                 <TableBody>
                   {rows.slice(0, 15).map((r, idx) => (
                     <TableRow key={`${r.name}-${idx}`}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell>{r.rowNumber}</TableCell><TableCell className="font-medium">{r.name || "—"}</TableCell>
                       <TableCell>{r.type}</TableCell>
                       <TableCell>{r.city || "-"}</TableCell>
                       <TableCell className="max-w-[320px] truncate">{r.address || "-"}</TableCell>
@@ -367,7 +327,7 @@ export default function PropertyBulkImport() {
                         {r.errors.length === 0 ? (
                           <Badge variant="secondary">جاهز</Badge>
                         ) : (
-                          <Badge variant="destructive">{r.errors[0]}</Badge>
+                          <Badge variant="destructive">{r.errors.join("؛ ")}</Badge>
                         )}
                       </TableCell>
                     </TableRow>
@@ -378,7 +338,7 @@ export default function PropertyBulkImport() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </section>
     </div>
   );
 }

@@ -21,10 +21,10 @@ export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
 
 export const CONTRACT_STATUS_COLORS: Record<ContractStatus, string> = {
   draft: "bg-muted text-muted-foreground",
-  active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  expired: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  suspended: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+  active: "bg-success/10 text-success",
+  expired: "bg-destructive/10 text-destructive",
+  suspended: "bg-warning/15 text-warning-foreground",
+  cancelled: "bg-muted text-muted-foreground",
 };
 
 export const BILLING_TYPE_LABELS: Record<ContractBillingType, string> = {
@@ -38,22 +38,24 @@ export const BILLING_TYPE_LABELS: Record<ContractBillingType, string> = {
 export function useMaintenanceContracts() {
   const [contracts, setContracts] = useState<MaintenanceContract[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchContracts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setContracts([]); return; }
 
       const { data, error } = await supabase
         .from("maintenance_contracts")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).limit(1000);
 
       if (error) throw error;
       setContracts(data || []);
     } catch (err) {
-      console.error("Error fetching contracts:", err);
+      setError(err instanceof Error ? err.message : "تعذر تحميل العقود");
       toast.error("خطأ في تحميل العقود");
     } finally {
       setLoading(false);
@@ -116,7 +118,7 @@ export function useMaintenanceContracts() {
       })
       .subscribe();
 
-    return () => { channel.unsubscribe(); };
+    return () => { void supabase.removeChannel(channel); };
   }, []);
 
   // Computed stats
@@ -132,5 +134,5 @@ export function useMaintenanceContracts() {
     totalValue: contracts.filter(c => c.status === "active").reduce((sum, c) => sum + (c.contract_value || 0), 0),
   };
 
-  return { contracts, loading, stats, createContract, updateContract, deleteContract, refetch: fetchContracts };
+  return { contracts, loading, error, stats, createContract, updateContract, deleteContract, refetch: fetchContracts };
 }

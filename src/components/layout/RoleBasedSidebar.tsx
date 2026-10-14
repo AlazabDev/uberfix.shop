@@ -63,6 +63,7 @@ const allMenuItems = [
   { icon: DollarSign, label: "الفواتير", href: "/invoices", moduleKey: "invoices" },
   { icon: Receipt, label: "أذونات الاستلام", href: "/receipts", moduleKey: "invoices" },
   { icon: ScrollText, label: "عقود الصيانة", href: "/contracts", moduleKey: "contracts" },
+  { icon: Calendar, label: "خطط الصيانة الوقائية", href: "/preventive-maintenance-plans", moduleKey: "contracts" },
   { icon: MapPin, label: "خريطة الخدمات", href: "/service-map", moduleKey: "service_map" },
   { icon: FileText, label: "التوثيق", href: "/documentation", moduleKey: "documentation" },
   { icon: Settings, label: "الإعدادات", href: "/settings", moduleKey: "settings" },

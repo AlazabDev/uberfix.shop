@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Calendar, Phone, DollarSign, Plus, MapPin, List } from "lucide-react";
+import { Eye, Calendar, Phone, DollarSign, Plus, MapPin, List, RefreshCw } from "lucide-react";
 import { MaintenanceRequestActions } from "./MaintenanceRequestActions";
 import { MaintenanceExport } from "./MaintenanceExport";
 import { MaintenanceStats } from "./MaintenanceStats";
@@ -32,7 +32,7 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [filters, setFilters] = useState<AdvancedRequestFiltersState>(emptyFilters);
 
-  const { rows, total, page, totalPages, loading, error, setPage } = useAdvancedRequests(filters, {
+  const { rows, total, page, totalPages, loading, error, setPage, refetch } = useAdvancedRequests(filters, {
     pageSize: 25,
   });
   const { counts } = useRequestsCounts(true);
@@ -55,7 +55,7 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
     return (
       <Card>
         <CardContent className="py-6">
-          <p className="text-center text-destructive">خطأ في تحميل الطلبات: {error.message}</p>
+          <p className="text-center text-destructive">خطأ في تحميل الطلبات: {error.message}</p><Button variant="outline" onClick={refetch}>إعادة المحاولة</Button>
         </CardContent>
       </Card>
     );
@@ -66,12 +66,12 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="flex items-center gap-6">
-          <h2 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            كل الطلبات
+          <h2 className="text-2xl font-bold text-foreground">
+            طلبات الصيانة
           </h2>
 
           <div className="flex items-center border-b border-border">
-            <button
+            <Button variant="ghost"
               onClick={() => setActiveView("list")}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 activeView === "list"
@@ -83,8 +83,8 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
                 <List className="h-4 w-4" />
                 قائمة
               </span>
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               onClick={() => setActiveView("calendar")}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
                 activeView === "calendar"
@@ -96,12 +96,13 @@ export function MaintenanceRequestsList({ onNewRequestClick }: MaintenanceReques
                 <Calendar className="h-4 w-4" />
                 تقويم
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <MaintenanceExport requests={rows} filteredRequests={rows} />
+          <Button variant="outline" size="icon" title="تحديث الطلبات" aria-label="تحديث الطلبات" onClick={refetch}><RefreshCw className="h-4 w-4" /></Button>
+          <MaintenanceExport requests={rows} filteredRequests={rows} pageOnly />
           <Button
             className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={() => onNewRequestClick?.()}

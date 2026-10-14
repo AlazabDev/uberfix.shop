@@ -61,6 +61,7 @@ interface GatewayRequest {
   company_id?: string;
   property_id?: string;
   source_id?: string;
+  preventive_run_id?: string;
   source_metadata?: Record<string, unknown>;
   images?: string[];
   // Geo + technician assignment (Phase 1 — map-driven intake)
@@ -931,6 +932,22 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     const orgResult = await resolveCompanyBranch(supabaseAdmin, body, consumer);
     if (orgResult.error) return orgResult.error;
 
+    if (body.preventive_run_id) {
+      const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
+      if (authError || !authData.user || body.channel !== 'internal') return errorResponse('Forbidden', 'جلسة مستخدم مطلوبة', 403);
+      const caller = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_ANON_KEY') || '', { global: { headers: { Authorization: `Bearer ${token}` } } });
+      const { data: run } = await caller.from('preventive_plan_runs').select('id,plan_id,request_id,due_date,claimed_by').eq('id', body.preventive_run_id).maybeSingle();
+      if (!run) return errorResponse('Forbidden', 'استحقاق غير متاح', 403);
+      const { data: plan } = await caller.from('preventive_plans').select('*').eq('id', run.plan_id).maybeSingle();
+      if (!plan || !plan.is_active || plan.company_id !== orgResult.companyId || plan.property_id !== body.property_id) return errorResponse('Forbidden', 'الخطة لا تتبع الشركة أو العقار', 403);
+      if (run.request_id) {
+        const { data: old } = await caller.from('maintenance_requests').select('id,request_number,created_at').eq('id', run.request_id).maybeSingle();
+        if (old) return new Response(JSON.stringify({ success: true, request_id: old.id, request_number: old.request_number, created_at: old.created_at, replayed: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      body.client_name = plan.client_name; body.client_phone = plan.client_phone;
+    }
+
     // ─── Create Maintenance Request ──────────────────────────────
     const requestData: Record<string, unknown> = {
       company_id: orgResult.companyId,
@@ -950,6 +967,7 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     };
 
     if (body.property_id) requestData.property_id = body.property_id;
+    if (body.preventive_run_id) requestData.preventive_run_id = body.preventive_run_id;
 
     // ─── Geo coordinates (from map-driven intake) ────────────────
     const latNum = typeof body.latitude === 'number' ? body.latitude : Number(body.latitude);
@@ -989,6 +1007,10 @@ export async function handleMaintenance(req: Request): Promise<Response> {
       .select('id, request_number, created_at')
       .single();
 
+    if (createError?.code === '23505' && body.preventive_run_id) {
+      const { data: replay } = await supabaseAdmin.from('maintenance_requests').select('id,request_number,created_at').eq('preventive_run_id', body.preventive_run_id).maybeSingle();
+      if (replay) return new Response(JSON.stringify({ success: true, request_id: replay.id, request_number: replay.request_number, created_at: replay.created_at, replayed: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     if (createError) {
       console.error(`❌ Gateway [${body.channel}] insert failed:`, createError);
       return errorResponse('Failed to create request', 'فشل في إنشاء الطلب', 500);

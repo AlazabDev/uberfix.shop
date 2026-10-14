@@ -2,3 +2,5 @@
 - Foundry agent tools are injected per request as an `additional_tools` input item and the loop replays prior output as `item_reference` — Foundry rejects request-level `tools` when an agent is referenced.
 - UF.Bot voice and text share one widget conversation and caller-session agent transport; audio-reactive canvas and cancellable recognition/playback stay in focused frontend modules to avoid duplicate agents or bypassing access controls.
 - The universal AI connector is the single OAuth-protected `mcp` function (src/lib/mcp); its tools run with the caller's OAuth token and write through the `api` door's `internal` channel — so RLS and company pinning stay the only authority. `mcp-ops` stays only for x-api-key server-to-server agents.
+- Preventive plans claim a unique dated run with caller-session RLS, then create requests through the existing gateway; database uniqueness and linking triggers atomically record success and advance the schedule to avoid duplicate requests.
+- Property imports share a Zod-based normalization module for CSV and Excel so validation and tests use the same rules.

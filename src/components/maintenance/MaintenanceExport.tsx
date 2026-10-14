@@ -16,14 +16,16 @@ import {
   CheckCircle2,
   Loader2
 } from "lucide-react";
+import { getStatusConfig } from "@/constants/maintenanceStatusConstants";
 import { MaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 
 interface MaintenanceExportProps {
+  pageOnly?: boolean;
   requests: MaintenanceRequest[];
   filteredRequests: MaintenanceRequest[];
 }
 
-export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExportProps) {
+export function MaintenanceExport({ requests, filteredRequests, pageOnly = false }: MaintenanceExportProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [exportType, setExportType] = useState("csv");
   const [dataScope, setDataScope] = useState("filtered");
@@ -86,9 +88,7 @@ export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExp
     
     switch (field) {
       case "status":
-        return value === "pending" ? "في الانتظار" :
-               value === "in_progress" ? "قيد التنفيذ" :
-               value === "completed" ? "مكتمل" : "ملغي";
+        return getStatusConfig(String(value)).label;
       case "priority":
         return value === "low" ? "منخفضة" :
                value === "medium" ? "متوسطة" : "عالية";
@@ -116,13 +116,13 @@ export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExp
     // Data rows
     const rows = dataToExport.map(request => 
       selectedFieldsArray.map(field => 
-        formatValue(request[field as keyof MaintenanceRequest], field)
+        formatValue(field === "id" ? request.request_number || request.id : request[field as keyof MaintenanceRequest], field)
       )
     );
 
     // Combine headers and rows
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
       .join('\n');
 
     return csvContent;
@@ -137,7 +137,7 @@ export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExp
       const filteredRequest: Record<string, unknown> = {};
       selectedFieldsArray.forEach(field => {
         filteredRequest[fieldLabels[field as keyof typeof fieldLabels]] = 
-          formatValue(request[field as keyof MaintenanceRequest], field);
+          formatValue(field === "id" ? request.request_number || request.id : request[field as keyof MaintenanceRequest], field);
       });
       return filteredRequest;
     });
@@ -252,10 +252,10 @@ export function MaintenanceExport({ requests, filteredRequests }: MaintenanceExp
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="filtered">
-                    البيانات المفلترة ({filteredRequests.length} طلب)
+                    {pageOnly ? "نتائج الصفحة الحالية" : "البيانات المفلترة"} ({filteredRequests.length} طلب)
                   </SelectItem>
-                  <SelectItem value="all">
-                    جميع البيانات ({requests.length} طلب)
+                  <SelectItem value="all" disabled={pageOnly}>
+                    {pageOnly ? "الصفحة الحالية فقط" : "جميع البيانات"} ({requests.length} طلب)
                   </SelectItem>
                 </SelectContent>
               </Select>

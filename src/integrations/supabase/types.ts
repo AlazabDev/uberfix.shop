@@ -3875,6 +3875,7 @@ export type Database = {
           location: string | null
           longitude: number | null
           opened_by_role: string | null
+          preventive_run_id: string | null
           priority: string | null
           property_id: string | null
           rated_at: string | null
@@ -3937,6 +3938,7 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           opened_by_role?: string | null
+          preventive_run_id?: string | null
           priority?: string | null
           property_id?: string | null
           rated_at?: string | null
@@ -3999,6 +4001,7 @@ export type Database = {
           location?: string | null
           longitude?: number | null
           opened_by_role?: string | null
+          preventive_run_id?: string | null
           priority?: string | null
           property_id?: string | null
           rated_at?: string | null
@@ -4098,6 +4101,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "v_customers_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_requests_preventive_run_id_fkey"
+            columns: ["preventive_run_id"]
+            isOneToOne: true
+            referencedRelation: "preventive_plan_runs"
             referencedColumns: ["id"]
           },
           {
@@ -4850,6 +4860,215 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preventive_plan_runs: {
+        Row: {
+          claimed_by: string
+          created_at: string
+          due_date: string
+          error_message: string | null
+          id: string
+          plan_id: string
+          request_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_by: string
+          created_at?: string
+          due_date: string
+          error_message?: string | null
+          id?: string
+          plan_id: string
+          request_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_by?: string
+          created_at?: string
+          due_date?: string
+          error_message?: string | null
+          id?: string
+          plan_id?: string
+          request_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preventive_plan_runs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "preventive_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plan_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plan_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_completed_requests_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plan_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_mirror"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plan_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_maintenance_requests_full"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plan_runs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "v_sla_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preventive_plans: {
+        Row: {
+          client_name: string
+          client_phone: string
+          company_id: string
+          contract_id: string | null
+          created_at: string
+          created_by: string
+          description: string
+          frequency: string
+          id: string
+          interval_count: number
+          is_active: boolean
+          next_due_date: string
+          priority: string
+          property_id: string
+          service_id: string | null
+          service_type: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_name: string
+          client_phone: string
+          company_id: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          frequency?: string
+          id?: string
+          interval_count?: number
+          is_active?: boolean
+          next_due_date: string
+          priority?: string
+          property_id: string
+          service_id?: string | null
+          service_type?: string
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string
+          client_phone?: string
+          company_id?: string
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string
+          frequency?: string
+          id?: string
+          interval_count?: number
+          is_active?: boolean
+          next_due_date?: string
+          priority?: string
+          property_id?: string
+          service_id?: string | null
+          service_type?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preventive_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_contracts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties_qr_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "v_properties_for_map"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preventive_plans_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_catalog_dashboard"
             referencedColumns: ["id"]
           },
         ]
@@ -11392,6 +11611,26 @@ export type Database = {
       can_transition_stage: {
         Args: { current_stage: string; next_stage: string; user_role: string }
         Returns: boolean
+      }
+      claim_preventive_run: {
+        Args: { p_plan_id: string }
+        Returns: {
+          claimed_by: string
+          created_at: string
+          due_date: string
+          error_message: string | null
+          id: string
+          plan_id: string
+          request_id: string | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "preventive_plan_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cleanup_expired_idempotency_keys: { Args: never; Returns: number }
       cleanup_old_gateway_logs: { Args: never; Returns: undefined }
