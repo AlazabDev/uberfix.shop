@@ -71,24 +71,18 @@ export const NewVendorForm = ({ onClose, onSuccess }: NewVendorFormProps) => {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      // إنشاء المورد مباشرة في جدول vendors
-      const vendorData = {
-        name: data.name,
-        company_name: data.company_name || null,
-        specialization: data.specialization,
-        phone: data.phone || null,
-        email: data.email || null,
-        address: data.address || null,
-        unit_rate: data.unit_rate && data.unit_rate !== "" ? parseFloat(data.unit_rate) : null,
-        experience_years: data.experience_years && data.experience_years !== "" ? parseInt(data.experience_years) : null,
-        status: 'active',
-        certifications: certifications.length > 0 ? certifications : null,
-        map_icon: mapIcon || null
-      };
-
-      const { error } = await supabase
-        .from('vendors')
-        .insert([vendorData as any]);
+      const { data: companyId, error: companyError } = await supabase.rpc("get_current_user_company_id");
+      if (companyError || !companyId) throw new Error("يجب ربط حسابك بشركة قبل إضافة مورد");
+      const id = crypto.randomUUID();
+      const { error } = await supabase.from("service_providers").insert({
+        id, primary_source_id: id, primary_source_type: "vendor", provider_kind: "vendor",
+        entity_type: data.company_name ? "organization" : "person", engagement_type: "external",
+        tenant_company_id: companyId, display_name: data.name, legal_name: data.company_name || null,
+        specialization_summary: data.specialization.join(", "), phone: data.phone || null,
+        email: data.email || null, standard_rate: data.unit_rate ? Number(data.unit_rate) : null,
+        experience_years: data.experience_years ? Number(data.experience_years) : null, status: "active",
+        source_data: { address: data.address || null, notes: data.notes || null, certifications, map_icon: mapIcon },
+      });
 
       if (error) {
         console.error('Supabase error:', error);

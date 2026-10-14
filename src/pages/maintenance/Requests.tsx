@@ -12,11 +12,7 @@ const Requests = () => {
 
   return (
     <div className="space-y-4 sm:space-y-8">
-      {isMobile ? (
-        <MobileMaintenanceList onNewRequestClick={() => setIsNewRequestOpen(true)} />
-      ) : (
-        <MaintenanceRequestsList onNewRequestClick={() => setIsNewRequestOpen(true)} />
-      )}
+      <MaintenanceRequestsList onNewRequestClick={() => setIsNewRequestOpen(true)} />
 
       <Dialog open={isNewRequestOpen} onOpenChange={setIsNewRequestOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
