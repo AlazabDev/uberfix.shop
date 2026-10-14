@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   Loader2
 } from "lucide-react";
-import { getStatusLabel } from "@/constants/maintenanceStatusConstants";
+import { getStatusConfig } from "@/constants/maintenanceStatusConstants";
 import { MaintenanceRequest } from "@/hooks/useMaintenanceRequests";
 
 interface MaintenanceExportProps {
@@ -88,7 +88,7 @@ export function MaintenanceExport({ requests, filteredRequests, pageOnly = false
     
     switch (field) {
       case "status":
-        return getStatusLabel(String(value));
+        return getStatusConfig(String(value)).label;
       case "priority":
         return value === "low" ? "منخفضة" :
                value === "medium" ? "متوسطة" : "عالية";
