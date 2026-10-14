@@ -1,0 +1,25 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AdminDataTable } from "@/components/admin/AdminDataTable";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import type { MaintenanceRequest } from "@/types/maintenance";
+
+export function RequestRecords({ request, section = "summary" }: { request: MaintenanceRequest; section?: "summary" | "materials" | "attachments" }) {
+  const materials = useQuery({ queryKey: ["request-materials", request.id], enabled: section === "materials" || section === "summary", queryFn: async () => { const {data,error} = await supabase.from("maintenance_request_items").select("*").eq("request_id",request.id).order("line_no").limit(1000); if(error) throw error; return data; } });
+  const invoices = useQuery({ queryKey:["request-invoices",request.id], enabled: section === "summary", queryFn: async()=>{const {data,error}=await supabase.from("invoices").select("id,invoice_number,total_amount,currency,status,paid_at").eq("request_id",request.id).limit(100); if(error) throw error; return data;} });
+  const property = useQuery({queryKey:["request-property",request.property_id],enabled:section === "summary" && !!request.property_id,queryFn:async()=>{const {data,error}=await supabase.from("properties").select("id,name,address,city_id,district_id").eq("id",request.property_id || "").maybeSingle();if(error)throw error;return data;}});
+  const files = useQuery({queryKey:["request-files",request.id],enabled:section === "attachments",queryFn:async()=>{const {data,error}=await supabase.from("file_assets").select("*").eq("entity_id",request.id).order("created_at",{ascending:false}).limit(1000);if(error)throw error;return data;}});
+  const money=(n:number)=>new Intl.NumberFormat("ar-EG",{style:"currency",currency:"EGP"}).format(n);
+  const error = materials.error || invoices.error || property.error || files.error;
+  return <div className="space-y-4">
+    {error && <p role="alert" className="text-destructive text-sm">تعذر تحميل بعض السجلات أو لا تملك صلاحية عرضها.</p>}
+    {section === "summary" && <div className="grid sm:grid-cols-2 gap-6 border-y border-border py-5">
+      <section><h3 className="font-semibold mb-3">بيانات العقار</h3>{property.isLoading ? <p>جارٍ التحميل…</p> : property.data ? <><Link className="text-primary underline" to={`/properties/${property.data.id}`}>{property.data.name}</Link><p className="text-sm text-muted-foreground mt-2">{property.data.address || "العنوان غير مسجل"}</p></> : <p className="text-muted-foreground">لا يوجد عقار متاح للعرض</p>}</section>
+      <section><h3 className="font-semibold mb-3">ملخص الفاتورة</h3><dl className="text-sm space-y-2"><div className="flex justify-between gap-3"><dt>إجمالي المواد المسجلة</dt><dd>{money((materials.data || []).reduce((sum,r)=>sum+r.line_total,0))}</dd></div><div className="flex justify-between gap-3"><dt>التكلفة الفعلية للطلب</dt><dd>{request.actual_cost == null ? "غير مسجلة" : money(request.actual_cost)}</dd></div></dl>{invoices.isLoading ? <p>جارٍ التحميل…</p> : (invoices.data || []).map(i=><div className="mt-3 flex justify-between gap-3 text-sm" key={i.id}><Link className="text-primary underline" to={`/invoices/${i.id}`}>{i.invoice_number}</Link><span>{new Intl.NumberFormat("ar-EG",{style:"currency",currency:i.currency || "EGP"}).format(i.total_amount || 0)}</span></div>)}{!invoices.isLoading && !invoices.data?.length && <p className="text-sm text-muted-foreground mt-3">لا توجد فواتير متاحة للعرض</p>}</section>
+    </div>}
+    {section === "materials" && <AdminDataTable title="المواد" data={materials.data || []} isLoading={materials.isLoading} columns={[{key:"description",header:"اسم المادة"},{key:"unit",header:"الوحدة"},{key:"quantity",header:"الكمية"},{key:"unit_price",header:"سعر الوحدة",render:r=>money(r.unit_price)},{key:"line_total",header:"المجموع",render:r=>money(r.line_total)},{key:"note",header:"الملاحظات"},{key:"created_at",header:"تاريخ التسجيل",render:r=>new Date(r.created_at).toLocaleDateString("ar-EG")}]} />}
+    {section === "attachments" && <AdminDataTable title="المرفقات" data={files.data || []} isLoading={files.isLoading} columns={[{key:"original_name",header:"اسم الملف"},{key:"mime_type",header:"النوع"},{key:"file_size",header:"الحجم",render:r=>r.file_size ? `${(r.file_size/1024).toFixed(1)} KB` : "—"},{key:"created_at",header:"تاريخ الرفع",render:r=>new Date(r.created_at).toLocaleString("ar-EG")},{key:"actions",header:"عرض",render:r=><Button variant="outline" size="sm" onClick={async()=>{try{let url=r.legacy_url;if(r.bucket_id && r.object_path){const {data,error}=await supabase.storage.from(r.bucket_id).createSignedUrl(r.object_path,60);if(error)throw error;url=data.signedUrl;}if(!url || new URL(url).protocol !== "https:")throw new Error("رابط غير متاح");window.open(url,"_blank","noopener,noreferrer");}catch{toast.error("تعذر فتح الملف أو لا تملك صلاحية عرضه");}}}>فتح الملف</Button>}]} />}
+  </div>;
+}

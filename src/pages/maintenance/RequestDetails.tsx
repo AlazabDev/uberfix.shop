@@ -17,6 +17,8 @@ import { AppFooter } from "@/components/shared/AppFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { RequestRecords } from "@/components/maintenance/RequestRecords";
+import { MaintenanceExport } from "@/components/maintenance/MaintenanceExport";
 
 export default function RequestDetails() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +77,7 @@ export default function RequestDetails() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
         <Button 
           variant="outline" 
           onClick={() => navigate('/requests')}
@@ -106,6 +108,8 @@ export default function RequestDetails() {
         </div>
       </div>
 
+      <header className="space-y-2"><p className="text-sm text-muted-foreground">طلبات الصيانة</p><h1 className="text-2xl font-bold">نظام إدارة طلب الصيانة</h1><p className="text-sm" dir="ltr">{request.request_number || "—"}</p></header>
+
       {isArchived && (
         <Alert>
           <Archive className="h-4 w-4" />
@@ -116,10 +120,10 @@ export default function RequestDetails() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 gap-1">
+        <TabsList className="flex w-full justify-start overflow-x-auto h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1 text-xs sm:text-sm">
             <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">نظرة عامة</span>
+            <span>نظرة عامة</span>
           </TabsTrigger>
           <TabsTrigger value="lifecycle" className="gap-1 text-xs sm:text-sm">
             <Settings className="h-4 w-4" />
@@ -160,6 +164,10 @@ export default function RequestDetails() {
               </Card>
             </div>
           </div>
+          <RequestRecords request={request} />
+          <LifecycleTab requestId={request.id} />
+          <RequestRecords request={request} section="materials" />
+          <RequestRecords request={request} section="attachments" />
         </TabsContent>
 
         <TabsContent value="lifecycle" className="space-y-4">
@@ -191,15 +199,7 @@ export default function RequestDetails() {
         </TabsContent>
 
         <TabsContent value="materials" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">إدارة المواد</h3>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                نظام طلبات المواد قيد التطوير حالياً
-              </AlertDescription>
-            </Alert>
-          </Card>
+          <RequestRecords request={request} section="materials" />
         </TabsContent>
 
         <TabsContent value="approvals" className="space-y-4">
@@ -224,15 +224,8 @@ export default function RequestDetails() {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">التقارير</h3>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                نظام إنشاء التقارير قيد التطوير حالياً
-              </AlertDescription>
-            </Alert>
-          </Card>
+          <MaintenanceExport requests={[request]} filteredRequests={[request]} />
+          <RequestRecords request={request} />
         </TabsContent>
 
         <TabsContent value="controls" className="space-y-4">
@@ -242,14 +235,11 @@ export default function RequestDetails() {
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">إجراءات إضافية</h3>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start gap-2">
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => window.print()}>
                   <FileText className="h-4 w-4" />
                   طباعة التقرير
                 </Button>
-                <Button variant="outline" className="w-full justify-start gap-2">
-                  <Package className="h-4 w-4" />
-                  تصدير البيانات
-                </Button>
+                <MaintenanceExport requests={[request]} filteredRequests={[request]} />
                 {canArchive && !isArchived && (
                   <Button 
                     variant="outline" 
