@@ -5,6 +5,7 @@ import { supabaseLegacy } from '@/integrations/supabase/client';
 export interface Vendor {
   id: string;
   name: string;
+  specialty?: string;
   company_name?: string;
   specialization?: string[];
   phone?: string;
@@ -32,7 +33,7 @@ export const useVendors = () => {
     const channel = supabase
       .channel('vendors-changes')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'vendors' },
+        { event: '*', schema: 'public', table: 'service_providers' },
         () => {
           fetchVendors();
         }
@@ -46,10 +47,12 @@ export const useVendors = () => {
 
   const fetchVendors = async () => {
     try {
+      setLoading(true);
+      setError(null);
       // RLS policies handle access control - no client-side filtering needed
       const { data, error } = await supabaseLegacy.from('vendors')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }).limit(1000);
 
       if (error) throw error;
       setVendors((data || []) as Vendor[]);
