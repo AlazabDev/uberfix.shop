@@ -425,15 +425,25 @@ async function ensureCustomerAccount(
     const phoneEmail = `phone_${cleanPhone}@uberfix.local`;
 
     let userId: string | null = null;
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (existingUsers?.users) {
-      const found = existingUsers.users.find(
+    // Supabase Admin API is paginated; scanning just page 1 causes duplicate
+    // accounts once the project exceeds 200 users.
+    for (let page = 1; page <= 100; page++) {
+      const { data: existingUsers, error: listError } =
+        await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (listError) {
+        console.error('ensureCustomerAccount: listUsers failed:', listError);
+        return null; // Never create a duplicate if identity lookup failed.
+      }
+      const users = existingUsers?.users ?? [];
+      const found = users.find(
         (u: any) => u.email === phoneEmail || u.phone === phone || u.phone === cleanPhone,
       );
-      if (found) userId = found.id;
+      if (found) { userId = found.id; break; }
+      if (users.length < 200) break;
+      if (page === 100) {
+        console.error('ensureCustomerAccount: pagination limit reached');
+        return null;
+      }
     }
 
     // 2) Create auth user if missing
