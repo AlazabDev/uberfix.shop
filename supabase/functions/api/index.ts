@@ -218,9 +218,23 @@ const BOT_TOOL_ACTIONS = new Set([
 ]);
 
 app.post('/tools/create_payment_link', async (c) => {
-  // يتطلب مفتاح API صالح — نتحقق عبر محرك البوت بإجراء قراءة خفيف.
-  const probe = await invokeEngine('bot', { action: 'list_categories', payload: {} });
-  if (probe.status === 401 || probe.status === 403) return c.json(probe.body, probe.status as 401, corsHeaders);
+  // Payment-link creation is a privileged operation. A successful catalog
+  // read is NOT sufficient authorization for initiating a payment.
+  const bearer = ctx().authHeader;
+  if (!bearer.toLowerCase().startsWith('bearer ')) {
+    return c.json({ success: false, error: 'User authentication required' }, 401, corsHeaders);
+  }
+  const token = bearer.slice(7).trim();
+  const { data: session, error: sessionError } = await supabaseAdmin.auth.getUser(token);
+  if (sessionError || !session.user) {
+    return c.json({ success: false, error: 'Invalid user session' }, 401, corsHeaders);
+  }
+  const { data: staffRoles, error: roleError } = await supabaseAdmin
+    .from('user_roles').select('role').eq('user_id', session.user.id)
+    .in('role', ['admin', 'manager', 'owner', 'staff', 'engineering']);
+  if (roleError || !staffRoles?.length) {
+    return c.json({ success: false, error: 'Staff authorization required' }, 403, corsHeaders);
+  }
 
   const p = await c.req.json().catch(() => ({})) as Record<string, unknown>;
   let requestId = typeof p.request_id === 'string' ? p.request_id.trim() : '';
@@ -233,6 +247,18 @@ app.post('/tools/create_payment_link', async (c) => {
   if (!/^[0-9a-f-]{36}$/i.test(requestId)) {
     return c.json({ success: false, error: 'request_not_found', message_ar: 'الطلب غير موجود' }, 404, corsHeaders);
   }
+  // Verify that the requested record exists and belongs to the staff user's company.
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles').select('company_id').eq('id', session.user.id).maybeSingle();
+  const { data: requestRow, error: requestError } = await supabaseAdmin
+    .from('maintenance_requests').select('id, company_id').eq('id', requestId).maybeSingle();
+  if (profileError || !profile?.company_id || requestError || !requestRow) {
+    return c.json({ success: false, error: 'Request or company not found' }, 404, corsHeaders);
+  }
+  if (profile.company_id !== requestRow.company_id) {
+    return c.json({ success: false, error: 'Request belongs to another company' }, 403, corsHeaders);
+  }
+
   const res = await fetch(`${INTERNAL_BASE}/paytabs-create-payment`, {
     method: 'POST',
     headers: {
