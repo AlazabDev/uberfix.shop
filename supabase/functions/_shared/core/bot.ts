@@ -27,8 +27,11 @@ function jsonResponse(body: unknown, status = 200) {
 /** سياق المتصل: هل هو موظف / مستهلك API موثق / عام (anon) */
 interface CallerCtx {
   isStaff: boolean;
+  isGlobalStaff: boolean;
   isApiConsumer: boolean;
   userId: string | null;
+  companyId: string | null;
+  branchId: string | null;
   /** الفاعل الحقيقي المستخدم في fn_transition_request_stage (مستخدم مفوَّض أو مستخدم مصادق) */
   actorId: string | null;
 }
@@ -70,7 +73,7 @@ export async function handleBot(req: Request): Promise<Response> {
     const apiKey = req.headers.get('x-api-key');
     let authenticated = false;
     let consumerId: string | null = null;
-    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null, actorId: null };
+    const caller: CallerCtx = { isStaff: false, isGlobalStaff: false, isApiConsumer: false, userId: null, companyId: null, branchId: null, actorId: null };
 
     if (apiKey) {
       // External API consumer auth (المفاتيح مخزّنة كبصمة SHA-256)
@@ -79,6 +82,8 @@ export async function handleBot(req: Request): Promise<Response> {
         authenticated = true;
         consumerId = consumer.id;
         caller.isApiConsumer = true;
+        caller.companyId = consumer.company_id;
+        caller.branchId = consumer.branch_id;
         // هوية تشغيلية مفوَّضة للمفتاح (لا نستخدم معرّف المستهلك نفسه كـactor)
         const delegated = (consumer.metadata as Record<string, unknown> | null)?.delegated_actor_id;
         if (typeof delegated === 'string' && UUID_RE.test(delegated)) {
@@ -117,6 +122,11 @@ export async function handleBot(req: Request): Promise<Response> {
             .eq('user_id', user.id)
             .in('role', ['admin', 'manager', 'owner', 'staff', 'dispatcher', 'engineering']);
           caller.isStaff = Array.isArray(staffRoles) && staffRoles.length > 0;
+          caller.isGlobalStaff = !!staffRoles?.some((r: any) => ['admin', 'owner'].includes(r.role));
+          if (caller.isStaff && !caller.isGlobalStaff) {
+            const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+            caller.companyId = profile?.company_id ?? null;
+          }
         }
       }
     }
@@ -160,7 +170,7 @@ export async function handleBot(req: Request): Promise<Response> {
         result = await handleCreateRequest(supabase, supabaseUrl, payload, metadata);
         break;
       case 'check_status':
-        result = await handleCheckStatus(supabase, payload);
+        result = await handleCheckStatus(supabase, payload, caller);
         break;
       case 'get_request_details':
         result = await handleGetRequestDetails(supabase, payload, caller);
@@ -266,26 +276,53 @@ async function handleCreateRequest(supabase: any, supabaseUrl: string, payload: 
   }
 }
 
-async function handleCheckStatus(supabase: any, payload: any) {
+async function handleCheckStatus(supabase: any, payload: any, caller: CallerCtx) {
   const { search_term, search_type } = payload;
-  if (!search_term) return { success: false, error: 'search_term is required' };
-
-  let query = supabase
-    .from('maintenance_requests')
-    .select('id, title, status, priority, service_type, created_at, client_name, request_number')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (search_type === 'request_number' || search_term.startsWith('UF')) {
-    query = query.ilike('request_number', `%${search_term}%`);
-  } else if (search_type === 'phone') {
-    query = query.ilike('client_phone', `%${search_term}%`);
-  } else {
-    query = query.or(`title.ilike.%${search_term}%,client_name.ilike.%${search_term}%,request_number.ilike.%${search_term}%`);
+  const term = typeof search_term === 'string' ? search_term.trim().slice(0, 100) : '';
+  if (!term) return { success: false, error: 'search_term is required' };
+  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) && !caller.companyId) {
+    return { success: false, error: 'لا يوجد نطاق شركة لهذا الحساب' };
   }
-
-  const { data, error } = await query;
-  if (error) return { success: false, error: error.message };
+  const makeQuery = () => {
+    let q = supabase.from('maintenance_requests')
+      .select('id, title, status, priority, service_type, created_at, client_name, client_phone, request_number')
+      .order('created_at', { ascending: false }).limit(5);
+    if (caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) {
+      q = q.eq('company_id', caller.companyId);
+      if (caller.branchId) q = q.eq('branch_id', caller.branchId);
+    } else if (!caller.isGlobalStaff && !caller.isStaff && caller.userId) {
+      q = q.eq('created_by', caller.userId);
+    }
+    return q;
+  };
+  let first = makeQuery();
+  let second = makeQuery();
+  if (search_type === 'phone') {
+    if (!caller.isStaff && !caller.isApiConsumer) return { success: false, error: 'غير مسموح بالبحث برقم الهاتف' };
+    const digits = term.replace(/\D/g, '').slice(-9);
+    if (digits.length < 9) return { success: false, error: 'رقم الهاتف غير صالح' };
+    first = first.ilike('client_phone', `%${digits}`);
+    second = second.ilike('client_phone', `%${digits}`);
+  } else {
+    if (!caller.isGlobalStaff && !caller.isStaff && !caller.isApiConsumer) {
+      const digits = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
+      if (digits.length < 9) return { success: false, error: 'رقم الهاتف المسجل مطلوب للتحقق' };
+      const suffix = digits.slice(-9);
+      first = first.ilike('client_phone', `%${suffix}`).ilike('request_number', `%${term}%`);
+      second = second.ilike('client_phone', `%${suffix}`).ilike('title', `%${term}%`);
+    } else if (search_type === 'request_number' || term.startsWith('UF')) {
+      first = first.ilike('request_number', `%${term}%`);
+      second = second.ilike('request_number', `%${term}%`);
+    } else {
+      first = first.ilike('title', `%${term}%`);
+      second = second.ilike('request_number', `%${term}%`);
+    }
+  }
+  const [a, b] = await Promise.all([first, second]);
+  if (a.error || b.error) return { success: false, error: 'تعذر البحث عن الطلب' };
+  const data = [...(a.data || []), ...(b.data || [])]
+    .filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index)
+    .sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at)).slice(0, 5);
 
   return {
     success: true,
@@ -386,6 +423,14 @@ async function handleGetRequestDetails(supabase: any, payload: any, caller: Call
     .select('id, request_number, title, description, status, workflow_stage, priority, service_type, location, client_name, client_phone, estimated_cost, actual_cost, assigned_technician_id, assigned_vendor_id, created_at, updated_at, sla_complete_due, branch_id')
     .limit(1);
 
+  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) && !caller.companyId) {
+    return { success: false, error: 'لا يوجد نطاق شركة لهذا الحساب' };
+  }
+  if (caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) {
+    query = query.eq('company_id', caller.companyId);
+    if (caller.branchId) query = query.eq('branch_id', caller.branchId);
+  }
+
   if (request_id) query = query.eq('id', request_id);
   else query = query.eq('request_number', request_number);
 
@@ -435,6 +480,10 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
     .maybeSingle();
 
   if (fetchErr || !current) return { success: false, error: 'الطلب غير موجود' };
+  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) &&
+      (!caller.companyId || current.company_id !== caller.companyId || (caller.branchId && current.branch_id !== caller.branchId))) {
+    return { success: false, error: 'الطلب غير موجود' };
+  }
 
   // حماية إلزامية: يجب إثبات الملكية بالهاتف إن لم يكن المتصل موظفًا/مستهلك API
   const own = verifyOwnership(caller, client_phone, current.client_phone);
