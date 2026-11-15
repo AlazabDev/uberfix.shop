@@ -47,14 +47,22 @@ export async function findApiConsumer(
     .maybeSingle();
   if (byHash.data) return byHash.data as ApiConsumerRow;
 
-  // توافق رجعي: مفاتيح قديمة مخزّنة كنص خام أو كبصمة داخل عمود api_key.
+  // Compatibility lookup uses equality filters only; never splice untrusted keys into PostgREST syntax.
   const byLegacy = await supabaseAdmin
     .from('api_consumers')
     .select(SELECT_COLS)
-    .or(`api_key.eq.${apiKey},api_key.eq.${hash}`)
+    .eq('api_key', apiKey)
     .eq('is_active', true)
     .maybeSingle();
-  return (byLegacy.data as ApiConsumerRow) ?? null;
+  if (byLegacy.data) return byLegacy.data as ApiConsumerRow;
+
+  const byLegacyHash = await supabaseAdmin
+    .from('api_consumers')
+    .select(SELECT_COLS)
+    .eq('api_key', hash)
+    .eq('is_active', true)
+    .maybeSingle();
+  return (byLegacyHash.data as ApiConsumerRow) ?? null;
 }
 
 /** تحديث عدادات الاستخدام دون تعطيل الطلب. */

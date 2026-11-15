@@ -335,15 +335,14 @@ async function trackRequest(
 ): Promise<Record<string, unknown> | null> {
   const supabase = getSupabase();
   const cleaned = requestNumber.trim().toUpperCase();
+  if (cleaned.length > 64 || !/^[A-Z0-9-]+$/.test(cleaned)) return null;
 
   const { data, error } = await supabase
     .from("maintenance_requests")
     .select(
       "id, request_number, status, workflow_stage, service_type, priority, client_name, location, created_at, branch_id, assigned_vendor_id"
     )
-    .or(
-      `request_number.eq.${cleaned},id.eq.${cleaned.length === 36 ? cleaned : "00000000-0000-0000-0000-000000000000"}`
-    )
+    .eq("request_number", cleaned)
     .limit(1)
     .maybeSingle();
 
@@ -745,7 +744,7 @@ async function getNextScreen(
     };
   }
 
-  console.error("Unhandled request body:", decryptedBody);
+    console.error("Unhandled WhatsApp Flow request", { screen: decryptedBody?.screen, action: decryptedBody?.action });
   throw new Error(
     "Unhandled endpoint request. Make sure you handle the request action & screen logged above."
   );
@@ -863,11 +862,11 @@ Deno.serve(async (req) => {
 
     const { aesKeyBuffer, initialVectorBuffer, decryptedBody } =
       decryptedRequest;
-    console.log("💬 Decrypted Request:", JSON.stringify(decryptedBody));
+    console.log("💬 Decrypted WhatsApp Flow request received", { screen: decryptedBody?.screen, action: decryptedBody?.action });
 
     // ---- Get screen response ----
     const screenResponse = await getNextScreen(decryptedBody);
-    console.log("👉 Response to Encrypt:", JSON.stringify(screenResponse));
+    console.log("👉 WhatsApp Flow response prepared", { screen: screenResponse?.screen });
 
     // ---- Encrypt & send ----
     const encryptedResponse = await encryptResponse(

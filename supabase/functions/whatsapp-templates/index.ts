@@ -434,7 +434,9 @@ serve(async (req) => {
         }
 
         const body = await req.json();
-        const { id, ...updates } = body;
+        const { id } = body;
+        const allowedFields = ['name', 'category', 'language', 'header_type', 'header_content', 'body_text', 'footer_text', 'buttons'];
+        const updates = Object.fromEntries(allowedFields.filter((key) => Object.hasOwn(body, key)).map((key) => [key, body[key]]));
 
         if (!id) {
           return new Response(JSON.stringify({ error: "Template ID required" }), {
@@ -679,6 +681,12 @@ serve(async (req) => {
       // SYNC FROM META (Pull latest status)
       // =====================================================
       case "sync": {
+        if (!['admin', 'owner'].includes(userRole)) {
+          return new Response(JSON.stringify({ error: "Only admins can sync templates" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         console.log(`[${correlationId}] Starting sync from Meta for tenant: ${tenantId}`);
 
         const metaResponse = await fetch(
@@ -1009,7 +1017,7 @@ serve(async (req) => {
           templatePayload.template.components = componentParams;
         }
 
-        console.log(`[${correlationId}] Sending test to ${cleanPhone}:`, JSON.stringify(templatePayload));
+        console.log(`[${correlationId}] Sending test template`, { templateId: id });
 
         try {
           const sendResponse = await fetch(
@@ -1037,7 +1045,7 @@ serve(async (req) => {
             );
           }
 
-          await logEvent(supabase, id, tenantId, user.id, "test_sent", "user", { phone: cleanPhone, message_id: sendResult.messages?.[0]?.id }, correlationId);
+          await logEvent(supabase, id, tenantId, user.id, "test_sent", "user", { phone_last4: cleanPhone.slice(-4), message_id: sendResult.messages?.[0]?.id }, correlationId);
 
           return new Response(
             JSON.stringify({ success: true, message_id: sendResult.messages?.[0]?.id }),

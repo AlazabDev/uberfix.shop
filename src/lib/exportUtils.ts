@@ -2,6 +2,20 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { brandedHeaderHtml, brandedFooterHtml, BRAND } from "./documentBranding";
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function neutralizeSpreadsheetFormula(value: unknown): string {
+  const text = String(value ?? '');
+  return /^[\s\u0000-\u001f]*[=+@\-]/.test(text) ? `'${text}` : text;
+}
+
 /**
  * Export data rows as a PDF table with proper Arabic text support.
  * Uses html2canvas to leverage the browser's native Arabic text rendering,
@@ -26,7 +40,7 @@ export async function exportTablePdf(
   const dateStr = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
 
   container.innerHTML = `
-    ${brandedHeaderHtml({ documentType: title, documentTypeLatin: 'Report', documentDate: dateStr })}
+    ${brandedHeaderHtml({ documentType: escapeHtml(title), documentTypeLatin: 'Report', documentDate: escapeHtml(dateStr) })}
     <div style="padding:22px 26px;">
       <table style="width:100%; border-collapse:collapse; font-size:12px;">
         <thead>
@@ -35,7 +49,7 @@ export async function exportTablePdf(
               background:${BRAND.gold}; color:${BRAND.navy}; padding:10px 8px;
               text-align:center; font-weight:800; font-size:12px;
               border-left:1px solid rgba(255,255,255,.4);
-            ">${h}</th>`).join("")}
+            ">${escapeHtml(h)}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -44,7 +58,7 @@ export async function exportTablePdf(
               ${row.map(cell => `<td style="
                 padding:8px; text-align:center; border-bottom:1px solid #e8eaed;
                 font-size:11px; color:#222;
-              ">${cell}</td>`).join("")}
+              ">${escapeHtml(cell)}</td>`).join("")}
             </tr>
           `).join("")}
         </tbody>
@@ -137,7 +151,8 @@ export function exportTableCsv(
   filename: string = "export.csv"
 ) {
   const bom = "\uFEFF"; // UTF-8 BOM for Arabic
-  const csv = [headers.join(","), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(","))].join("\n");
+  const quote = (value: unknown) => `"${neutralizeSpreadsheetFormula(value).replace(/"/g, '""')}"`;
+  const csv = [headers.map(quote).join(","), ...rows.map(r => r.map(quote).join(","))].join("\n");
   const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);

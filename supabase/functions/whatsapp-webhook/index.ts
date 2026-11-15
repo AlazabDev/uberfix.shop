@@ -508,7 +508,7 @@ serve(async (req) => {
             const contact = (value.contacts || []).find((c: {wa_id: string}) => c.wa_id === from);
             const senderName = contact?.profile?.name || 'عميل';
 
-            console.log(`📩 Message from ${senderName} (${from}): type=${messageType}`);
+            console.log(`📩 Incoming WhatsApp message: type=${messageType}`);
 
             // Extract content
             let content = '';
