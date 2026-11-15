@@ -50,14 +50,18 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? '';
     const token = authHeader.replace('Bearer ', '');
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    let user: { id: string; email?: string } | null = null;
+    const isServiceRole = !!token && token === serviceKey;
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
-    let allowed = !!token && token === serviceKey;
-    if (!allowed && token) {
+    let allowed = isServiceRole;
+    if (!isServiceRole && token) {
       const { data: { user } } = await supabaseAuth.auth.getUser(token);
       if (user) {
+        // Retain the verified user for tenant-scoped authorization below.
+        user = { id: user.id, email: user.email };
         const adminCheck = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           serviceKey

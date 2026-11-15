@@ -58,17 +58,17 @@ serve(async (req) => {
       });
     }
 
-    const importSchemas: Record<string, { columns: string[]; required: string[]; numeric: string[]; boolean: string[] }> = {
+    const importSchemas: Record<string, { columns: string[]; required: string[]; numeric: string[]; boolean: string[]; uuid: string[]; date: string[] }> = {
       stores: {
         columns: ['id', 'name', 'description', 'location', 'phone', 'email', 'category', 'status', 'area', 'opening_date', 'region_id', 'map_url', 'is_deleted'],
-        required: ['name'], numeric: ['area'], boolean: ['is_deleted'],
+        required: ['name'], numeric: ['area'], boolean: ['is_deleted'], uuid: ['id', 'region_id'], date: ['opening_date'],
       },
       rate_items: {
         columns: ['id', 'rate_card_id', 'trade_id', 'normal_hourly', 'after_hours_hourly', 'min_billable_hours', 'trip_charge', 'notes', 'min_invoice'],
-        required: [], numeric: ['trade_id', 'normal_hourly', 'after_hours_hourly', 'min_billable_hours', 'trip_charge', 'min_invoice'], boolean: [],
+        required: [], numeric: ['id', 'trade_id', 'normal_hourly', 'after_hours_hourly', 'min_billable_hours', 'trip_charge', 'min_invoice'], boolean: [], uuid: ['rate_card_id'], date: [],
       },
       malls: {
-        columns: ['id', 'name', 'location', 'type'], required: ['name'], numeric: ['id'], boolean: [],
+        columns: ['id', 'name', 'location', 'type'], required: ['name'], numeric: ['id'], boolean: [], uuid: [], date: [],
       },
     };
     const schema = importSchemas[table];
@@ -85,9 +85,15 @@ serve(async (req) => {
         if (!(column in source)) continue;
         const value = source[column];
         if (value === null || value === '') continue;
-        if (schema.numeric.includes(column)) {
+        if (schema.uuid.includes(column)) {
+          if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new Error(`Invalid identifier in row ${index + 1}`);
+          clean[column] = value;
+        } else if (schema.date.includes(column)) {
+          if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:[ T].*)?$/.test(value) || Number.isNaN(Date.parse(value))) throw new Error(`Invalid date in row ${index + 1}`);
+          clean[column] = value;
+        } else if (schema.numeric.includes(column)) {
           const parsed = Number(value);
-          if (!Number.isFinite(parsed)) throw new Error(`Invalid numeric value in row ${index + 1}`);
+          if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`Invalid numeric value in row ${index + 1}`);
           clean[column] = parsed;
         } else if (schema.boolean.includes(column)) {
           if (![true, false, 'true', 'false', '1', '0', 1, 0].includes(value as never)) throw new Error(`Invalid boolean value in row ${index + 1}`);
