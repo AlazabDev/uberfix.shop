@@ -337,14 +337,17 @@ async function trackRequest(
   const cleaned = requestNumber.trim().toUpperCase();
   if (cleaned.length > 64 || !/^[A-Z0-9-]+$/.test(cleaned)) return null;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("maintenance_requests")
     .select(
       "id, request_number, status, workflow_stage, service_type, priority, client_name, location, created_at, branch_id, assigned_vendor_id"
-    )
-    .eq("request_number", cleaned)
-    .limit(1)
-    .maybeSingle();
+    );
+  if (/^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/.test(cleaned)) {
+    query = query.eq('id', cleaned);
+  } else {
+    query = query.eq('request_number', cleaned);
+  }
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error || !data) return null;
 

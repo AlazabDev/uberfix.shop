@@ -58,16 +58,16 @@ Deno.serve(async (req) => {
     );
     let allowed = isServiceRole;
     if (!isServiceRole && token) {
-      const { data: { user } } = await supabaseAuth.auth.getUser(token);
-      if (user) {
+      const { data: { user: verifiedUser } } = await supabaseAuth.auth.getUser(token);
+      if (verifiedUser) {
         // Retain the verified user for tenant-scoped authorization below.
-        user = { id: user.id, email: user.email };
+        user = { id: verifiedUser.id, email: verifiedUser.email };
         const adminCheck = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           serviceKey
         );
         const { data: roles } = await adminCheck
-          .from('user_roles').select('role').eq('user_id', user.id);
+          .from('user_roles').select('role').eq('user_id', verifiedUser.id);
         allowed = !!roles?.some((r: { role: string }) =>
           ['admin','owner','manager','staff','dispatcher'].includes(r.role));
       }
