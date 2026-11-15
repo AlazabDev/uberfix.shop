@@ -802,8 +802,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
       isGlobalAdmin = roleNames.some((role: string) => ['admin', 'owner'].includes(role));
       if (!isGlobalAdmin) {
-        const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+        const { data: profile } = await supabase.from('profiles').select('company_id').eq('auth_user_id', user.id).maybeSingle();
         callerCompanyId = profile?.company_id ?? null;
+        if (!callerCompanyId) {
+          const { data: profileById } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+          callerCompanyId = profileById?.company_id ?? null;
+        }
         if (!callerCompanyId) return new Response(JSON.stringify({ success: false, error: 'Company scope required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }

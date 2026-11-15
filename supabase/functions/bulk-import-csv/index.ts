@@ -18,6 +18,15 @@ serve(async (req) => {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (contentLength === 0) {
+      const raw = await req.text();
+      if (raw.length > 15 * 1024 * 1024) {
+        return new Response(JSON.stringify({ error: 'Import file is too large' }), {
+          status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      req = new Request(req.url, { method: req.method, headers: req.headers, body: raw });
+    }
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
