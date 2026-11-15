@@ -40,7 +40,7 @@ export async function exportTablePdf(
   const dateStr = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
 
   container.innerHTML = `
-    ${brandedHeaderHtml({ documentType: escapeHtml(title), documentTypeLatin: 'Report', documentDate: escapeHtml(dateStr) })}
+    ${brandedHeaderHtml({ documentType: title, documentTypeLatin: 'Report', documentDate: dateStr })}
     <div style="padding:22px 26px;">
       <table style="width:100%; border-collapse:collapse; font-size:12px;">
         <thead>

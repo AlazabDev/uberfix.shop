@@ -12,20 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const contentLength = Number(req.headers.get('content-length') || 0);
-    if (contentLength > 15 * 1024 * 1024) {
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 15 * 1024 * 1024) {
       return new Response(JSON.stringify({ error: 'Import file is too large' }), {
         status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-    if (contentLength === 0) {
-      const raw = await req.text();
-      if (raw.length > 15 * 1024 * 1024) {
-        return new Response(JSON.stringify({ error: 'Import file is too large' }), {
-          status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      req = new Request(req.url, { method: req.method, headers: req.headers, body: raw });
     }
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -66,7 +57,7 @@ serve(async (req) => {
       });
     }
 
-    const { table, rows } = await req.json();
+    const { table, rows } = JSON.parse(rawBody);
     if (typeof table !== 'string' || !Array.isArray(rows) || rows.length === 0 || rows.length > 5000) {
       return new Response(JSON.stringify({ error: "A supported table and 1–5000 rows are required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
