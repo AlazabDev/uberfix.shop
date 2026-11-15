@@ -49,10 +49,16 @@ function verifyOwnership(
     return { ok: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
   }
   const stored = typeof recordPhone === 'string' ? recordPhone.replace(/\D/g, '') : '';
-  if (!stored || !stored.includes(sent.slice(-9))) {
+  if (stored.length < 9 || stored.slice(-9) !== sent.slice(-9)) {
     return { ok: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
   }
   return { ok: true };
+}
+
+function verifyCompanyScope(caller: CallerCtx, record: { company_id?: string | null; branch_id?: string | null }) {
+  if (caller.isGlobalStaff) return true;
+  if (!caller.isStaff && !caller.isApiConsumer) return true;
+  return !!caller.companyId && record.company_id === caller.companyId && (!caller.branchId || record.branch_id === caller.branchId);
 }
 
 export async function handleBot(req: Request): Promise<Response> {
@@ -487,8 +493,7 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
     .maybeSingle();
 
   if (fetchErr || !current) return { success: false, error: 'الطلب غير موجود' };
-  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) &&
-      (!caller.companyId || current.company_id !== caller.companyId || (caller.branchId && current.branch_id !== caller.branchId))) {
+  if (!verifyCompanyScope(caller, current)) {
     return { success: false, error: 'الطلب غير موجود' };
   }
   if (!caller.isStaff && !caller.isApiConsumer) {
@@ -557,11 +562,12 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
 
   const { data: current } = await supabase
     .from('maintenance_requests')
-    .select('id, workflow_stage, workflow_stage_v2, client_phone, request_number, created_by, customer_id')
+    .select('id, workflow_stage, workflow_stage_v2, client_phone, request_number, created_by, customer_id, company_id, branch_id')
     .eq('id', request_id)
     .maybeSingle();
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
+  if (!verifyCompanyScope(caller, current)) return { success: false, error: 'الطلب غير موجود' };
 
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
@@ -637,11 +643,12 @@ async function handleAddNote(supabase: any, payload: any, consumerId: string | n
 
   const { data: current } = await supabase
     .from('maintenance_requests')
-    .select('customer_notes, client_phone')
+    .select('customer_notes, client_phone, company_id, branch_id')
     .eq('id', request_id)
     .maybeSingle();
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
+  if (!verifyCompanyScope(caller, current)) return { success: false, error: 'الطلب غير موجود' };
 
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
@@ -676,6 +683,9 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
   if (!caller.isStaff && !caller.isApiConsumer) {
     return { success: false, error: 'غير مصرح: تعيين الفنيين يتطلب صلاحية تشغيلية' };
   }
+  if (caller.isApiConsumer && !caller.companyId) {
+    return { success: false, error: 'مفتاح API غير مرتبط بشركة' };
+  }
 
   // تعيين تلقائي ذكي
   if (auto || !technician_id) {
@@ -683,7 +693,7 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
       const resp = await fetch(`${supabaseUrl}/functions/v1/assign-technician-to-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
-        body: JSON.stringify({ requestId: request_id }),
+        body: JSON.stringify({ requestId: request_id, companyId: caller.isApiConsumer ? caller.companyId : undefined, branchId: caller.isApiConsumer ? caller.branchId : undefined }),
       });
       const result = await resp.json();
       if (!resp.ok) return { success: false, error: result.error || 'فشل التعيين التلقائي' };
@@ -702,7 +712,7 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
     const resp = await fetch(`${supabaseUrl}/functions/v1/assign-technician-to-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
-      body: JSON.stringify({ requestId: request_id, technicianId: technician_id }),
+      body: JSON.stringify({ requestId: request_id, technicianId: technician_id, companyId: caller.isApiConsumer ? caller.companyId : undefined, branchId: caller.isApiConsumer ? caller.branchId : undefined }),
     });
     const result = await resp.json();
     if (!resp.ok) return { success: false, error: result.error || 'فشل التعيين' };

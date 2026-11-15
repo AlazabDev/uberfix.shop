@@ -76,6 +76,16 @@ serve(async (req) => {
           });
         }
 
+        const [table, ...rest] = key.split(":");
+        const staffRoles = ['admin', 'owner', 'manager', 'dispatcher', 'staff', 'service_role'];
+        const isStaff = getRoles.some((r) => staffRoles.includes(r));
+        if ((table === 'properties' || table === 'technicians') && !isStaff) {
+          return new Response(JSON.stringify({ error: 'Forbidden' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+
         const cached = cache.get(key);
         if (cached && cached.expires > Date.now()) {
           return new Response(
@@ -93,18 +103,6 @@ serve(async (req) => {
 
         // Fetch from database based on key pattern
         let data = null;
-        const [table, ...rest] = key.split(":");
-
-        const staffRoles = ['admin', 'owner', 'manager', 'dispatcher', 'staff', 'service_role'];
-        const isStaff = getRoles.some((r) => staffRoles.includes(r));
-        // properties/technicians are protected — staff only
-        if ((table === 'properties' || table === 'technicians') && !isStaff) {
-          return new Response(JSON.stringify({ error: 'Forbidden' }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-          });
-        }
-
         if (table === "categories") {
           const { data: categories } = await supabase
             .from("categories")
