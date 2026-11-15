@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { foundryConfigured, streamFoundryAgent } from "./foundry.ts";
 import { normalizePhone } from "../_shared/phone.ts";
+import { normalizePhone } from "../_shared/phone.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -50,9 +51,10 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          search_term: { type: "string", description: "رقم الطلب أو اسم العميل للبحث" }
+          search_term: { type: "string", description: "رقم الطلب أو وصفه" },
+          client_phone: { type: "string", description: "رقم الهاتف المسجل للتحقق من ملكية الطلب" }
         },
-        required: ["search_term"],
+        required: ["search_term", "client_phone"],
         additionalProperties: false
       }
     }
