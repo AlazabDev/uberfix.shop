@@ -52,16 +52,64 @@ serve(async (req) => {
     }
 
     const { table, rows } = await req.json();
-    if (!table || !rows?.length) throw new Error("table and rows required");
+    if (typeof table !== 'string' || !Array.isArray(rows) || rows.length === 0 || rows.length > 5000) {
+      return new Response(JSON.stringify({ error: "A supported table and 1–5000 rows are required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const allowed = ["stores", "maintenance_requests_archive", "rate_items", "malls"];
-    if (!allowed.includes(table)) throw new Error(`Table ${table} not allowed`);
+    const importSchemas: Record<string, { columns: string[]; required: string[]; numeric: string[]; boolean: string[] }> = {
+      stores: {
+        columns: ['id', 'name', 'description', 'location', 'phone', 'email', 'category', 'status', 'area', 'opening_date', 'region_id', 'map_url', 'is_deleted'],
+        required: ['name'], numeric: ['area'], boolean: ['is_deleted'],
+      },
+      rate_items: {
+        columns: ['id', 'rate_card_id', 'trade_id', 'normal_hourly', 'after_hours_hourly', 'min_billable_hours', 'trip_charge', 'notes', 'min_invoice'],
+        required: [], numeric: ['trade_id', 'normal_hourly', 'after_hours_hourly', 'min_billable_hours', 'trip_charge', 'min_invoice'], boolean: [],
+      },
+      malls: {
+        columns: ['id', 'name', 'location', 'type'], required: ['name'], numeric: ['id'], boolean: [],
+      },
+    };
+    const schema = importSchemas[table];
+    if (!schema) {
+      return new Response(JSON.stringify({ error: "Unsupported import table" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sanitizedRows = rows.map((row: unknown, index: number) => {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error(`Invalid row ${index + 1}`);
+      const source = row as Record<string, unknown>;
+      const clean: Record<string, unknown> = {};
+      for (const column of schema.columns) {
+        if (!(column in source)) continue;
+        const value = source[column];
+        if (value === null || value === '') continue;
+        if (schema.numeric.includes(column)) {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed)) throw new Error(`Invalid numeric value in row ${index + 1}`);
+          clean[column] = parsed;
+        } else if (schema.boolean.includes(column)) {
+          if (![true, false, 'true', 'false', '1', '0', 1, 0].includes(value as never)) throw new Error(`Invalid boolean value in row ${index + 1}`);
+          clean[column] = value === true || value === 'true' || value === '1' || value === 1;
+        } else if (typeof value === 'string') {
+          if (value.length > 5000) throw new Error(`Value too long in row ${index + 1}`);
+          clean[column] = value.trim();
+        } else {
+          throw new Error(`Invalid value in row ${index + 1}`);
+        }
+      }
+      if (schema.required.some((key) => typeof clean[key] !== 'string' || !(clean[key] as string).length)) {
+        throw new Error(`Required fields are missing in row ${index + 1}`);
+      }
+      return clean;
+    });
 
     // Insert in chunks of 500
     const chunkSize = 500;
     let inserted = 0;
     for (let i = 0; i < rows.length; i += chunkSize) {
-      const batch = rows.slice(i, i + chunkSize);
+      const batch = sanitizedRows.slice(i, i + chunkSize);
       const { error } = await supabase.from(table).upsert(batch, { onConflict: "id" });
       if (error) throw error;
       inserted += batch.length;
