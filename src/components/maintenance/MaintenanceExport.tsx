@@ -123,7 +123,7 @@ export function MaintenanceExport({ requests, filteredRequests, pageOnly = false
     // Combine headers and rows
     const quoteCsvCell = (cell: unknown) => {
       const value = String(cell ?? '');
-      const safeValue = /^[\s\u0000-\u001f]*[=+@\-]/.test(value) ? `'${value}` : value;
+      const safeValue = /^\s*[=+@\-]/.test(value) ? `'${value}` : value;
       return `"${safeValue.replace(/"/g, '""')}"`;
     };
     const csvContent = [headers, ...rows]

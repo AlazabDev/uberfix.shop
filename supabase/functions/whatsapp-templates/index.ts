@@ -445,6 +445,13 @@ serve(async (req) => {
           });
         }
 
+        if (!Object.keys(updates).length) {
+          return new Response(JSON.stringify({ error: "No supported template fields to update" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         // Check if template exists and is editable
         const { data: existing } = await supabase
           .from("wa_templates")
@@ -932,7 +939,7 @@ serve(async (req) => {
         const body = await req.json();
         const { id, phone, parameters } = body;
 
-        if (!id || !phone) {
+        if (!id || typeof phone !== 'string') {
           return new Response(JSON.stringify({ error: "Template ID and phone number are required" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
