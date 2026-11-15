@@ -290,8 +290,12 @@ async function handleCheckStatus(supabase: any, payload: any, caller: CallerCtx)
     if (caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) {
       q = q.eq('company_id', caller.companyId);
       if (caller.branchId) q = q.eq('branch_id', caller.branchId);
-    } else if (!caller.isGlobalStaff && !caller.isStaff && caller.userId) {
-      q = q.eq('created_by', caller.userId);
+    } else if (!caller.isGlobalStaff && !caller.isStaff && !caller.isApiConsumer) {
+      const phone = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
+      if (phone.length < 9) return q.eq('id', '00000000-0000-0000-0000-000000000000');
+      const digits = phone;
+      const variants = [digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits];
+      q = q.in('client_phone', variants);
     }
     return q;
   };
