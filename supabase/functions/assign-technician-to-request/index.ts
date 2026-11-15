@@ -186,7 +186,7 @@ serve(async (req) => {
 
     // Calculate scores and filter by radius
     const scoredTechnicians = technicians
-      .map((tech: Technician) => {
+      .map((tech: any) => {
         const distance = calculateDistance(
           request.latitude!,
           request.longitude!,

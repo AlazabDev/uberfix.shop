@@ -420,6 +420,11 @@ async function handleGetRequestDetails(supabase: any, payload: any, caller: Call
     return { success: false, error: 'request_id أو request_number مطلوب' };
   }
 
+  let query = supabase
+    .from('maintenance_requests')
+    .select('id, request_number, title, description, status, workflow_stage, priority, service_type, location, client_name, client_phone, estimated_cost, actual_cost, assigned_technician_id, assigned_vendor_id, created_at, updated_at, sla_complete_due, branch_id')
+    .limit(1);
+
   // التحقق الإلزامي: المتصل العام يجب أن يقدّم رقم هاتف قبل أي استعلام
   if (!caller.isStaff && !caller.isApiConsumer) {
     const sent = typeof client_phone === 'string' ? client_phone.replace(/\D/g, '') : '';
@@ -427,14 +432,9 @@ async function handleGetRequestDetails(supabase: any, payload: any, caller: Call
       return { success: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
     }
     const digits = sent;
-    const variants = [digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits];
+    const variants = [...new Set([digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits])];
     query = query.in('client_phone', variants);
   }
-
-  let query = supabase
-    .from('maintenance_requests')
-    .select('id, request_number, title, description, status, workflow_stage, priority, service_type, location, client_name, client_phone, estimated_cost, actual_cost, assigned_technician_id, assigned_vendor_id, created_at, updated_at, sla_complete_due, branch_id')
-    .limit(1);
 
   if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) && !caller.companyId) {
     return { success: false, error: 'لا يوجد نطاق شركة لهذا الحساب' };
