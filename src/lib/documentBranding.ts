@@ -19,6 +19,15 @@ export const BRAND = {
   website: 'uberfix.shop',
 };
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Returns the HTML header used inside any html2canvas-based PDF.
  * Navy background + diagonal Gold accent, identical to DocumentTemplate.
@@ -29,7 +38,10 @@ export function brandedHeaderHtml(opts: {
   documentId?: string;
   documentDate?: string;
 }) {
-  const { documentType, documentTypeLatin = '', documentId = '', documentDate = '' } = opts;
+  const documentType = escapeHtml(opts.documentType);
+  const documentTypeLatin = escapeHtml(opts.documentTypeLatin);
+  const documentId = escapeHtml(opts.documentId);
+  const documentDate = escapeHtml(opts.documentDate);
   return `
     <div style="position:relative; background:${BRAND.navy}; color:#fff; padding:0; overflow:hidden; border-radius:8px 8px 0 0;">
       <div style="position:absolute;top:0;right:0;width:38%;height:100%;background:${BRAND.gold};clip-path:polygon(20% 0,100% 0,100% 100%,0% 100%);"></div>

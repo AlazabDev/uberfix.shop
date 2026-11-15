@@ -56,7 +56,7 @@ export async function handleAiAgent(req: Request): Promise<Response> {
   if (!AZURE.configured) return json({ error: 'Azure OpenAI not configured' }, 503);
   const body = await req.json().catch(() => ({}));
   const prompt = String(body.prompt ?? body.message ?? '').trim();
-  if (!prompt) return json({ error: 'prompt is required' }, 400);
+  if (!prompt || prompt.length > 3000) return json({ error: 'prompt must be between 1 and 3000 characters' }, 400);
 
   const caller = await resolveCaller(req);
   const started = Date.now();
@@ -64,7 +64,7 @@ export async function handleAiAgent(req: Request): Promise<Response> {
     const result = await runAgent({
       prompt,
       threadId: body.thread_id,
-      instructions: body.instructions,
+      // Per-run instructions are deployment-owned; callers may only provide a prompt.
       apiKey: req.headers.get('x-api-key') ?? undefined,
       authHeader: req.headers.get('Authorization') ?? undefined,
     });
@@ -92,7 +92,7 @@ export async function handleAiAgent(req: Request): Promise<Response> {
 export async function handleAiChat(req: Request): Promise<Response> {
   if (!AZURE.configured) return json({ error: 'Azure OpenAI not configured' }, 503);
   const body = await req.json().catch(() => ({}));
-  const messages = Array.isArray(body.messages) ? body.messages : [{ role: 'user', content: String(body.prompt ?? '') }];
+  const messages = sanitizeChatMessages(body.messages, body.prompt);
   const caller = await resolveCaller(req);
   try {
     const r = await chatCompletion({
@@ -121,7 +121,7 @@ export async function handleAiChat(req: Request): Promise<Response> {
 export async function handleAiStream(req: Request): Promise<Response> {
   if (!AZURE.configured) return json({ error: 'Azure OpenAI not configured' }, 503);
   const body = await req.json().catch(() => ({}));
-  const messages = Array.isArray(body.messages) ? body.messages : [{ role: 'user', content: String(body.prompt ?? '') }];
+  const messages = sanitizeChatMessages(body.messages, body.prompt);
   const caller = await resolveCaller(req);
   try {
     const upstream = await chatCompletionStream({
@@ -136,6 +136,17 @@ export async function handleAiStream(req: Request): Promise<Response> {
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
+}
+
+function sanitizeChatMessages(input: unknown, prompt: unknown): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const source = Array.isArray(input) ? input : [{ role: 'user', content: String(prompt ?? '') }];
+  return source
+    .filter((message): message is { role: string; content: string } =>
+      !!message && typeof message === 'object' &&
+      ['user', 'assistant'].includes((message as { role?: string }).role ?? '') &&
+      typeof (message as { content?: unknown }).content === 'string')
+    .slice(-20)
+    .map((message) => ({ role: message.role as 'user' | 'assistant', content: message.content.slice(0, 3000) }));
 }
 
 export async function handleAiClassify(req: Request): Promise<Response> {

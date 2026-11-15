@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     try {
       if (body?.return_url) {
         const u = new URL(String(body.return_url));
-        if (u.protocol === 'https:' && (ALLOWED_HOSTS.includes(u.hostname) || u.hostname.endsWith('.lovable.app'))) return_url = u.toString();
+        if (u.protocol === 'https:' && ALLOWED_HOSTS.includes(u.hostname)) return_url = u.toString();
       }
     } catch { /* ignore invalid url */ }
 

@@ -121,8 +121,13 @@ export function MaintenanceExport({ requests, filteredRequests, pageOnly = false
     );
 
     // Combine headers and rows
+    const quoteCsvCell = (cell: unknown) => {
+      const value = String(cell ?? '');
+      const safeValue = /^\s*[=+@\-]/.test(value) ? `'${value}` : value;
+      return `"${safeValue.replace(/"/g, '""')}"`;
+    };
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .map(row => row.map(quoteCsvCell).join(','))
       .join('\n');
 
     return csvContent;

@@ -12,7 +12,6 @@ import { Progress } from "@/components/ui/progress";
 
 const TABLE_OPTIONS = [
   { value: "stores", label: "الفروع / المتاجر", icon: "🏪" },
-  { value: "maintenance_requests_archive", label: "أرشيف طلبات الصيانة", icon: "🔧" },
   { value: "rate_items", label: "بنود الأسعار", icon: "💰" },
   { value: "malls", label: "دليل المولات", icon: "🏬" },
 ];

@@ -89,6 +89,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    let scopedCompanyId: string | null = null;
+    let scopedBranchId: string | null = null;
 
     // AuthZ: require staff/dispatcher role
     const authHeader = req.headers.get('Authorization') ?? '';
@@ -115,9 +117,19 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Forbidden: staff role required' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+      if (!roles?.some((r: any) => ['admin', 'owner'].includes(r.role))) {
+        const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', userData.user.id).maybeSingle();
+        scopedCompanyId = profile?.company_id ?? null;
+        if (!scopedCompanyId) return new Response(JSON.stringify({ error: 'Company scope is required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
     }
 
-    const { requestId } = await req.json();
+    const body = await req.json();
+    const { requestId } = body;
+    if (isServiceRole && typeof body.companyId === 'string') {
+      scopedCompanyId = body.companyId;
+      scopedBranchId = typeof body.branchId === 'string' ? body.branchId : null;
+    }
 
     if (!requestId) {
       return new Response(
@@ -127,11 +139,13 @@ serve(async (req) => {
     }
 
     // Get request details
-    const { data: request, error: requestError } = await supabase
+    let requestQuery = supabase
       .from('maintenance_requests')
-      .select('latitude, longitude, category_id, service_type')
-      .eq('id', requestId)
-      .single();
+      .select('latitude, longitude, category_id, service_type, company_id, branch_id')
+      .eq('id', requestId);
+    if (scopedCompanyId) requestQuery = requestQuery.eq('company_id', scopedCompanyId);
+    if (scopedBranchId) requestQuery = requestQuery.eq('branch_id', scopedBranchId);
+    const { data: request, error: requestError } = await requestQuery.maybeSingle();
 
     if (requestError || !request) {
       return new Response(
@@ -148,7 +162,7 @@ serve(async (req) => {
     }
 
     // Get available technicians
-    const { data: technicians, error: techError } = await supabase
+    let techniciansQuery = supabase
       .from('technicians')
       .select('*')
       .eq('is_active', true)
@@ -157,6 +171,8 @@ serve(async (req) => {
       .gte('rating', 4.2)
       .not('current_latitude', 'is', null)
       .not('current_longitude', 'is', null);
+    if (request.company_id) techniciansQuery = techniciansQuery.eq('company_id', request.company_id);
+    const { data: technicians, error: techError } = await techniciansQuery;
 
     if (techError || !technicians || technicians.length === 0) {
       return new Response(
@@ -170,7 +186,7 @@ serve(async (req) => {
 
     // Calculate scores and filter by radius
     const scoredTechnicians = technicians
-      .map((tech: Technician) => {
+      .map((tech: any) => {
         const distance = calculateDistance(
           request.latitude!,
           request.longitude!,

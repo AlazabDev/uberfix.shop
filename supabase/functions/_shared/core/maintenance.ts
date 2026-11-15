@@ -370,12 +370,21 @@ async function uploadImages(
   for (let i = 0; i < Math.min(images.length, 5); i++) {
     try {
       const base64Data = images[i];
-      const base64Content = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-      const binaryData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
-      const fileName = `${requestId}/${Date.now()}-${i}.jpg`;
+      if (typeof base64Data !== 'string' || base64Data.length > 7_000_000) continue;
+      const match = base64Data.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i);
+      if (!match) continue;
+      const mimeType = match[1].toLowerCase();
+      const binaryData = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+      if (binaryData.length === 0 || binaryData.length > 5 * 1024 * 1024) continue;
+      const isJpeg = mimeType === 'image/jpeg' && binaryData[0] === 0xff && binaryData[1] === 0xd8 && binaryData[2] === 0xff;
+      const isPng = mimeType === 'image/png' && binaryData.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((b, n) => binaryData[n] === b);
+      const isWebp = mimeType === 'image/webp' && String.fromCharCode(...binaryData.slice(0, 4)) === 'RIFF' && String.fromCharCode(...binaryData.slice(8, 12)) === 'WEBP';
+      if (!isJpeg && !isPng && !isWebp) continue;
+      const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/png' ? 'png' : 'webp';
+      const fileName = `${requestId}/${Date.now()}-${i}.${ext}`;
       const { error: uploadError } = await supabaseAdmin.storage
         .from('maintenance-attachments')
-        .upload(fileName, binaryData, { contentType: 'image/jpeg', upsert: false });
+        .upload(fileName, binaryData, { contentType: mimeType, upsert: false });
       if (!uploadError) uploadedImages++;
     } catch (imgError) {
       console.warn('Image upload failed:', imgError);
@@ -765,6 +774,10 @@ export async function handleMaintenance(req: Request): Promise<Response> {
     // ─── Validate Channel ────────────────────────────────────────
     if (!body.channel || !VALID_CHANNELS.includes(body.channel)) {
       return errorResponse('Invalid channel', 'قناة غير صالحة', 400, { valid_channels: VALID_CHANNELS });
+    }
+
+    if (body.images !== undefined && (!Array.isArray(body.images) || body.images.length > 5 || body.images.some((image) => typeof image !== 'string' || image.length > 7_000_000))) {
+      return errorResponse('Invalid images', 'يُسمح بخمس صور كحد أقصى، وبحجم لا يتجاوز 5 ميجابايت للصورة', 400);
     }
 
     // ─── Supabase Admin Client ───────────────────────────────────

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { foundryConfigured, streamFoundryAgent } from "./foundry.ts";
+import { normalizePhone } from "../_shared/phone.ts";
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -49,9 +50,10 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          search_term: { type: "string", description: "رقم الطلب أو اسم العميل للبحث" }
+          search_term: { type: "string", description: "رقم الطلب أو وصفه" },
+          client_phone: { type: "string", description: "رقم الهاتف المسجل للتحقق من ملكية الطلب" }
         },
-        required: ["search_term"],
+        required: ["search_term", "client_phone"],
         additionalProperties: false
       }
     }
@@ -83,8 +85,14 @@ serve(async (req) => {
       });
     }
 
-    const { messages: chatMessages, session_id } = await req.json();
-    const lastMessage = chatMessages?.[chatMessages.length - 1]?.content;
+    const { messages: rawMessages, session_id } = await req.json();
+    const chatMessages = Array.isArray(rawMessages)
+      ? rawMessages
+          .filter((m: any) => m && ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
+          .slice(-15)
+          .map((m: any) => ({ role: m.role, content: m.content.slice(0, 3000) }))
+      : [];
+    const lastMessage = chatMessages.at(-1)?.content;
 
     if (!lastMessage || typeof lastMessage !== 'string' || lastMessage.length > 3000) {
       return new Response(
@@ -253,7 +261,7 @@ ${liveDataContext}`;
 
     const aiMessages = [
       { role: 'system', content: systemPrompt },
-      ...chatMessages.slice(-15)
+      ...chatMessages
     ];
 
     // First call: may trigger tool use (non-streaming)
@@ -335,45 +343,13 @@ ${liveDataContext}`;
                 console.error('Insert error:', insertError);
                 toolResult = JSON.stringify({ success: false, error: `فشل في إنشاء الطلب: ${insertError.message}` });
               } else {
-                // Send WhatsApp notification to client
-                if (args.client_phone) {
-                  try {
-                    const serviceLabel = SERVICE_TYPE_LABELS[args.service_type || 'general'] || 'صيانة عامة';
-                    const whatsappMessage = `✅ تم استلام طلب الصيانة بنجاح!\n\n📋 رقم التتبع: ${trackingNumber}\n🔧 الخدمة: ${serviceLabel}\n📝 ${args.title}\n📍 ${args.location}\n\nسيتم التواصل معك قريباً لتحديد موعد الزيارة.\n\nشكراً لثقتك في UberFix 🏠`;
-
-                    const whatsappRes = await fetch(
-                      `${supabaseUrl}/functions/v1/send-whatsapp-meta`,
-                      {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${supabaseServiceKey}`,
-                        },
-                        body: JSON.stringify({
-                          to: args.client_phone,
-                          message: whatsappMessage,
-                          requestId: newRequest.id,
-                        }),
-                      }
-                    );
-                    const whatsappResult = await whatsappRes.json();
-                    if (whatsappResult.success) {
-                      console.log('✅ WhatsApp notification sent for request:', newRequest.id);
-                    } else {
-                      console.error('⚠️ WhatsApp notification failed:', whatsappResult.error);
-                    }
-                  } catch (waErr) {
-                    console.error('⚠️ WhatsApp notification error:', waErr);
-                  }
-                }
-
                 toolResult = JSON.stringify({
                   success: true,
                   request_id: newRequest.id,
                   tracking_number: trackingNumber,
                   title: newRequest.title,
                   status: 'pending',
-                  whatsapp_sent: !!args.client_phone,
+                  whatsapp_sent: false,
                   message: `تم إنشاء طلب الصيانة بنجاح! رقم التتبع: ${trackingNumber}`
                 });
               }
@@ -384,12 +360,20 @@ ${liveDataContext}`;
           }
         } else if (tc.function.name === 'check_request_status') {
           try {
-            const { data: found } = await supabase
-              .from('maintenance_requests')
-              .select('id, title, status, priority, service_type, created_at, client_name')
-              .or(`title.ilike.%${args.search_term}%,client_name.ilike.%${args.search_term}%`)
-              .order('created_at', { ascending: false })
-              .limit(5);
+            const phone = normalizePhone(args.client_phone);
+            if (!phone) throw new Error('رقم الهاتف مطلوب للتحقق من ملكية الطلب');
+            const digits = phone.replace(/\D/g, '');
+            const local = digits.startsWith('20') ? `0${digits.slice(2)}` : digits;
+            const search = String(args.search_term || '').trim().slice(0, 100);
+            if (!search) throw new Error('رقم الطلب أو وصفه مطلوب');
+            const owned = () => supabase.from('maintenance_requests')
+              .select('id, title, status, priority, service_type, created_at, client_name, request_number')
+              .in('client_phone', [phone, digits, local]);
+            const byNumber = await owned().ilike('request_number', `%${search}%`).order('created_at', { ascending: false }).limit(5);
+            const byTitle = await owned().ilike('title', `%${search}%`).order('created_at', { ascending: false }).limit(5);
+            const found = [...(byNumber.data || []), ...(byTitle.data || [])]
+              .filter((r, i, all) => all.findIndex(x => x.id === r.id) === i)
+              .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 5);
 
             if (found?.length) {
               toolResult = JSON.stringify({
@@ -398,6 +382,7 @@ ${liveDataContext}`;
                   title: r.title,
                   status: r.status,
                   priority: r.priority,
+                  request_number: r.request_number,
                   service: SERVICE_TYPE_LABELS[r.service_type] || r.service_type,
                   date: r.created_at
                 }))

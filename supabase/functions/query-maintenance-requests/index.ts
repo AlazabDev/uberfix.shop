@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
     let authenticated = false;
     let callerUserId: string | null = null;
     let callerIsStaff = false;
+    let apiConsumer: { company_id: string | null; branch_id: string | null } | null = null;
 
     if (apiKey) {
       const apiKeyResult = await validateApiKey(supabase, apiKey);
@@ -85,7 +86,8 @@ Deno.serve(async (req) => {
         });
       }
       authenticated = true;
-      // API-key callers are trusted integrations (server-to-server)
+      apiConsumer = apiKeyResult.consumer;
+      // API keys are integrations, not global staff; tenant restrictions are applied below.
       callerIsStaff = true;
     } else {
       const jwtResult = await validateJWT(req);
@@ -135,6 +137,15 @@ Deno.serve(async (req) => {
         });
       }
       query = query.eq("created_by", callerUserId);
+    } else if (apiConsumer) {
+      if (!apiConsumer.company_id) {
+        return new Response(JSON.stringify({ success: false, error: "API key has no company scope" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      query = query.eq("company_id", apiConsumer.company_id);
+      if (apiConsumer.branch_id) query = query.eq("branch_id", apiConsumer.branch_id);
     }
 
     // Apply filters

@@ -773,9 +773,9 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Validate caller: must have valid Authorization header (anon or service_role)
+    // Only trusted internal calls or authenticated operational staff may trigger outbound notifications.
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -785,9 +785,35 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const token = authHeader.slice(7);
+    const isServiceRole = token === supabaseKey;
+    let callerCompanyId: string | null = null;
+    let isGlobalAdmin = false;
+    if (!isServiceRole) {
+      const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !user) return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
+      const roleNames = (roles ?? []).map((r: { role: string }) => r.role);
+      if (!roleNames.some((role: string) => ['admin', 'owner', 'manager', 'dispatcher', 'staff'].includes(role))) {
+        return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      isGlobalAdmin = roleNames.some((role: string) => ['admin', 'owner'].includes(role));
+      if (!isGlobalAdmin) {
+        const { data: profile } = await supabase.from('profiles').select('company_id').eq('auth_user_id', user.id).maybeSingle();
+        callerCompanyId = profile?.company_id ?? null;
+        if (!callerCompanyId) {
+          const { data: profileById } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+          callerCompanyId = profileById?.company_id ?? null;
+        }
+        if (!callerCompanyId) return new Response(JSON.stringify({ success: false, error: 'Company scope required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
 
     const body: NotificationRequest = await req.json();
-    console.log('📤 Notification request:', body);
+    console.log('📤 Processing maintenance notification', { request_id: body.request_id, event_type: body.event_type });
 
     const { 
       request_id, 
@@ -807,7 +833,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Validate request
-    if (!request_id) {
+    if (typeof request_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request_id)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Missing request_id' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -815,11 +841,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Fetch request details
-    const { data: request, error: fetchError } = await supabase
+    let requestQuery = supabase
       .from('maintenance_requests')
       .select('*')
-      .eq('id', request_id)
-      .single();
+      .eq('id', request_id);
+    if (!isServiceRole && !isGlobalAdmin) requestQuery = requestQuery.eq('company_id', callerCompanyId);
+    const { data: request, error: fetchError } = await requestQuery.maybeSingle();
 
     if (fetchError || !request) {
       console.error('Request not found:', fetchError);
@@ -837,7 +864,7 @@ const handler = async (req: Request): Promise<Response> => {
       .order('created_at', { ascending: true });
 
     // Determine stage
-    const stage = new_stage || request.workflow_stage || 'submitted';
+    const stage = request.workflow_stage || 'submitted';
     
     // Check if this is a silent stage
     if (SILENT_STAGES.includes(stage)) {

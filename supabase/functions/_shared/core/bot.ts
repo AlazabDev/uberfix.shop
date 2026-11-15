@@ -27,8 +27,11 @@ function jsonResponse(body: unknown, status = 200) {
 /** سياق المتصل: هل هو موظف / مستهلك API موثق / عام (anon) */
 interface CallerCtx {
   isStaff: boolean;
+  isGlobalStaff: boolean;
   isApiConsumer: boolean;
   userId: string | null;
+  companyId: string | null;
+  branchId: string | null;
   /** الفاعل الحقيقي المستخدم في fn_transition_request_stage (مستخدم مفوَّض أو مستخدم مصادق) */
   actorId: string | null;
 }
@@ -46,10 +49,16 @@ function verifyOwnership(
     return { ok: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
   }
   const stored = typeof recordPhone === 'string' ? recordPhone.replace(/\D/g, '') : '';
-  if (!stored || !stored.includes(sent.slice(-9))) {
+  if (stored.length < 9 || stored.slice(-9) !== sent.slice(-9)) {
     return { ok: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
   }
   return { ok: true };
+}
+
+function verifyCompanyScope(caller: CallerCtx, record: { company_id?: string | null; branch_id?: string | null }) {
+  if (caller.isGlobalStaff) return true;
+  if (!caller.isStaff && !caller.isApiConsumer) return true;
+  return !!caller.companyId && record.company_id === caller.companyId && (!caller.branchId || record.branch_id === caller.branchId);
 }
 
 export async function handleBot(req: Request): Promise<Response> {
@@ -70,7 +79,7 @@ export async function handleBot(req: Request): Promise<Response> {
     const apiKey = req.headers.get('x-api-key');
     let authenticated = false;
     let consumerId: string | null = null;
-    const caller: CallerCtx = { isStaff: false, isApiConsumer: false, userId: null, actorId: null };
+    const caller: CallerCtx = { isStaff: false, isGlobalStaff: false, isApiConsumer: false, userId: null, companyId: null, branchId: null, actorId: null };
 
     if (apiKey) {
       // External API consumer auth (المفاتيح مخزّنة كبصمة SHA-256)
@@ -79,6 +88,8 @@ export async function handleBot(req: Request): Promise<Response> {
         authenticated = true;
         consumerId = consumer.id;
         caller.isApiConsumer = true;
+        caller.companyId = consumer.company_id;
+        caller.branchId = consumer.branch_id;
         // هوية تشغيلية مفوَّضة للمفتاح (لا نستخدم معرّف المستهلك نفسه كـactor)
         const delegated = (consumer.metadata as Record<string, unknown> | null)?.delegated_actor_id;
         if (typeof delegated === 'string' && UUID_RE.test(delegated)) {
@@ -117,6 +128,11 @@ export async function handleBot(req: Request): Promise<Response> {
             .eq('user_id', user.id)
             .in('role', ['admin', 'manager', 'owner', 'staff', 'dispatcher', 'engineering']);
           caller.isStaff = Array.isArray(staffRoles) && staffRoles.length > 0;
+          caller.isGlobalStaff = !!staffRoles?.some((r: any) => ['admin', 'owner'].includes(r.role));
+          if (caller.isStaff && !caller.isGlobalStaff) {
+            const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
+            caller.companyId = profile?.company_id ?? null;
+          }
         }
       }
     }
@@ -160,7 +176,7 @@ export async function handleBot(req: Request): Promise<Response> {
         result = await handleCreateRequest(supabase, supabaseUrl, payload, metadata);
         break;
       case 'check_status':
-        result = await handleCheckStatus(supabase, payload);
+        result = await handleCheckStatus(supabase, payload, caller);
         break;
       case 'get_request_details':
         result = await handleGetRequestDetails(supabase, payload, caller);
@@ -266,26 +282,60 @@ async function handleCreateRequest(supabase: any, supabaseUrl: string, payload: 
   }
 }
 
-async function handleCheckStatus(supabase: any, payload: any) {
+async function handleCheckStatus(supabase: any, payload: any, caller: CallerCtx) {
   const { search_term, search_type } = payload;
-  if (!search_term) return { success: false, error: 'search_term is required' };
-
-  let query = supabase
-    .from('maintenance_requests')
-    .select('id, title, status, priority, service_type, created_at, client_name, request_number')
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  if (search_type === 'request_number' || search_term.startsWith('UF')) {
-    query = query.ilike('request_number', `%${search_term}%`);
-  } else if (search_type === 'phone') {
-    query = query.ilike('client_phone', `%${search_term}%`);
-  } else {
-    query = query.or(`title.ilike.%${search_term}%,client_name.ilike.%${search_term}%,request_number.ilike.%${search_term}%`);
+  const term = typeof search_term === 'string' ? search_term.trim().slice(0, 100) : '';
+  if (!term) return { success: false, error: 'search_term is required' };
+  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) && !caller.companyId) {
+    return { success: false, error: 'لا يوجد نطاق شركة لهذا الحساب' };
   }
-
-  const { data, error } = await query;
-  if (error) return { success: false, error: error.message };
+  const makeQuery = () => {
+    let q = supabase.from('maintenance_requests')
+      .select('id, title, status, priority, service_type, created_at, client_name, client_phone, request_number')
+      .order('created_at', { ascending: false }).limit(5);
+    if (caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) {
+      q = q.eq('company_id', caller.companyId);
+      if (caller.branchId) q = q.eq('branch_id', caller.branchId);
+    } else if (!caller.isGlobalStaff && !caller.isStaff && !caller.isApiConsumer) {
+      const phone = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
+      if (phone.length < 9) return q.eq('id', '00000000-0000-0000-0000-000000000000');
+      const digits = phone;
+      const variants = [...new Set([digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits])];
+      q = q.in('client_phone', variants);
+    }
+    return q;
+  };
+  let first = makeQuery();
+  let second = makeQuery();
+  if (search_type === 'phone') {
+    if (!caller.isStaff && !caller.isApiConsumer) return { success: false, error: 'غير مسموح بالبحث برقم الهاتف' };
+    const digits = term.replace(/\D/g, '').slice(-9);
+    if (digits.length < 9) return { success: false, error: 'رقم الهاتف غير صالح' };
+    first = first.ilike('client_phone', `%${digits.replace(/[\\%_]/g, '\\$&')}`);
+    second = second.ilike('client_phone', `%${digits.replace(/[\\%_]/g, '\\$&')}`);
+  } else {
+    if (!caller.isGlobalStaff && !caller.isStaff && !caller.isApiConsumer) {
+      const digits = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
+      if (digits.length < 9) return { success: false, error: 'رقم الهاتف المسجل مطلوب للتحقق' };
+      const suffix = digits.slice(-9);
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('client_phone', `%${suffix}`).ilike('request_number', `%${safeTerm}%`);
+      second = second.ilike('client_phone', `%${suffix}`).ilike('title', `%${safeTerm}%`);
+    } else if (search_type === 'request_number' || term.startsWith('UF')) {
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('request_number', `%${safeTerm}%`);
+      second = second.ilike('request_number', `%${safeTerm}%`);
+    } else {
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('title', `%${safeTerm}%`);
+      second = second.ilike('request_number', `%${safeTerm}%`);
+    }
+  }
+  const [a, b] = await Promise.all([first, second]);
+  if (a.error || b.error) return { success: false, error: 'تعذر البحث عن الطلب' };
+  const data = [...(a.data || []), ...(b.data || [])]
+    .filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index)
+    .sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at)).slice(0, 5);
 
   return {
     success: true,
@@ -373,18 +423,29 @@ async function handleGetRequestDetails(supabase: any, payload: any, caller: Call
     return { success: false, error: 'request_id أو request_number مطلوب' };
   }
 
+  let query = supabase
+    .from('maintenance_requests')
+    .select('id, request_number, title, description, status, workflow_stage, priority, service_type, location, client_name, client_phone, estimated_cost, actual_cost, assigned_technician_id, assigned_vendor_id, created_at, updated_at, sla_complete_due, branch_id')
+    .limit(1);
+
   // التحقق الإلزامي: المتصل العام يجب أن يقدّم رقم هاتف قبل أي استعلام
   if (!caller.isStaff && !caller.isApiConsumer) {
     const sent = typeof client_phone === 'string' ? client_phone.replace(/\D/g, '') : '';
     if (sent.length < 9) {
       return { success: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
     }
+    const digits = sent;
+    const variants = [...new Set([digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits])];
+    query = query.in('client_phone', variants);
   }
 
-  let query = supabase
-    .from('maintenance_requests')
-    .select('id, request_number, title, description, status, workflow_stage, priority, service_type, location, client_name, client_phone, estimated_cost, actual_cost, assigned_technician_id, assigned_vendor_id, created_at, updated_at, sla_complete_due, branch_id')
-    .limit(1);
+  if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) && !caller.companyId) {
+    return { success: false, error: 'لا يوجد نطاق شركة لهذا الحساب' };
+  }
+  if (caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) {
+    query = query.eq('company_id', caller.companyId);
+    if (caller.branchId) query = query.eq('branch_id', caller.branchId);
+  }
 
   if (request_id) query = query.eq('id', request_id);
   else query = query.eq('request_number', request_number);
@@ -435,6 +496,15 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
     .maybeSingle();
 
   if (fetchErr || !current) return { success: false, error: 'الطلب غير موجود' };
+  if (!verifyCompanyScope(caller, current)) {
+    return { success: false, error: 'الطلب غير موجود' };
+  }
+  if (!caller.isStaff && !caller.isApiConsumer) {
+    const sent = typeof client_phone === 'string' ? client_phone.replace(/\D/g, '') : '';
+    if (sent.length < 9 || !current.client_phone?.replace(/\D/g, '').endsWith(sent.slice(-9))) {
+      return { success: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
+    }
+  }
 
   // حماية إلزامية: يجب إثبات الملكية بالهاتف إن لم يكن المتصل موظفًا/مستهلك API
   const own = verifyOwnership(caller, client_phone, current.client_phone);
@@ -495,11 +565,12 @@ async function handleCancelRequest(supabase: any, payload: any, consumerId: stri
 
   const { data: current } = await supabase
     .from('maintenance_requests')
-    .select('id, workflow_stage, workflow_stage_v2, client_phone, request_number, created_by, customer_id')
+    .select('id, workflow_stage, workflow_stage_v2, client_phone, request_number, created_by, customer_id, company_id, branch_id')
     .eq('id', request_id)
     .maybeSingle();
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
+  if (!verifyCompanyScope(caller, current)) return { success: false, error: 'الطلب غير موجود' };
 
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
@@ -575,11 +646,12 @@ async function handleAddNote(supabase: any, payload: any, consumerId: string | n
 
   const { data: current } = await supabase
     .from('maintenance_requests')
-    .select('customer_notes, client_phone')
+    .select('customer_notes, client_phone, company_id, branch_id')
     .eq('id', request_id)
     .maybeSingle();
 
   if (!current) return { success: false, error: 'الطلب غير موجود' };
+  if (!verifyCompanyScope(caller, current)) return { success: false, error: 'الطلب غير موجود' };
 
   const own = verifyOwnership(caller, client_phone, current.client_phone);
   if (!own.ok) return { success: false, error: own.error };
@@ -614,6 +686,9 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
   if (!caller.isStaff && !caller.isApiConsumer) {
     return { success: false, error: 'غير مصرح: تعيين الفنيين يتطلب صلاحية تشغيلية' };
   }
+  if (caller.isApiConsumer && !caller.companyId) {
+    return { success: false, error: 'مفتاح API غير مرتبط بشركة' };
+  }
 
   // تعيين تلقائي ذكي
   if (auto || !technician_id) {
@@ -621,7 +696,7 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
       const resp = await fetch(`${supabaseUrl}/functions/v1/assign-technician-to-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
-        body: JSON.stringify({ requestId: request_id }),
+        body: JSON.stringify({ requestId: request_id, companyId: caller.isApiConsumer ? caller.companyId : undefined, branchId: caller.isApiConsumer ? caller.branchId : undefined }),
       });
       const result = await resp.json();
       if (!resp.ok) return { success: false, error: result.error || 'فشل التعيين التلقائي' };
@@ -640,7 +715,7 @@ async function handleAssignTechnician(supabase: any, supabaseUrl: string, servic
     const resp = await fetch(`${supabaseUrl}/functions/v1/assign-technician-to-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
-      body: JSON.stringify({ requestId: request_id, technicianId: technician_id }),
+      body: JSON.stringify({ requestId: request_id, technicianId: technician_id, companyId: caller.isApiConsumer ? caller.companyId : undefined, branchId: caller.isApiConsumer ? caller.branchId : undefined }),
     });
     const result = await resp.json();
     if (!resp.ok) return { success: false, error: result.error || 'فشل التعيين' };

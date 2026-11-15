@@ -256,7 +256,7 @@ app.post('/tools/:action', async (c) => {
   return c.json(result.body, result.status as 200, corsHeaders);
 });
 
-// منبّه الوكيل الذاتي — تُناديه مهمة pg_cron. لا يفعل شيئًا إن لم يوجد منبّه مستحق.
+// منبّه الوكيل الذاتي — تُناديه مهمة pg_cron باستخدام الاعتمادات الحالية.
 app.post('/agent/tick', (c) => handleAgentTick(c.req.raw));
 
 app.get('/ai/health', (c) => handleAiHealth(c.req.raw));

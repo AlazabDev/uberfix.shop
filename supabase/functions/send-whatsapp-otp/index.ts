@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
     }
 
     // Generate 6-digit code
-    const code = String(Math.floor(Math.random() * 10 ** CODE_LENGTH)).padStart(CODE_LENGTH, "0");
+    const random = new Uint32Array(1);
+    crypto.getRandomValues(random);
+    const code = String(random[0] % 10 ** CODE_LENGTH).padStart(CODE_LENGTH, "0");
     const codeHash = await sha256Hex(code + phone);
     const expiresAt = new Date(Date.now() + CODE_TTL_MS).toISOString();
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
