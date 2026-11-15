@@ -12,6 +12,12 @@ serve(async (req) => {
   }
 
   try {
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > 15 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: 'Import file is too large' }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
