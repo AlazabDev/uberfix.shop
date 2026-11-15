@@ -420,6 +420,9 @@ async function handleGetRequestDetails(supabase: any, payload: any, caller: Call
     if (sent.length < 9) {
       return { success: false, error: 'client_phone مطلوب للتحقق من ملكية الطلب' };
     }
+    const digits = sent;
+    const variants = [digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits];
+    query = query.in('client_phone', variants);
   }
 
   let query = supabase
@@ -487,6 +490,12 @@ async function handleUpdateRequest(supabase: any, payload: any, consumerId: stri
   if ((caller.isApiConsumer || (caller.isStaff && !caller.isGlobalStaff)) &&
       (!caller.companyId || current.company_id !== caller.companyId || (caller.branchId && current.branch_id !== caller.branchId))) {
     return { success: false, error: 'الطلب غير موجود' };
+  }
+  if (!caller.isStaff && !caller.isApiConsumer) {
+    const sent = typeof client_phone === 'string' ? client_phone.replace(/\D/g, '') : '';
+    if (sent.length < 9 || !current.client_phone?.replace(/\D/g, '').endsWith(sent.slice(-9))) {
+      return { success: false, error: 'غير مصرح بالوصول إلى هذا الطلب' };
+    }
   }
 
   // حماية إلزامية: يجب إثبات الملكية بالهاتف إن لم يكن المتصل موظفًا/مستهلك API
