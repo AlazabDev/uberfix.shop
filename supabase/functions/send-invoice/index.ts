@@ -98,6 +98,14 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const verifiedInvoiceEmail = typeof invoice.customer_email === 'string' ? invoice.customer_email.trim().toLowerCase() : '';
+    if (!verifiedInvoiceEmail || recipient_email.trim().toLowerCase() !== verifiedInvoiceEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Invoice can only be sent to the customer email saved on the invoice' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // إنشاء HTML للفاتورة
     const invoiceHtml = `
       <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; max-width: 600px; margin: 0 auto;">

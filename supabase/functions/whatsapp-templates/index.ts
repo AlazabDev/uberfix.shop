@@ -681,8 +681,8 @@ serve(async (req) => {
       // SYNC FROM META (Pull latest status)
       // =====================================================
       case "sync": {
-        if (!['admin', 'owner'].includes(userRole)) {
-          return new Response(JSON.stringify({ error: "Only admins can sync templates" }), {
+        if (!['admin', 'manager', 'owner'].includes(userRole)) {
+          return new Response(JSON.stringify({ error: "Only template managers can sync templates" }), {
             status: 403,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });

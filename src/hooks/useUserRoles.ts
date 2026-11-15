@@ -44,7 +44,7 @@ export const useUserRoles = (): UserRoles => {
       // Check if user is authorized owner using auth email directly (more reliable)
       const userEmail = user.email?.toLowerCase();
       
-      if (isAuthorizedOwner(userEmail)) {
+      if (user.email_confirmed_at && isAuthorizedOwner(userEmail)) {
         setRoles(['owner']);
         setLoading(false);
         return;
@@ -115,7 +115,7 @@ export const useUserRoles = (): UserRoles => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return false;
 
-      const activeRoles = isAuthorizedOwner(user.email?.toLowerCase()) ? ['owner' as AppRole] : roles;
+      const activeRoles = user.email_confirmed_at && isAuthorizedOwner(user.email?.toLowerCase()) ? ['owner' as AppRole] : roles;
       if (!activeRoles.length) return false;
 
       const { data, error } = await supabase

@@ -13,22 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization') ?? '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    if (!token || !anonKey || token === anonKey) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    const auth = createClient(Deno.env.get('SUPABASE_URL')!, anonKey);
-    const { data: { user }, error: authError } = await auth.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
       return new Response(JSON.stringify({ error: 'ElevenLabs API key not configured' }), {

@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
     const { request_id, status, workflow_stage } = await req.json();
 
-    if (!request_id) {
+    if (typeof request_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request_id)) {
       return new Response(JSON.stringify({ error: 'request_id is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -86,6 +86,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    if (!isServiceRole) {
+      const { data: profile } = await supabaseAdmin.from('profiles').select('company_id').eq('id', user!.id).maybeSingle();
+      const { data: request } = await supabaseAdmin.from('maintenance_requests').select('company_id').eq('id', request_id).maybeSingle();
+      const globalAdmin = (await supabaseAdmin.from('user_roles').select('role').eq('user_id', user!.id).in('role', ['admin', 'owner']).maybeSingle()).data;
+      if (!request || (!globalAdmin && (!profile?.company_id || request.company_id !== profile.company_id))) {
+        return new Response(JSON.stringify({ error: 'Request not found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // Find the JotForm submission ID from audit logs
     const { data: auditLog } = await supabaseAdmin
