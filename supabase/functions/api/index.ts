@@ -256,8 +256,17 @@ app.post('/tools/:action', async (c) => {
   return c.json(result.body, result.status as 200, corsHeaders);
 });
 
-// منبّه الوكيل الذاتي — تُناديه مهمة pg_cron. لا يفعل شيئًا إن لم يوجد منبّه مستحق.
-app.post('/agent/tick', (c) => handleAgentTick(c.req.raw));
+// Cron invocation uses the service-role bearer held by the scheduler; staff may run it manually.
+app.post('/agent/tick', async (c) => {
+  const auth = c.req.header('authorization') ?? '';
+  const token = auth.replace(/^Bearer\s+/i, '');
+  if (token === SUPABASE_SERVICE_ROLE_KEY) return handleAgentTick(c.req.raw);
+  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+  if (!user) return c.json({ error: 'Unauthorized' }, 401, corsHeaders);
+  const { data: roles } = await supabaseAdmin.from('user_roles').select('role').eq('user_id', user.id);
+  if (!roles?.some((r: any) => ['admin', 'owner'].includes(r.role))) return c.json({ error: 'Forbidden' }, 403, corsHeaders);
+  return handleAgentTick(c.req.raw);
+});
 
 app.get('/ai/health', (c) => handleAiHealth(c.req.raw));
 app.post('/ai/agent', (c) => handleAiAgent(c.req.raw));
