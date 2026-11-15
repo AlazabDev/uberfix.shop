@@ -300,7 +300,7 @@ async function handleCheckStatus(supabase: any, payload: any, caller: CallerCtx)
       const phone = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
       if (phone.length < 9) return q.eq('id', '00000000-0000-0000-0000-000000000000');
       const digits = phone;
-      const variants = [digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits];
+      const variants = [...new Set([digits, `+${digits}`, digits.startsWith('20') ? `0${digits.slice(2)}` : digits])];
       q = q.in('client_phone', variants);
     }
     return q;
@@ -311,21 +311,24 @@ async function handleCheckStatus(supabase: any, payload: any, caller: CallerCtx)
     if (!caller.isStaff && !caller.isApiConsumer) return { success: false, error: 'غير مسموح بالبحث برقم الهاتف' };
     const digits = term.replace(/\D/g, '').slice(-9);
     if (digits.length < 9) return { success: false, error: 'رقم الهاتف غير صالح' };
-    first = first.ilike('client_phone', `%${digits}`);
-    second = second.ilike('client_phone', `%${digits}`);
+    first = first.ilike('client_phone', `%${digits.replace(/[\\%_]/g, '\\$&')}`);
+    second = second.ilike('client_phone', `%${digits.replace(/[\\%_]/g, '\\$&')}`);
   } else {
     if (!caller.isGlobalStaff && !caller.isStaff && !caller.isApiConsumer) {
       const digits = typeof payload.client_phone === 'string' ? payload.client_phone.replace(/\D/g, '') : '';
       if (digits.length < 9) return { success: false, error: 'رقم الهاتف المسجل مطلوب للتحقق' };
       const suffix = digits.slice(-9);
-      first = first.ilike('client_phone', `%${suffix}`).ilike('request_number', `%${term}%`);
-      second = second.ilike('client_phone', `%${suffix}`).ilike('title', `%${term}%`);
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('client_phone', `%${suffix}`).ilike('request_number', `%${safeTerm}%`);
+      second = second.ilike('client_phone', `%${suffix}`).ilike('title', `%${safeTerm}%`);
     } else if (search_type === 'request_number' || term.startsWith('UF')) {
-      first = first.ilike('request_number', `%${term}%`);
-      second = second.ilike('request_number', `%${term}%`);
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('request_number', `%${safeTerm}%`);
+      second = second.ilike('request_number', `%${safeTerm}%`);
     } else {
-      first = first.ilike('title', `%${term}%`);
-      second = second.ilike('request_number', `%${term}%`);
+      const safeTerm = term.replace(/[\\%_]/g, '\\$&');
+      first = first.ilike('title', `%${safeTerm}%`);
+      second = second.ilike('request_number', `%${safeTerm}%`);
     }
   }
   const [a, b] = await Promise.all([first, second]);
