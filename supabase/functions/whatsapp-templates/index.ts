@@ -1040,7 +1040,10 @@ serve(async (req) => {
           );
 
           const sendResult = await sendResponse.json();
-          console.log(`[${correlationId}] Send result:`, JSON.stringify(sendResult));
+          console.log(`[${correlationId}] Test template result:`, {
+            success: sendResponse.ok,
+            messageId: sendResult.messages?.[0]?.id,
+          });
 
           if (!sendResponse.ok) {
             return new Response(

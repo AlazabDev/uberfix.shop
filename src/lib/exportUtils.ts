@@ -11,9 +11,9 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, '&#39;');
 }
 
-function neutralizeSpreadsheetFormula(value: unknown): string {
+export function neutralizeSpreadsheetFormula(value: unknown): string {
   const text = String(value ?? '');
-  return /^[\s\u0000-\u001f]*[=+@\-]/.test(text) ? `'${text}` : text;
+  return /^[\s\u0000-\u001f\uFEFF]*[=+@\-]/.test(text) ? `'${text}` : text;
 }
 
 /**

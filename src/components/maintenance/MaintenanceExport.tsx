@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { getStatusConfig } from "@/constants/maintenanceStatusConstants";
 import { MaintenanceRequest } from "@/hooks/useMaintenanceRequests";
+import { neutralizeSpreadsheetFormula } from "@/lib/exportUtils";
 
 interface MaintenanceExportProps {
   pageOnly?: boolean;
@@ -122,8 +123,7 @@ export function MaintenanceExport({ requests, filteredRequests, pageOnly = false
 
     // Combine headers and rows
     const quoteCsvCell = (cell: unknown) => {
-      const value = String(cell ?? '');
-      const safeValue = /^\s*[=+@\-]/.test(value) ? `'${value}` : value;
+      const safeValue = neutralizeSpreadsheetFormula(cell);
       return `"${safeValue.replace(/"/g, '""')}"`;
     };
     const csvContent = [headers, ...rows]
