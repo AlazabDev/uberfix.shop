@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated read project_images" ON public.project_images;
